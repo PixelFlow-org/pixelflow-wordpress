@@ -1,4 +1,5 @@
 import { PlatformAdapter, PlatformConfig } from '@pixelflow-org/plugin-core';
+import { toast } from 'react-toastify';
 
 /**
  * WordPress Platform Adapter
@@ -103,6 +104,17 @@ export class WordpressAdapter implements PlatformAdapter {
    */
   showNotification(message: string, type: 'success' | 'error' | 'info' | 'warning'): void {
     // TODO: Implement WordPress notification system
+    toast(message, {
+      position: 'bottom-right',
+      autoClose: 5000,
+      hideProgressBar: false,
+      closeOnClick: false,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: this.getTheme(),
+      type,
+    });
     console.log(`[WordPress] [${type.toUpperCase()}] ${message}`);
   }
 

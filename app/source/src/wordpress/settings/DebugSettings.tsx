@@ -61,6 +61,7 @@ export function DebugSettings({
               values={debugOptions}
               onUpdate={onUpdateDebug}
               sectionKey="debug-product"
+              isDebugMode={true}
             />
 
             <WooClassSection
@@ -69,6 +70,7 @@ export function DebugSettings({
               values={debugOptions}
               onUpdate={onUpdateDebug}
               sectionKey="debug-cart"
+              isDebugMode={true}
             />
 
             <WooClassSection
@@ -77,6 +79,7 @@ export function DebugSettings({
               values={debugOptions}
               onUpdate={onUpdateDebug}
               sectionKey="debug-checkout"
+              isDebugMode={true}
             />
           </div>
 

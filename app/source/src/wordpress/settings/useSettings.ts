@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import { PixelFlowGeneralOptions, PixelFlowClasses } from './settings.types';
 
+export interface SaveSettingsOptions {
+  generalOptionsOverride?: Partial<PixelFlowGeneralOptions>;
+  classOptionsOverride?: Partial<PixelFlowClasses>;
+  debugOptionsOverride?: Partial<PixelFlowClasses>;
+}
+
 interface UseSettingsReturn {
   generalOptions: PixelFlowGeneralOptions;
   classOptions: PixelFlowClasses;
@@ -16,7 +22,7 @@ interface UseSettingsReturn {
   ) => void;
   updateClassOption: <K extends keyof PixelFlowClasses>(key: K, value: PixelFlowClasses[K]) => void;
   updateDebugOption: <K extends keyof PixelFlowClasses>(key: K, value: PixelFlowClasses[K]) => void;
-  saveSettings: () => Promise<void>;
+  saveSettings: (options?: SaveSettingsOptions) => Promise<void>;
 }
 
 const defaultGeneralOptions: PixelFlowGeneralOptions = {
@@ -128,7 +134,7 @@ export function useSettings(): UseSettingsReturn {
     setDebugOptions((prev) => ({ ...prev, [key]: value }));
   };
 
-  const saveSettings = async () => {
+  const saveSettings = async (options?: SaveSettingsOptions) => {
     const settings = window.pixelflowSettings;
     if (!settings) {
       setError('Settings configuration not available');
@@ -143,18 +149,23 @@ export function useSettings(): UseSettingsReturn {
       formData.append('action', 'pixelflow_save_settings');
       formData.append('nonce', settings.nonce);
 
+      // Merge current state with overrides
+      const finalGeneralOptions = { ...generalOptions, ...options?.generalOptionsOverride };
+      const finalClassOptions = { ...classOptions, ...options?.classOptionsOverride };
+      const finalDebugOptions = { ...debugOptions, ...options?.debugOptionsOverride };
+
       // Add general options (script_code is managed separately)
-      Object.entries(generalOptions).forEach(([key, value]) => {
+      Object.entries(finalGeneralOptions).forEach(([key, value]) => {
         formData.append(`general_options[${key}]`, String(value));
       });
 
       // Add class options
-      Object.entries(classOptions).forEach(([key, value]) => {
+      Object.entries(finalClassOptions).forEach(([key, value]) => {
         formData.append(`class_options[${key}]`, String(value));
       });
 
       // Add debug options
-      Object.entries(debugOptions).forEach(([key, value]) => {
+      Object.entries(finalDebugOptions).forEach(([key, value]) => {
         formData.append(`debug_options[${key}]`, String(value));
       });
 
@@ -175,6 +186,17 @@ export function useSettings(): UseSettingsReturn {
         }
         if (data.data.debug_options) {
           setDebugOptions({ ...defaultDebugOptions, ...data.data.debug_options });
+        }
+        
+        // Also apply overrides to local state immediately if they were used
+        if (options?.generalOptionsOverride) {
+          setGeneralOptions((prev) => ({ ...prev, ...options.generalOptionsOverride }));
+        }
+        if (options?.classOptionsOverride) {
+          setClassOptions((prev) => ({ ...prev, ...options.classOptionsOverride }));
+        }
+        if (options?.debugOptionsOverride) {
+          setDebugOptions((prev) => ({ ...prev, ...options.debugOptionsOverride }));
         }
       } else {
         setError(data.data?.message || 'Failed to save settings');

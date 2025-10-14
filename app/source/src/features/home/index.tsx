@@ -39,8 +39,12 @@ import { generateTrackingScript, useAuth } from '@pixelflow-org/plugin-features'
 /** Types */
 import { BlockingRule, TrackingUrlScriptData } from '@pixelflow-org/plugin-core';
 
+/** Notifications */
+import { ToastContainer } from 'react-toastify';
+
 /* Wordpress settings page */
 import { SettingsPage } from '@/wordpress/settings';
+import { useSettings } from '@/wordpress/settings/useSettings';
 import TopControls from '@/components/TopControls/TopControls.tsx';
 
 interface HomeProps {
@@ -102,6 +106,24 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
   });
 
   const { handleLogout } = useAuth({ adapter });
+
+  // Get settings save function to disable integration on logout
+  const { saveSettings } = useSettings();
+
+  const logoutHandler = async () => {
+    try {
+      // Disable PixelFlow integration before logout
+      // Use override to ensure the value is set immediately without waiting for state update
+      await saveSettings({ generalOptionsOverride: { enabled: 0 } });
+
+      console.log('[PixelFlow] Integration disabled on logout');
+    } catch (error) {
+      console.error('[PixelFlow] Failed to disable integration:', error);
+    } finally {
+      // Proceed with logout regardless of settings update result
+      handleLogout();
+    }
+  };
 
   /** Effects */
   /**
@@ -239,6 +261,12 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
    */
   const onRegenerateScript = async (): Promise<boolean> => {
     try {
+      await adapter.injectScript('');
+      if (window.pixelflowSettings) {
+        window.pixelflowSettings.script_code = '';
+        window.dispatchEvent(new CustomEvent('pixelflow:script-updated'));
+      }
+
       // Validate API key availability
       const apiKey = await getHashedApiKey();
       if (!apiKey) {
@@ -370,7 +398,8 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
         <EventsModule events={events} areEventsLoading={areEventsLoading} adapter={adapter} />
       )}
       <SettingsPage onRegenerateScript={onRegenerateScript} />
-      <TopControls handleLogout={handleLogout} />
+      <TopControls handleLogout={logoutHandler} />
+      <ToastContainer />
     </div>
   );
 };

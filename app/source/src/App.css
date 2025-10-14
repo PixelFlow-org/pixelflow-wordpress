@@ -50,3 +50,15 @@
 .pixelflow-app button {
   cursor: pointer;
 }
+[data-theme="light"] .pf-switch .bg-muted {
+  background: #202020;
+}
+[data-theme="dark"] .pf-switch .bg-muted {
+  background: #444444;
+}
+.before\:-translate-x-1\/2:before {
+  --tw-translate-x: -50% !important;
+}
+.data-\[state\=checked\]\:translate-x-3[data-state=checked] {
+  --tw-translate-x: calc(var(--spacing) * 3) !important;
+}

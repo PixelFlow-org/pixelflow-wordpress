@@ -97,6 +97,8 @@ export function SettingsPage(props: SettingsPageProps) {
             <div className="space-y-2">
               <p className="text-sm text-foreground">
                 Below is the integration script code that will be injected into the site head.
+                <br />
+                <b>You do not need to copy it anywhere, it will be added automatically.</b>
               </p>
               <UI.Input.Root>
                 <UI.Input.Wrapper>
