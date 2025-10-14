@@ -1,0 +1,55 @@
+/* PixelFlow Admin Styles */
+
+.pixelflow-admin-wrap {
+    max-width: 800px;
+}
+
+.pixelflow-admin-wrap h1 {
+    color: #23282d;
+    margin-bottom: 20px;
+}
+
+.pixelflow-admin-wrap .form-table th {
+    width: 200px;
+    padding: 20px 10px 20px 0;
+}
+
+.pixelflow-admin-wrap .form-table td {
+    padding: 15px 10px;
+}
+
+.pixelflow-admin-wrap .description {
+    font-style: italic;
+    color: #666;
+    margin-top: 5px;
+}
+
+.pixelflow-admin-wrap .regular-text {
+    width: 300px;
+}
+
+.pixelflow-admin-wrap .button-primary {
+    background: #0073aa;
+    border-color: #0073aa;
+    box-shadow: 0 1px 0 #006799;
+}
+
+.pixelflow-admin-wrap .button-primary:hover {
+    background: #005a87;
+    border-color: #005a87;
+}
+
+.pixelflow-settings-section {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    margin: 20px 0;
+    padding: 20px;
+}
+
+.pixelflow-settings-section h2 {
+    margin-top: 0;
+    color: #23282d;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}

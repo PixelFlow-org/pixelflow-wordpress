@@ -1,0 +1,33 @@
+.idea
+.vscode
+node_modules
+app/source/node_modules
+app/source/.vscode
+
+# Logs
+app/source/logs
+app/source/*.log
+app/source/npm-debug.log*
+app/source/yarn-debug.log*
+app/source/yarn-error.log*
+app/source/pnpm-debug.log*
+app/source/lerna-debug.log*
+
+app/dist
+app/dist-ssr
+app/*.local
+
+# Editor directories and files
+app/source/.vscode/*
+app/source/!.vscode/extensions.json
+app/source/.DS_Store
+app/source/*.suo
+app/source/*.ntvs*
+app/source/*.njsproj
+app/source/*.sln
+app/source/*.sw?
+
+# Environment
+app/source/.env
+app/source/.env.local
+app/source/.env.*.local

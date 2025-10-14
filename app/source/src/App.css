@@ -1,0 +1,45 @@
+@import 'tailwindcss';
+
+@config '../tailwind.config.js';
+
+/**
+ * WordPress-specific theme customizations
+ * 
+ * The @pixelflow-org/plugin-ui package already provides complete theme variables.
+ * Only add custom overrides here if you need platform-specific styling.
+ * 
+ * Example: If WordPress provides theme tokens, map them here:
+ * 
+ * [data-wordpress-theme='dark'] {
+ *   --color-background: var(--wordpress-bg-color, #0a0a0a);
+ *   --color-foreground: var(--wordpress-text-color, #ffffff);
+ * }
+ */
+
+/* Add your platform-specific theme overrides below (optional) */
+.pixelflow-app h1 {
+  display: flex;
+  flex-wrap: wrap;
+  color: var(--color-foreground);
+  justify-content: center;
+}
+.pixelflow-app {
+  width: 1200px;
+  max-width: 90%;
+}
+@layer base {
+  .pixelflow-app {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-magnetik);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+  }
+}
+@media (max-width: 1200px){
+  .pixelflow-app {
+    width: 100%;
+    max-width: 100%;
+  }
+}
