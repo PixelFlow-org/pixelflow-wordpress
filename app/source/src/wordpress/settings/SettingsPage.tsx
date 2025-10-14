@@ -4,8 +4,14 @@ import { GeneralSettings } from './GeneralSettings';
 import { WooCommerceSettings } from './WooCommerceSettings';
 import { DebugSettings } from './DebugSettings';
 import * as UI from '@pixelflow-org/plugin-ui';
+import { useState } from 'react';
 
-export function SettingsPage() {
+type SettingsPageProps = {
+  onRegenerateScript: () => void;
+};
+
+export function SettingsPage(props: SettingsPageProps) {
+  const { onRegenerateScript } = props;
   const {
     generalOptions,
     classOptions,
@@ -23,6 +29,13 @@ export function SettingsPage() {
 
   const handleSave = async () => {
     await saveSettings();
+  };
+
+  const [regenerateScriptLoading, setRegenerateScriptLoading] = useState(false);
+  const onRegenerateScriptHandle = async () => {
+    setRegenerateScriptLoading(true);
+    await onRegenerateScript();
+    setRegenerateScriptLoading(false);
   };
 
   if (isLoading) {
@@ -97,6 +110,14 @@ export function SettingsPage() {
                   />
                 </UI.Input.Wrapper>
               </UI.Input.Root>
+
+              <button
+                onClick={onRegenerateScriptHandle}
+                className="button button-primary"
+                disabled={regenerateScriptLoading}
+              >
+                {regenerateScriptLoading ? 'Regenerating...' : 'Regenerate Script'}
+              </button>
             </div>
           ) : null}
         </div>

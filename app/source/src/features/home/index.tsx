@@ -5,7 +5,6 @@
 
 /** External libraries */
 import { useEffect, useState, ReactElement } from 'react';
-import { useDispatch } from 'react-redux';
 
 /** Store */
 import { getCdnUrl } from '@pixelflow-org/plugin-core';
@@ -35,13 +34,14 @@ import {
 } from '@pixelflow-org/plugin-features';
 
 /** Utils */
-import { generateTrackingScript } from '@pixelflow-org/plugin-features';
+import { generateTrackingScript, useAuth } from '@pixelflow-org/plugin-features';
 
 /** Types */
 import { BlockingRule, TrackingUrlScriptData } from '@pixelflow-org/plugin-core';
 
 /* Wordpress settings page */
 import { SettingsPage } from '@/wordpress/settings';
+import TopControls from '@/components/TopControls/TopControls.tsx';
 
 interface HomeProps {
   user: User;
@@ -69,13 +69,10 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
   const [openAddUrlModal, setOpenAddUrlModal] = useState<boolean>(false);
   // Store selected currency to associate tracking data with specific currencies
   const [selectedCurrency, setSelectedCurrency] = useState<string>('USD');
-  // Track application activation status to prevent script injection conflicts
-  const [isApplicationActive, setIsApplicationActive] = useState<boolean>(false);
   // Track if script generation is in progress to prevent duplicate calls
   const [isGeneratingScript, setIsGeneratingScript] = useState<boolean>(false);
 
   /** Redux state */
-  const dispatch = useDispatch();
   const [getSite] = useLazyGetSiteQuery();
 
   /** Pixels */
@@ -103,6 +100,8 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
     siteId,
     adapter,
   });
+
+  const { handleLogout } = useAuth({ adapter });
 
   /** Effects */
   /**
@@ -170,7 +169,6 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
         }
 
         console.log('[PixelFlow] Tracking script saved successfully. Use settings to enable.');
-        setIsApplicationActive(true);
       } catch (error) {
         console.error('[PixelFlow] Failed to generate/save tracking script:', error);
       } finally {
@@ -181,7 +179,6 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
     generateAndSaveScript();
     // Note: getHashedApiKey and getSite are intentionally NOT in dependencies
     // to avoid infinite loops - they're stable functions from hooks
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [siteExternalId, pixels, siteId, selectedCurrency, trackingUrls]);
 
   // Automatically associate tracking data with the current site on component mount
@@ -304,7 +301,6 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
       }
 
       adapter.showNotification('Tracking script regenerated successfully', 'success');
-      setIsApplicationActive(true);
       return true;
     } catch (error) {
       adapter.showNotification('Failed to regenerate script', 'error');
@@ -373,7 +369,8 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
       {activeTab === 'events' && (
         <EventsModule events={events} areEventsLoading={areEventsLoading} adapter={adapter} />
       )}
-      <SettingsPage />
+      <SettingsPage onRegenerateScript={onRegenerateScript} />
+      <TopControls handleLogout={handleLogout} />
     </div>
   );
 };

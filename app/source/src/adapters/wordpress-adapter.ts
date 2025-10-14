@@ -113,12 +113,18 @@ export class WordpressAdapter implements PlatformAdapter {
   getTheme(): 'light' | 'dark' {
     if (typeof document === 'undefined') return 'light';
 
-    // get body data-theme and if it's not set, default to light
-    const theme = document.body.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    const storedTheme = localStorage.getItem('pixelflow_theme');
+    let theme: 'light' | 'dark' = 'light';
 
-    // Sync generic data-theme attribute for UI package
-    // document.querySelector('.pixelflow-app')?.setAttribute('data-theme', theme);
+    if (storedTheme === 'dark' || storedTheme === 'light') {
+      theme = storedTheme;
+    } else {
+      const bodyTheme = document.body.getAttribute('data-theme');
+      theme = bodyTheme === 'dark' ? 'dark' : 'light';
+    }
+
     document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('pixelflow_theme', theme);
 
     return theme;
   }
