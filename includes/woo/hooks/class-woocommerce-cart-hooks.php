@@ -87,7 +87,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
     // (Add this to the overall main/parent container containing all the cart items)
     public function start_cart_wrapper()
     {
-        $className = 'info-pdct-ctnr-list-pf';
+        $className = 'info-pdct-ctnr-list-pf ';
         echo "<div class='" . esc_attr($className) . "'>";
     }
 

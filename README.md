@@ -23,9 +23,7 @@ WordPress plugin for [PixelFlow](https://pixelflow.so) - automatically inserts P
 The plugin includes a React-based admin interface that needs to be built before deployment.
 
 ```bash
-cd app/source
-npm install
-npm run build
+sh build_plugin.sh
 ```
 
 This will compile the frontend assets to `app/dist/`.
