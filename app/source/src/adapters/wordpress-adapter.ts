@@ -98,23 +98,11 @@ export class WordpressAdapter implements PlatformAdapter {
   }
 
   /**
-   * TODO: Implement notifications for WordPress
    *
    * Show user-facing notifications/toasts.
    */
   showNotification(message: string, type: 'success' | 'error' | 'info' | 'warning'): void {
-    // TODO: Implement WordPress notification system
-    toast(message, {
-      position: 'bottom-right',
-      autoClose: 5000,
-      hideProgressBar: false,
-      closeOnClick: false,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
-      theme: this.getTheme(),
-      type,
-    });
+    toast(message, { type });
     console.log(`[WordPress] [${type.toUpperCase()}] ${message}`);
   }
 

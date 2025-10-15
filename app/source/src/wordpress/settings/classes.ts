@@ -49,6 +49,16 @@ export const cartClasses: WooClassItem[] = [
     className: 'action-btn-buy-004-pf',
     description: 'Add this to the proceed to checkout button',
   },
+  {
+    key: 'woo_class_cart_product_name',
+    className: 'info-pdct-name-pf',
+    description: 'Add this to the cart product name',
+  },
+  {
+    key: 'woo_class_cart_products_container',
+    className: 'info-pdct-ctnr-list-pf',
+    description: 'Add this to the element which wraps all the products in the cart',
+  },
 ];
 
 export const checkoutClasses: WooClassItem[] = [

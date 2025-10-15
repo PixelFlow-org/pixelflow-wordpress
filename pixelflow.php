@@ -214,44 +214,7 @@ class PixelFlow
             'woo_class_cart_item',
             'woo_class_cart_price',
             'woo_class_cart_checkout_button',
-            // Checkout classes
-            'woo_class_checkout_form',
-            'woo_class_checkout_item',
-            'woo_class_checkout_item_name',
-            'woo_class_checkout_item_price',
-            'woo_class_checkout_item_quantity',
-            'woo_class_checkout_total',
-            'woo_class_checkout_place_order',
-        );
-
-        // Set all checkboxes: 1 if checked, 0 if not
-        foreach ($checkbox_options as $option) {
-            $sanitized[$option] = isset($input[$option]) && $input[$option] ? 1 : 0;
-        }
-
-        return $sanitized;
-    }
-
-    /**
-     * Sanitize debug options (same structure as class options)
-     */
-    public function sanitize_debug_options($input)
-    {
-        $sanitized = array();
-
-        // Define all debug checkbox options (same as class options)
-        $checkbox_options = array(
-            // Product classes
-            'woo_class_product_container',
-            'woo_class_product_name',
-            'woo_class_product_price',
-            'woo_class_product_quantity',
-            'woo_class_product_add_to_cart',
-            // Cart classes
-            'woo_class_cart_table',
-            'woo_class_cart_item',
-            'woo_class_cart_price',
-            'woo_class_cart_checkout_button',
+            'woo_class_cart_product_name',
             // Checkout classes
             'woo_class_checkout_form',
             'woo_class_checkout_item',
@@ -490,7 +453,7 @@ class PixelFlow
         // Sanitize and save options
         $sanitized_general_options = $this->sanitize_general_options($general_options);
         $sanitized_class_options   = $this->sanitize_class_options($class_options);
-        $sanitized_debug_options   = $this->sanitize_debug_options($debug_options);
+        $sanitized_debug_options   = $this->sanitize_class_options($debug_options);
 
         update_option('pixelflow_general_options', $sanitized_general_options);
         update_option('pixelflow_class_options', $sanitized_class_options);

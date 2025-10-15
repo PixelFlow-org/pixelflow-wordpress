@@ -13,6 +13,7 @@ import './App.css';
 
 import { PlatformProvider, usePlatform } from './contexts/platform.context';
 import Bootstrap from './features/bootstrap/components';
+import { ToastContainer } from 'react-toastify';
 
 /**
  * App with platform adapter
@@ -38,6 +39,15 @@ function AppWithPlatform() {
       >
         <PersistGate loading={<LoadingScreen />} persistor={persistor}>
           <Bootstrap />
+          <ToastContainer
+            position="bottom-right"
+            autoClose={5000}
+            hideProgressBar={false}
+            closeOnClick={false}
+            pauseOnHover={true}
+            draggable={true}
+            theme={adapter.getTheme()}
+          />
         </PersistGate>
       </ThemeProvider>
     </Provider>

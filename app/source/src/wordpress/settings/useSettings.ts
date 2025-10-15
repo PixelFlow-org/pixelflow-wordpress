@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { PixelFlowGeneralOptions, PixelFlowClasses, UserRole } from './settings.types';
+import { toast } from 'react-toastify';
+import { productClasses } from '@/wordpress/settings/classes.ts';
 
 export interface SaveSettingsOptions {
   generalOptionsOverride?: Partial<PixelFlowGeneralOptions>;
@@ -44,6 +46,7 @@ const defaultClassOptions: PixelFlowClasses = {
   woo_class_cart_item: 1,
   woo_class_cart_price: 1,
   woo_class_cart_checkout_button: 1,
+  woo_class_cart_product_name: 1,
   woo_class_checkout_form: 1,
   woo_class_checkout_item: 1,
   woo_class_checkout_item_name: 1,
@@ -63,6 +66,7 @@ const defaultDebugOptions: PixelFlowClasses = {
   woo_class_cart_item: 0,
   woo_class_cart_price: 0,
   woo_class_cart_checkout_button: 0,
+  woo_class_cart_product_name: 0,
   woo_class_checkout_form: 0,
   woo_class_checkout_item: 0,
   woo_class_checkout_item_name: 0,
@@ -118,6 +122,9 @@ export function useSettings(): UseSettingsReturn {
       setIsLoading(false);
     } else {
       setError('Failed to load settings');
+      toast('Failed to load settings', {
+        type: 'error',
+      });
       setIsLoading(false);
     }
   }, []);
@@ -174,6 +181,10 @@ export function useSettings(): UseSettingsReturn {
     const settings = window.pixelflowSettings;
     if (!settings) {
       setError('Settings configuration not available');
+      toast('Settings configuration not available', {
+        type: 'error',
+      });
+
       return;
     }
 
@@ -223,7 +234,7 @@ export function useSettings(): UseSettingsReturn {
         if (data.data.debug_options) {
           setDebugOptions({ ...defaultDebugOptions, ...data.data.debug_options });
         }
-        
+
         // Also apply overrides to local state immediately if they were used
         if (options?.generalOptionsOverride) {
           setGeneralOptions((prev) => ({ ...prev, ...options.generalOptionsOverride }));
@@ -234,12 +245,22 @@ export function useSettings(): UseSettingsReturn {
         if (options?.debugOptionsOverride) {
           setDebugOptions((prev) => ({ ...prev, ...options.debugOptionsOverride }));
         }
+
+        toast('Settings saved successfully', {
+          type: 'info',
+        });
       } else {
         setError(data.data?.message || 'Failed to save settings');
+        toast('Failed to save settings', {
+          type: 'error',
+        });
       }
     } catch (err) {
       setError('An error occurred while saving settings');
       console.error('Save settings error:', err);
+      toast('Save settings error, see browser console for details', {
+        type: 'error',
+      });
     } finally {
       setIsSaving(false);
     }

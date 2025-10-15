@@ -399,7 +399,6 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
       )}
       <SettingsPage onRegenerateScript={onRegenerateScript} />
       <TopControls handleLogout={logoutHandler} />
-      <ToastContainer />
     </div>
   );
 };
