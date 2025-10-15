@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { PixelFlowGeneralOptions, PixelFlowClasses, UserRole } from './settings.types';
 import { toast } from 'react-toastify';
-import { productClasses } from '@/wordpress/settings/classes.ts';
+import { productClasses, cartClasses, checkoutClasses } from '@/wordpress/settings/classes.ts';
 
 export interface SaveSettingsOptions {
   generalOptionsOverride?: Partial<PixelFlowGeneralOptions>;
@@ -36,45 +36,23 @@ const defaultGeneralOptions: PixelFlowGeneralOptions = {
   excluded_user_roles: [],
 };
 
-const defaultClassOptions: PixelFlowClasses = {
-  woo_class_product_container: 1,
-  woo_class_product_name: 1,
-  woo_class_product_price: 1,
-  woo_class_product_quantity: 1,
-  woo_class_product_add_to_cart: 1,
-  woo_class_cart_table: 1,
-  woo_class_cart_item: 1,
-  woo_class_cart_price: 1,
-  woo_class_cart_checkout_button: 1,
-  woo_class_cart_product_name: 1,
-  woo_class_checkout_form: 1,
-  woo_class_checkout_item: 1,
-  woo_class_checkout_item_name: 1,
-  woo_class_checkout_item_price: 1,
-  woo_class_checkout_item_quantity: 1,
-  woo_class_checkout_total: 1,
-  woo_class_checkout_place_order: 1,
+// Generate default options from all class definitions
+const generateDefaultOptions = (defaultValue: 0 | 1): PixelFlowClasses => {
+  const allClasses = [...productClasses, ...cartClasses, ...checkoutClasses];
+  return allClasses.reduce(
+    (acc, classItem) => {
+      acc[classItem.key] = defaultValue;
+      return acc;
+    },
+    {} as PixelFlowClasses
+  );
 };
 
-const defaultDebugOptions: PixelFlowClasses = {
-  woo_class_product_container: 0,
-  woo_class_product_name: 0,
-  woo_class_product_price: 0,
-  woo_class_product_quantity: 0,
-  woo_class_product_add_to_cart: 0,
-  woo_class_cart_table: 0,
-  woo_class_cart_item: 0,
-  woo_class_cart_price: 0,
-  woo_class_cart_checkout_button: 0,
-  woo_class_cart_product_name: 0,
-  woo_class_checkout_form: 0,
-  woo_class_checkout_item: 0,
-  woo_class_checkout_item_name: 0,
-  woo_class_checkout_item_price: 0,
-  woo_class_checkout_item_quantity: 0,
-  woo_class_checkout_total: 0,
-  woo_class_checkout_place_order: 0,
-};
+// All class options enabled by default
+const defaultClassOptions: PixelFlowClasses = generateDefaultOptions(1);
+
+// All debug options disabled by default
+const defaultDebugOptions: PixelFlowClasses = generateDefaultOptions(0);
 
 export function useSettings(): UseSettingsReturn {
   const [generalOptions, setGeneralOptions] =

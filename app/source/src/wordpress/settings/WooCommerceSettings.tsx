@@ -49,7 +49,7 @@ export function WooCommerceSettings({
 
       {generalOptions.woo_enabled === 1 && (
         <div className="space-y-6 mt-6">
-          <div className="flex flex-wrap gap-8">
+          <div className="flex gap-8 [@media(max-width:1100px)]:flex-wrap">
             <WooClassSection
               title="Product Classes"
               items={productClasses}

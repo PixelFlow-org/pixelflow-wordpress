@@ -37,6 +37,44 @@ cd app/source
 npm run dev  # Start development server with hot reload
 ```
 
+### Adding New PixelFlow Classes
+
+To add a new class (e.g., `info-pdct-ctnr-list-pf`), update the following files:
+
+1. **`app/source/src/wordpress/settings/classes.ts`**
+   - Add the class to the appropriate array (`productClasses`, `cartClasses`, or `checkoutClasses`)
+   ```typescript
+   {
+     key: 'woo_class_cart_products_container',
+     className: 'info-pdct-ctnr-list-pf',
+     description: 'Add this to the element which wraps all products',
+   }
+   ```
+
+2. **`app/source/src/wordpress/settings/settings.types.ts`**
+   - Add the key to the `PixelFlowClasses` interface
+   ```typescript
+   export interface PixelFlowClasses {
+     // ... existing keys
+     woo_class_cart_products_container: number;
+   }
+   ```
+
+3. **`pixelflow.php`**
+   - Add the default value to the class options and debug options arrays
+
+4. **`includes/woo/hooks/`**
+   - Add the hook implementation in the appropriate file:
+     - `class-woocommerce-product-hooks.php` for product page classes
+     - `class-woocommerce-cart-hooks.php` for cart page classes
+     - `class-woocommerce-checkout-hooks.php` for checkout page classes
+
+After adding new classes, rebuild the frontend:
+```bash
+cd app/source
+npm run build
+```
+
 ## Deployment
 
 When uploading the plugin to production:

@@ -49,10 +49,12 @@ class PixelFlow_WooCommerce_Cart_Hooks
      */
     private function init_hooks()
     {
-        // Wrap class and 'proceed to checkout' button with the element with class info-pdct-ctnr-pf
+        // Wrap class and 'proceed to checkout' button with the element with classes:
+        // For each product: info-pdct-ctnr-pf
+        // All products in: info-pdct-ctnr-list-pf
         // There's no common wrapper around the cart table and the proceed to checkout button
         // So we need to add a wrapper around the cart table and another around the proceed to checkout button
-        if ($this->is_class_enabled('woo_class_cart_table')) {
+        if ($this->is_class_enabled('woo_class_cart_products_container')) {
             add_action('woocommerce_before_cart', [$this, 'start_cart_wrapper'], 0);
             add_action('woocommerce_after_cart_totals', [$this, 'end_cart_wrapper'], PHP_INT_MAX);
         }
@@ -85,7 +87,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
     // (Add this to the overall main/parent container containing all the cart items)
     public function start_cart_wrapper()
     {
-        $className = 'info-pdct-ctnr-pf';
+        $className = 'info-pdct-ctnr-list-pf';
         echo "<div class='" . esc_attr($className) . "'>";
     }
 
@@ -178,8 +180,8 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return $product_name;
         }
 
-        $product = $cart_item['data'];
-        $name = $product->get_name();
+        $product      = $cart_item['data'];
+        $name         = $product->get_name();
         $product_link = $product->is_visible() ? $product->get_permalink() : '';
 
         if ($product_link) {
@@ -193,6 +195,38 @@ class PixelFlow_WooCommerce_Cart_Hooks
         }
 
         return $wrapped_name;
+    }
+
+
+
+    // Add info-pdct-ctnr-pf class to the cart table
+    // (Add this to the overall main/parent container containing all the cart items)
+    public function start_cart_table_buffer()
+    {
+        if (is_cart()) {
+            ob_start(array($this, 'add_cart_table_class'));
+        }
+    }
+
+    public function add_cart_table_class($content)
+    {
+        $className = 'info-pdct-ctnr-list-pf';
+
+        // Replace shop_table shop_table_responsive with shop_table shop_table_responsive info-pdct-ctnr-pf
+        $content = str_replace(
+            'shop_table shop_table_responsive',
+            'shop_table shop_table_responsive ' . esc_attr($className) . ' ',
+            $content
+        );
+
+        return $content;
+    }
+
+    public function end_cart_table_buffer()
+    {
+        if (is_cart()) {
+            ob_end_flush();
+        }
     }
 }
 

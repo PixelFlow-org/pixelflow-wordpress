@@ -30,11 +30,6 @@ export const productClasses: WooClassItem[] = [
 
 export const cartClasses: WooClassItem[] = [
   {
-    key: 'woo_class_cart_table',
-    className: 'info-pdct-ctnr-pf',
-    description: 'Add this to the overall main/parent container containing all the cart items',
-  },
-  {
     key: 'woo_class_cart_item',
     className: 'info-pdct-ctnr-pf',
     description: 'Add this the container of each individual item',

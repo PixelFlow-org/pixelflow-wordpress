@@ -41,10 +41,11 @@ export function WooClassSection({
     'info-itm-qnty-pf': '#03adfc',
     'info-totl-amt-pf': '#b103fc',
     'action-btn-plc-ord-018-pf': '#b01a81',
+    'info-pdct-ctnr-list-pf': '#fcdb03',
   };
 
   return (
-    <div className="mb-6 w-full max-w-sm">
+    <div className="mb-6 w-full max-w-1/3">
       <div className="flex items-center justify-between mb-3">
         <h4 className="text-sm font-semibold !text-foreground">{title}</h4>
         <button

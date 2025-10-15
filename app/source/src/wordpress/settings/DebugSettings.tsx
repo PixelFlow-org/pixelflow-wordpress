@@ -54,7 +54,7 @@ export function DebugSettings({
 
       {generalOptions.debug_enabled === 1 && (
         <div className="space-y-6 mt-6">
-          <div className="flex flex-wrap gap-8">
+          <div className="flex gap-8 [@media(max-width:1100px)]:flex-wrap">
             <WooClassSection
               title="DEBUG Product Classes"
               items={productClasses}

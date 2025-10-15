@@ -210,11 +210,11 @@ class PixelFlow
             'woo_class_product_quantity',
             'woo_class_product_add_to_cart',
             // Cart classes
-            'woo_class_cart_table',
             'woo_class_cart_item',
             'woo_class_cart_price',
             'woo_class_cart_checkout_button',
             'woo_class_cart_product_name',
+            'woo_class_cart_products_container',
             // Checkout classes
             'woo_class_checkout_form',
             'woo_class_checkout_item',
@@ -313,10 +313,10 @@ class PixelFlow
             'woo_class_product_quantity'       => '.info-pdct-qnty-pf { border: 1px solid orange !important; }',
             'woo_class_product_add_to_cart'    => '.action-btn-cart-005-pf { border: 1px solid #fc0390 !important; }',
             // Cart classes
-            'woo_class_cart_table'             => '.info-pdct-ctnr-pf { border: 1px solid green !important; background: rgba(0,0,0,0.1) !important; }',
             'woo_class_cart_item'              => '.info-pdct-ctnr-pf { border: 1px solid green !important; background: rgba(0,0,0,0.1) !important; }',
             'woo_class_cart_price'             => '.info-pdct-price-pf { border: 1px solid blue !important; }',
             'woo_class_cart_checkout_button'   => '.action-btn-buy-004-pf { border: 3px solid #67a174 !important; }',
+            'woo_class_cart_products_container'   => '.info-pdct-ctnr-list-pf { border: 3px solid #fcdb03 !important; }',
             // Checkout classes
             'woo_class_checkout_form'          => '.info-chk-itm-ctnr-pf { border: 1px solid green !important; }',
             'woo_class_checkout_item'          => '.info-chk-itm-pf { background: rgba(0,0,0,0.1) !important; }',
