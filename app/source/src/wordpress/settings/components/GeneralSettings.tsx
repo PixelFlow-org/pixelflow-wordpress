@@ -1,5 +1,5 @@
 import * as UI from '@pixelflow-org/plugin-ui';
-import type { PixelFlowGeneralOptions, UserRole } from './settings.types';
+import type { PixelFlowGeneralOptions, UserRole } from '../types/settings.types';
 
 interface GeneralSettingsProps {
   generalOptions: PixelFlowGeneralOptions;

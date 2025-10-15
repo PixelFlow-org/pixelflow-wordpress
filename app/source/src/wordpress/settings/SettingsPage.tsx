@@ -1,8 +1,8 @@
 import { TooltipProvider } from '@pixelflow-org/plugin-ui';
-import { useSettings } from './useSettings';
-import { GeneralSettings } from './GeneralSettings';
-import { WooCommerceSettings } from './WooCommerceSettings';
-import { DebugSettings } from './DebugSettings';
+import { useSettings } from './hooks/useSettings';
+import { GeneralSettings } from './components/GeneralSettings';
+import { WooCommerceSettings } from './components/WooCommerceSettings';
+import { DebugSettings } from './components/DebugSettings';
 import * as UI from '@pixelflow-org/plugin-ui';
 import { useState } from 'react';
 
@@ -87,7 +87,8 @@ export function SettingsPage(props: SettingsPageProps) {
               debugOptions={debugOptions}
               onUpdateGeneral={updateGeneralOption}
               onUpdateDebug={updateDebugOption}
-              isWooEnabled={generalOptions.enabled === 1 && generalOptions.woo_enabled === 1}
+              isEnabled={generalOptions.enabled === 1}
+              isWooCommerceActive={isWooCommerceActive}
             />
           </div>
 

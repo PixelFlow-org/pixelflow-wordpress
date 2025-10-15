@@ -1,7 +1,7 @@
 import * as UI from '@pixelflow-org/plugin-ui';
 import { WooClassSection } from './WooClassSection';
-import type { PixelFlowGeneralOptions, PixelFlowClasses } from './settings.types';
-import { productClasses, cartClasses, checkoutClasses } from './classes.ts';
+import type { PixelFlowGeneralOptions, PixelFlowClasses } from '../types/settings.types';
+import { productClasses, cartClasses, checkoutClasses } from '../const/classes.ts';
 
 interface WooCommerceSettingsProps {
   generalOptions: PixelFlowGeneralOptions;
@@ -45,6 +45,22 @@ export function WooCommerceSettings({
             Enable WooCommerce integration to track eCommerce events
           </UI.TooltipContent>
         </UI.TooltipRoot>
+      </div>
+      <div>
+        <p>
+          These options will add the classes to track your WooCommerce purchases automatically.
+          <br />
+          Please check your site thoroughly after enabling this option and saving the changes
+        </p>
+        <p>
+          You can{' '}
+          <a
+            href="https://docs.pixelflow.so/pixelflow-classes-document#purchase-events-classes-document"
+            target="_blank"
+          >
+            read more about the classes here
+          </a>
+        </p>
       </div>
 
       {generalOptions.woo_enabled === 1 && (

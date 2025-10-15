@@ -1,5 +1,5 @@
 import * as UI from '@pixelflow-org/plugin-ui';
-import type { WooClassItem, PixelFlowClasses } from './settings.types';
+import type { WooClassItem, PixelFlowClasses } from '../types/settings.types';
 
 interface WooClassSectionProps {
   title: string;
@@ -69,7 +69,7 @@ export function WooClassSection({
                   id={id}
                 ></UI.Switch.Root>
                 <UI.Label.Root htmlFor={id} className="flex items-center gap-2">
-                  <code className="text-xs bg-gray-100 px-2 py-1 rounded">{item.className}</code>
+                  <code className="text-xs bg-gray-100 px-2 py-1 rounded">{item.description}</code>
                   {isDebugMode && debugColor && (
                     <span
                       className="inline-block w-4 h-4 border-2 rounded"
@@ -80,7 +80,7 @@ export function WooClassSection({
                 </UI.Label.Root>
               </div>
               <p className="text-xs text-foreground ml-12">
-                {item.description}
+                {item.className}
                 {isDebugMode && debugColor && (
                   <span className="text-gray-500">
                     {' '}

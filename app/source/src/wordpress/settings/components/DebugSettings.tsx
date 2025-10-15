@@ -1,7 +1,7 @@
 import * as UI from '@pixelflow-org/plugin-ui';
 import { WooClassSection } from './WooClassSection';
-import type { PixelFlowGeneralOptions, PixelFlowClasses } from './settings.types';
-import { productClasses, cartClasses, checkoutClasses } from './classes.ts';
+import type { PixelFlowGeneralOptions, PixelFlowClasses } from '../types/settings.types';
+import { productClasses, cartClasses, checkoutClasses } from '../const/classes.ts';
 
 interface DebugSettingsProps {
   generalOptions: PixelFlowGeneralOptions;
@@ -11,7 +11,8 @@ interface DebugSettingsProps {
     value: PixelFlowGeneralOptions[K]
   ) => void;
   onUpdateDebug: <K extends keyof PixelFlowClasses>(key: K, value: PixelFlowClasses[K]) => void;
-  isWooEnabled: boolean;
+  isEnabled: boolean;
+  isWooCommerceActive: boolean;
 }
 
 export function DebugSettings({
@@ -19,9 +20,10 @@ export function DebugSettings({
   debugOptions,
   onUpdateGeneral,
   onUpdateDebug,
-  isWooEnabled,
+  isEnabled,
+  isWooCommerceActive,
 }: DebugSettingsProps) {
-  if (!isWooEnabled) {
+  if (!isWooCommerceActive || !isEnabled) {
     return null;
   }
 

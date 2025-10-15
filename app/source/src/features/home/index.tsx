@@ -39,12 +39,8 @@ import { generateTrackingScript, useAuth } from '@pixelflow-org/plugin-features'
 /** Types */
 import { BlockingRule, TrackingUrlScriptData } from '@pixelflow-org/plugin-core';
 
-/** Notifications */
-import { ToastContainer } from 'react-toastify';
-
 /* Wordpress settings page */
-import { SettingsPage } from '@/wordpress/settings';
-import { useSettings } from '@/wordpress/settings/useSettings';
+import { SettingsPage, useSettings } from '@/wordpress/settings';
 import TopControls from '@/components/TopControls/TopControls.tsx';
 
 interface HomeProps {
