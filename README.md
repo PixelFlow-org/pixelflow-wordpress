@@ -77,7 +77,22 @@ npm run build
 
 ## Deployment
 
-When uploading the plugin to production:
+### Quick Build (Recommended)
+
+Use the automated build script to create a production-ready zip file:
+
+```bash
+./build_plugin.sh
+```
+
+This will:
+1. Build the frontend assets
+2. Create a timestamped zip file in `build/` directory
+3. Include only production files (excluding `app/source`)
+
+### Manual Deployment
+
+When uploading the plugin to production manually:
 
 1. Build the production assets (see above)
 2. **Exclude the `app/source` directory**
@@ -87,6 +102,7 @@ When uploading the plugin to production:
    - `includes/` ✅
    - `admin/` ✅
    - `pixelflow.php` ✅
+   - `README.md` ✅
    - `app/source/` ❌ (exclude)
 
 ## WooCommerce Integration

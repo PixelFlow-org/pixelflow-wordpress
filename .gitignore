@@ -17,6 +17,10 @@ app/dist
 app/dist-ssr
 app/*.local
 
+# Build artifacts
+build/
+*.zip
+
 # Editor directories and files
 app/source/.vscode/*
 app/source/!.vscode/extensions.json
