@@ -182,6 +182,15 @@ class PixelFlow
             $sanitized[$option] = isset($input[$option]) && $input[$option] ? 1 : 0;
         }
 
+        // Sanitize excluded_user_roles (array of role keys)
+
+        if (isset($input['excluded_user_roles'])) {
+          if(!is_array($input['excluded_user_roles'])){
+            $input['excluded_user_roles'] = explode(',', $input['excluded_user_roles']);
+          }
+          $sanitized['excluded_user_roles'] = array_map('sanitize_text_field', $input['excluded_user_roles']);
+        }
+
         return $sanitized;
     }
 
@@ -269,13 +278,54 @@ class PixelFlow
         $general_options = get_option('pixelflow_general_options');
         $script_code     = get_option('pixelflow_script_code', '');
 
-        // Only inject if enabled and script code exists
+        // Only inject if enabled and script code exists and user role is not excluded
         if (isset($general_options['enabled']) && $general_options['enabled'] && ! empty($script_code)) {
-            echo $script_code;
+            // Check if current user's role should be excluded
+            if ( ! $this->should_exclude_current_user($general_options)) {
+                echo $script_code;
+            }
         }
 
         // Inject debug styles if debug is enabled
         $this->inject_debug_styles();
+    }
+
+    /**
+     * Check if the current user's role is in the excluded list
+     *
+     * @param array $general_options General plugin options
+     * @return bool True if user should be excluded, false otherwise
+     */
+    private function should_exclude_current_user($general_options)
+    {
+        // If user is not logged in, never exclude (allow script injection for guests)
+        if ( ! is_user_logged_in()) {
+            return false;
+        }
+
+        // Get excluded user roles from settings
+        $excluded_roles = isset($general_options['excluded_user_roles']) && is_array($general_options['excluded_user_roles'])
+            ? $general_options['excluded_user_roles']
+            : array();
+
+        // If no roles are excluded, don't exclude anyone
+        if (empty($excluded_roles)) {
+            return false;
+        }
+
+        // Get current user
+        $current_user = wp_get_current_user();
+
+        // Check if any of the user's roles are in the excluded list
+        if ( ! empty($current_user->roles)) {
+            foreach ($current_user->roles as $role) {
+                if (in_array($role, $excluded_roles, true)) {
+                    return true; // User has an excluded role
+                }
+            }
+        }
+
+        return false; // User's roles are not excluded
     }
 
     /**
@@ -363,8 +413,19 @@ class PixelFlow
         <div style="display: none" id="pixelflow-settings">
           <?php
           $pixelflowSiteId = apply_filters('pixelflow_site_id', "wp_" . md5(home_url()));
+          global $wp_roles;
+
+          if (!isset($wp_roles)) {
+              $wp_roles = wp_roles();
+          }
+          $roles = [];
+          foreach ($wp_roles->roles as $role_key => $role) {
+              $roles[] = $role_key . "|" . $role["name"];
+          }
+          $pixelflowUserRoles = apply_filters('pixelflow_user_roles', implode(",", $roles));
           ?>
           <input id="pixelflow-site-id" value="<?php echo $pixelflowSiteId; ?>" type="hidden"/>
+          <input id="pixelflow-user-roles" value="<?php echo $pixelflowUserRoles; ?>" type="hidden"/>
         </div>
         <div id="pixelflowroot" class="pixelflow-app"></div>
           <?php

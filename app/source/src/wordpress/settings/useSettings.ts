@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { PixelFlowGeneralOptions, PixelFlowClasses } from './settings.types';
+import { PixelFlowGeneralOptions, PixelFlowClasses, UserRole } from './settings.types';
 
 export interface SaveSettingsOptions {
   generalOptionsOverride?: Partial<PixelFlowGeneralOptions>;
@@ -12,6 +12,7 @@ interface UseSettingsReturn {
   classOptions: PixelFlowClasses;
   debugOptions: PixelFlowClasses;
   scriptCode: string;
+  availableRoles: UserRole[];
   isWooCommerceActive: boolean;
   isLoading: boolean;
   isSaving: boolean;
@@ -22,6 +23,7 @@ interface UseSettingsReturn {
   ) => void;
   updateClassOption: <K extends keyof PixelFlowClasses>(key: K, value: PixelFlowClasses[K]) => void;
   updateDebugOption: <K extends keyof PixelFlowClasses>(key: K, value: PixelFlowClasses[K]) => void;
+  toggleExcludedRole: (roleKey: string) => void;
   saveSettings: (options?: SaveSettingsOptions) => Promise<void>;
 }
 
@@ -29,6 +31,7 @@ const defaultGeneralOptions: PixelFlowGeneralOptions = {
   enabled: 0,
   woo_enabled: 0,
   debug_enabled: 0,
+  excluded_user_roles: [],
 };
 
 const defaultClassOptions: PixelFlowClasses = {
@@ -75,16 +78,39 @@ export function useSettings(): UseSettingsReturn {
   const [classOptions, setClassOptions] = useState<PixelFlowClasses>(defaultClassOptions);
   const [debugOptions, setDebugOptions] = useState<PixelFlowClasses>(defaultDebugOptions);
   const [scriptCode, setScriptCode] = useState<string>('');
+  const [availableRoles, setAvailableRoles] = useState<UserRole[]>([]);
   const [isWooCommerceActive, setIsWooCommerceActive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Parse available user roles from hidden input
+  useEffect(() => {
+    const rolesInput = document.getElementById('pixelflow-user-roles');
+    if (rolesInput) {
+      const rolesString = rolesInput.getAttribute('value') || '';
+      // Parse: "administrator|Administrator,editor|Editor,..."
+      const parsedRoles: UserRole[] = rolesString
+        .split(',')
+        .filter((role) => role.trim())
+        .map((role) => {
+          const [key, label] = role.split('|');
+          return { key: key.trim(), label: label.trim() };
+        });
+      setAvailableRoles(parsedRoles);
+    }
+  }, []);
+
   // Load settings on mount
   useEffect(() => {
     const settings = window.pixelflowSettings;
     if (settings) {
-      setGeneralOptions({ ...defaultGeneralOptions, ...settings.general_options });
+      const generalOpts = { ...defaultGeneralOptions, ...settings.general_options };
+      // Ensure excluded_user_roles is always an array
+      if (!Array.isArray(generalOpts.excluded_user_roles)) {
+        generalOpts.excluded_user_roles = [];
+      }
+      setGeneralOptions(generalOpts);
       setClassOptions({ ...defaultClassOptions, ...settings.class_options });
       setDebugOptions({ ...defaultDebugOptions, ...settings.debug_options });
       setScriptCode(settings.script_code || '');
@@ -132,6 +158,16 @@ export function useSettings(): UseSettingsReturn {
     value: PixelFlowClasses[K]
   ) => {
     setDebugOptions((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const toggleExcludedRole = (roleKey: string) => {
+    setGeneralOptions((prev) => {
+      const current = prev.excluded_user_roles || [];
+      const updated = current.includes(roleKey)
+        ? current.filter((r) => r !== roleKey) // Remove role
+        : [...current, roleKey]; // Add role
+      return { ...prev, excluded_user_roles: updated };
+    });
   };
 
   const saveSettings = async (options?: SaveSettingsOptions) => {
@@ -214,6 +250,7 @@ export function useSettings(): UseSettingsReturn {
     classOptions,
     debugOptions,
     scriptCode,
+    availableRoles,
     isWooCommerceActive,
     isLoading,
     isSaving,
@@ -221,6 +258,7 @@ export function useSettings(): UseSettingsReturn {
     updateGeneralOption,
     updateClassOption,
     updateDebugOption,
+    toggleExcludedRole,
     saveSettings,
   };
 }

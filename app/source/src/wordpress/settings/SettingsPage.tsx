@@ -17,6 +17,7 @@ export function SettingsPage(props: SettingsPageProps) {
     classOptions,
     debugOptions,
     scriptCode,
+    availableRoles,
     isWooCommerceActive,
     isLoading,
     isSaving,
@@ -24,6 +25,7 @@ export function SettingsPage(props: SettingsPageProps) {
     updateGeneralOption,
     updateClassOption,
     updateDebugOption,
+    toggleExcludedRole,
     saveSettings,
   } = useSettings();
 
@@ -64,7 +66,12 @@ export function SettingsPage(props: SettingsPageProps) {
           )}
 
           <div className="space-y-6">
-            <GeneralSettings generalOptions={generalOptions} onUpdate={updateGeneralOption} />
+            <GeneralSettings
+              generalOptions={generalOptions}
+              availableRoles={availableRoles}
+              onUpdate={updateGeneralOption}
+              onToggleRole={toggleExcludedRole}
+            />
 
             <WooCommerceSettings
               generalOptions={generalOptions}

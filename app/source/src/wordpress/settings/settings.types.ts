@@ -3,6 +3,13 @@ export interface PixelFlowGeneralOptions {
   enabled: number;
   debug_enabled: number;
   woo_enabled: number;
+  excluded_user_roles: string[]; // Array of role keys to exclude from script injection
+}
+
+// User role structure parsed from WordPress
+export interface UserRole {
+  key: string; // 'administrator', 'editor', etc.
+  label: string; // 'Administrator', 'Editor', etc.
 }
 
 // WooCommerce class toggles (enable/disable adding specific classes)
