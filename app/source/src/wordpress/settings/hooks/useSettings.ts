@@ -32,6 +32,7 @@ interface UseSettingsReturn {
 const defaultGeneralOptions: PixelFlowGeneralOptions = {
   enabled: 0,
   woo_enabled: 0,
+  woo_purchase_tracking: 1,
   debug_enabled: 0,
   excluded_user_roles: [],
 };

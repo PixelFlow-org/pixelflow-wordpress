@@ -65,6 +65,32 @@ export function WooCommerceSettings({
 
       {generalOptions.woo_enabled === 1 && (
         <div className="space-y-6 mt-6">
+          <div className="flex items-center gap-3">
+            <UI.Switch.Root
+              checked={generalOptions.woo_purchase_tracking === 1}
+              onCheckedChange={(checked) =>
+                onUpdateGeneral('woo_purchase_tracking', checked ? 1 : 0)
+              }
+              id="enableWooPurchaseTracking"
+            ></UI.Switch.Root>
+            <UI.TooltipRoot>
+              <UI.TooltipTrigger asChild>
+                <UI.Label.Root className="cursor-pointer" htmlFor="enableWooPurchaseTracking">
+                  Track WooCommerce Purchase
+                </UI.Label.Root>
+              </UI.TooltipTrigger>
+              <UI.TooltipContent>
+                Enable automatic tracking of WooCommerce purchase events on checkout
+              </UI.TooltipContent>
+            </UI.TooltipRoot>
+          </div>
+          <div>
+            <p>
+              Adds a script which will track the WooCommerce purchase event on the order received
+              page after a successful checkout
+            </p>
+          </div>
+
           <div className="flex gap-8 [@media(max-width:1100px)]:flex-wrap">
             <WooClassSection
               title="Product Classes"

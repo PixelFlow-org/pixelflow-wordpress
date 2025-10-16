@@ -47,6 +47,7 @@ class PixelFlow_WooCommerce_Integration {
      */
     private function load_hooks() {
         $class_options = get_option('pixelflow_class_options', array());
+        $general_options = get_option('pixelflow_general_options', array());
         
         require_once PIXELFLOW_PLUGIN_PATH . 'includes/woo/hooks/class-woocommerce-product-hooks.php';
         require_once PIXELFLOW_PLUGIN_PATH . 'includes/woo/hooks/class-woocommerce-cart-hooks.php';
@@ -55,6 +56,12 @@ class PixelFlow_WooCommerce_Integration {
         new PixelFlow_WooCommerce_Product_Hooks($class_options);
         new PixelFlow_WooCommerce_Cart_Hooks($class_options);
         new PixelFlow_WooCommerce_Checkout_Hooks($class_options);
+        
+        // Load purchase tracking hook if enabled
+        if (isset($general_options['woo_purchase_tracking']) && $general_options['woo_purchase_tracking']) {
+            require_once PIXELFLOW_PLUGIN_PATH . 'includes/woo/hooks/class-woocommerce-purchase-hooks.php';
+            new PixelFlow_WooCommerce_Purchase_Hooks($class_options);
+        }
     }
     
     /**

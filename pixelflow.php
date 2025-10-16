@@ -174,6 +174,7 @@ class PixelFlow
         $checkbox_options = array(
             'enabled',
             'woo_enabled',
+            'woo_purchase_tracking',
             'debug_enabled',
         );
 

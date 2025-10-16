@@ -3,6 +3,7 @@ export interface PixelFlowGeneralOptions {
   enabled: number;
   debug_enabled: number;
   woo_enabled: number;
+  woo_purchase_tracking: number;
   excluded_user_roles: string[]; // Array of role keys to exclude from script injection
 }
 
