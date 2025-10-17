@@ -83,31 +83,16 @@ class PixelFlow_WooCommerce_Purchase_Hooks {
 
         echo <<<HTML
 <script>
+(function waitForPixelFlow(maxWait) {
+    if (window.pixelFlow && pixelFlow.utils && pixelFlow.trackEvent) {
+        runPixelFlowPurchase();
+    } else if (maxWait > 0) {
+        setTimeout(function() { waitForPixelFlow(maxWait - 200); }, 200);
+    } else {
+        console.warn('PixelFlow not loaded after 10s, skipping event');
+    }
+})(10000);
 
-setInterval(() => {
-  console.log('window.pixelFlow =');
-}, 100);
-//
-//
-// (function waitForPixelFlow() {
-//   try {
-//     if (
-//       typeof window.pixelFlow !== 'undefined' &&
-//       window.pixelFlow &&
-//       window.pixelFlow.utils &&
-//       typeof window.pixelFlow.trackEvent === 'function'
-//     ) {
-//       console.log('PixelFlow loaded, running Purchase event');
-//       // runPixelFlowPurchase();
-//     }
-//   } catch (e) {
-//       console.log('PixelFlow check error', e);
-//   }
-//
-//   console.log('PixelFlow not loaded yet, retrying...');
-//   setTimeout(waitForPixelFlow, 200);
-// })();
-/*
 function runPixelFlowPurchase() {
     console.log('runPixelFlowPurchase');
     const data = $json;
@@ -120,15 +105,15 @@ function runPixelFlowPurchase() {
 
         const u = pixelFlow.utils;
         const hashed = {
-            fn: u.hash(u.normalize(data.billing.first_name || '')),
-            ln: u.hash(u.normalize(data.billing.last_name  || '')),
-            em: u.hash(u.normalize(data.billing.email      || '')),
-            ph: u.hash(u.normalize(data.billing.phone      || '')),
-            ct: u.hash(u.normalize(data.billing.city       || '')),
-            st: u.hash(u.normalize(data.billing.state      || '')),
-            zp: u.hash(u.normalize(data.billing.postcode   || '')),
-            country: u.hash(u.normalize(data.billing.country || '')),
-            external_id: u.hash(String(data.orderId))
+            fn: u.sha256(u.normalizeName(data.billing.first_name || '')),
+            ln: u.sha256(u.normalizeName(data.billing.last_name  || '')),
+            em: u.sha256(u.normalizeEmail(data.billing.email      || '')),
+            ph: u.sha256(u.normalizePhone(data.billing.phone      || '')),
+            ct: u.sha256(u.normalizeCountry(data.billing.city       || '')),
+            st: u.sha256(u.normalizeCountry(data.billing.state      || '')),
+            zp: u.sha256(u.normalizePostal(data.billing.postcode   || '')),
+            country: u.sha256(u.normalizeCountry(data.billing.country || '')),
+            external_id: u.sha256(String(data.orderId))
         };
 
         const payload = {
@@ -144,7 +129,7 @@ function runPixelFlowPurchase() {
     } catch (e) {
         console.error('PixelFlow tracking error', e);
     }
-}*/
+}
 </script>
 HTML;
     }
