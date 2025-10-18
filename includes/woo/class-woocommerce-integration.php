@@ -60,7 +60,7 @@ class PixelFlow_WooCommerce_Integration {
         // Load purchase tracking hook if enabled
         if (isset($general_options['woo_purchase_tracking']) && $general_options['woo_purchase_tracking']) {
             require_once PIXELFLOW_PLUGIN_PATH . 'includes/woo/hooks/class-woocommerce-purchase-hooks.php';
-            new PixelFlow_WooCommerce_Purchase_Hooks($class_options);
+            new PixelFlow_WooCommerce_Purchase_Hooks($class_options, $general_options);
         }
     }
     

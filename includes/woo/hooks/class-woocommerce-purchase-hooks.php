@@ -19,13 +19,15 @@ class PixelFlow_WooCommerce_Purchase_Hooks {
      * Class options
      */
     private $options;
-    
+    private $general_options;
+
     /**
      * Constructor
      */
-    public function __construct($options = array()) {
+    public function __construct($options = array(), $general_options = array()) {
         $this->options = $options;
-        
+        $this->general_options = $general_options;
+
         // Track purchase on order received page
         add_action('woocommerce_before_thankyou', array($this, 'track_purchase'), 10, 1);
     }
@@ -41,6 +43,11 @@ class PixelFlow_WooCommerce_Purchase_Hooks {
         $order = wc_get_order($order_id);
         if (!$order) return;
 
+        $countries = WC()->countries->get_countries();
+        $country_code = $order->get_billing_country();
+        $country_name = $countries[$country_code] ? $countries[$country_code] : $country_code;
+
+
         $billing = array(
             'first_name' => $order->get_billing_first_name(),
             'last_name'  => $order->get_billing_last_name(),
@@ -49,7 +56,7 @@ class PixelFlow_WooCommerce_Purchase_Hooks {
             'city'       => $order->get_billing_city(),
             'state'      => $order->get_billing_state(),
             'postcode'   => $order->get_billing_postcode(),
-            'country'    => $order->get_billing_country(),
+            'country'    => $country_name,
         );
 
         $products = array();
@@ -81,7 +88,17 @@ class PixelFlow_WooCommerce_Purchase_Hooks {
 
         $json = wp_json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
-        echo <<<HTML
+        // Prevent duplicate purchase events using localStorage
+        $disableRepeatedOrders = "if (localStorage.getItem(key)) {console.log('PixelFlow: purchase already sent for order', data.orderId);return;}";
+        // Enabled if Debug is enabled
+        $debugEnabled = $this->general_options["debug_enabled"];
+        // You can also use the filter 'pixelflow_debug_purchase_event' to programmatically always enable or disable this
+        $shouldAlwaysSendOrder = apply_filters('pixelflow_debug_purchase_event', $debugEnabled);
+        if($shouldAlwaysSendOrder) {
+            $disableRepeatedOrders = '';
+        }
+
+        $purchaseTrackingCode = <<<HTML
 <script>
 (function waitForPixelFlow(maxWait) {
     if (window.pixelFlow && pixelFlow.utils && pixelFlow.trackEvent) {
@@ -94,36 +111,34 @@ class PixelFlow_WooCommerce_Purchase_Hooks {
 })(10000);
 
 function runPixelFlowPurchase() {
-    console.log('runPixelFlowPurchase');
     const data = $json;
+    console.log(data);
     const key = 'pixel_purchase_sent_' + data.orderId;
     try {
-        if (localStorage.getItem(key)) {
-            console.log('PixelFlow: purchase already sent for order', data.orderId);
-            return;
-        }
+        
+        $disableRepeatedOrders
 
         const u = pixelFlow.utils;
-        const hashed = {
-            fn: u.sha256(u.normalizeName(data.billing.first_name || '')),
-            ln: u.sha256(u.normalizeName(data.billing.last_name  || '')),
-            em: u.sha256(u.normalizeEmail(data.billing.email      || '')),
-            ph: u.sha256(u.normalizePhone(data.billing.phone      || '')),
-            ct: u.sha256(u.normalizeCountry(data.billing.city       || '')),
-            st: u.sha256(u.normalizeCountry(data.billing.state      || '')),
-            zp: u.sha256(u.normalizePostal(data.billing.postcode   || '')),
-            country: u.sha256(u.normalizeCountry(data.billing.country || '')),
-            external_id: u.sha256(String(data.orderId))
-        };
-
+        
+        
         const payload = {
             currency: data.currency,
             contentType: data.contentType,
             numItems: data.numItems,
             value: data.value
         };
-
-        pixelFlow.trackEvent('Purchase', payload, hashed);
+        const customerData = {
+            fn: data.billing.first_name,
+            ln: data.billing.last_name,
+            em: data.billing.email,
+            ph: data.billing.phone,
+            ct: data.billing.city,
+            st: data.billing.state,
+            zp: data.billing.postcode,
+            country: data.billing.country
+        };
+        
+        pixelFlow.trackEvent('Purchase', payload, u.normalizeCustomerData(data));
         localStorage.setItem(key, '1');
         console.log('PixelFlow Purchase event sent for order', data.orderId);
     } catch (e) {
@@ -132,6 +147,22 @@ function runPixelFlowPurchase() {
 }
 </script>
 HTML;
+
+        if ($debugEnabled) {
+            $show_tracking = true;
+        } else {
+            $show_tracking = !(
+                current_user_can('administrator') ||
+                current_user_can('editor') ||
+                current_user_can('shop_manager')
+            );
+        }
+
+        $show_tracking = apply_filters('pixelflow_purchase_tracking', $show_tracking);
+
+        if ($show_tracking) {
+            echo $purchaseTrackingCode;
+        }
     }
 }
 

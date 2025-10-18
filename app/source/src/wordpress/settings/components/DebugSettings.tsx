@@ -56,6 +56,18 @@ export function DebugSettings({
 
       {generalOptions.debug_enabled === 1 && (
         <div className="space-y-6 mt-6">
+          <h4>
+            Tracking WooCommerce Purchase debug is <b style={{ color: 'red' }}>ENABLED</b>
+          </h4>
+          <p className="text-sm text-foreground ml-12">
+            When debug mode is enabled, the <b>Track WooCommerce Purchase</b> option will be also
+            debugged.
+            <br />
+            <b>Track WooCommerce Purchase</b> event usually run only once on the "Thank you" page
+            after the order was completed. <br />
+            When debug mode is enabled, the event will be triggered <b>EVERY TIME</b> you open or
+            refresh the "Thank you" page.
+          </p>
           <div className="flex gap-8 [@media(max-width:1100px)]:flex-wrap">
             <WooClassSection
               title="DEBUG Product Classes"
