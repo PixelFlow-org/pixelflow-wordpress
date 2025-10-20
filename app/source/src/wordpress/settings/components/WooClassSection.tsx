@@ -28,20 +28,15 @@ export function WooClassSection({
 
   // Map class names to their debug colors
   const debugColors: Record<string, string> = {
-    'info-pdct-ctnr-pf': 'green',
-    'info-pdct-name-pf': 'red',
-    'info-pdct-price-pf': 'blue',
-    'info-pdct-qnty-pf': 'orange',
+    'info-chk-itm-pf': 'green',
+    'info-itm-name-pf': 'red',
+    'info-itm-prc-pf': 'blue',
+    'info-itm-qnty-pf': 'orange',
     'action-btn-cart-005-pf': '#fc0390',
     'action-btn-buy-004-pf': '#67a174',
     'info-chk-itm-ctnr-pf': 'green',
-    'info-chk-itm-pf': 'rgba(0,0,0,0.1)',
-    'info-itm-name-pf': 'orange',
-    'info-itm-prc-pf': 'blue',
-    'info-itm-qnty-pf': '#03adfc',
     'info-totl-amt-pf': '#b103fc',
     'action-btn-plc-ord-018-pf': '#b01a81',
-    'info-pdct-ctnr-list-pf': '#fcdb03',
   };
 
   return (

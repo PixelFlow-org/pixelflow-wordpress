@@ -3,7 +3,7 @@
  * Plugin Name: PixelFlow
  * Plugin URI: https://pixelflow.so/
  * Description: PixelFlow Official Plugin for WordPress. Easily Install Meta's Conversions API on Your Website
- * Version: 0.1.3
+ * Version: 0.1.5
  * Author: PixelFlow Team
  * Author URI: https://pixelflow.so/
  * License: GPL v2 or later
@@ -308,16 +308,16 @@ class PixelFlow
         // Map debug options to CSS styles
         $debug_styles = array(
             // Product classes
-            'woo_class_product_container'      => '.info-pdct-ctnr-pf { border: 1px solid green !important; background: rgba(0,0,0,0.1) !important; }',
-            'woo_class_product_name'           => '.info-pdct-name-pf { border: 1px solid red !important; }',
-            'woo_class_product_price'          => '.info-pdct-price-pf { border: 1px solid blue !important; }',
-            'woo_class_product_quantity'       => '.info-pdct-qnty-pf { border: 1px solid orange !important; }',
+            'woo_class_product_container'      => '.info-chk-itm-pf { border: 1px solid green !important; background: rgba(0,0,0,0.1) !important; }',
+            'woo_class_product_name'           => '.info-itm-name-pf { border: 1px solid red !important; }',
+            'woo_class_product_price'          => '.info-itm-prc-pf { border: 1px solid blue !important; }',
+            'woo_class_product_quantity'       => '.info-itm-qnty-pf { border: 1px solid orange !important; }',
             'woo_class_product_add_to_cart'    => '.action-btn-cart-005-pf { border: 1px solid #fc0390 !important; }',
             // Cart classes
-            'woo_class_cart_item'              => '.info-pdct-ctnr-pf { border: 1px solid green !important; background: rgba(0,0,0,0.1) !important; }',
-            'woo_class_cart_price'             => '.info-pdct-price-pf { border: 1px solid blue !important; }',
+            'woo_class_cart_item'              => '.info-chk-itm-pf { border: 1px solid green !important; background: rgba(0,0,0,0.1) !important; }',
+            'woo_class_cart_price'             => '.info-itm-prc-pf { border: 1px solid blue !important; }',
             'woo_class_cart_checkout_button'   => '.action-btn-buy-004-pf { border: 3px solid #67a174 !important; }',
-            'woo_class_cart_products_container'   => '.info-pdct-ctnr-list-pf { border: 3px solid #fcdb03 !important; }',
+            'woo_class_cart_products_container'   => '.info-chk-itm-ctnr-pf { border: 3px solid #fcdb03 !important; }',
             // Checkout classes
             'woo_class_checkout_form'          => '.info-chk-itm-ctnr-pf { border: 1px solid green !important; }',
             'woo_class_checkout_item'          => '.info-chk-itm-pf { background: rgba(0,0,0,0.1) !important; }',

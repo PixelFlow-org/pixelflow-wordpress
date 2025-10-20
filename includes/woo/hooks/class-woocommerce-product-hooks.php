@@ -49,30 +49,30 @@ class PixelFlow_WooCommerce_Product_Hooks
      */
     private function init_hooks()
     {
-        // Add info-pdct-ctnr-pf class to product container 
+        // Add info-chk-itm-pf class to product container 
         // (Add this to the product container)
         if ($this->is_class_enabled('woo_class_product_container')) {
             add_filter('woocommerce_post_class', array($this, 'add_product_container_class'), 10, 2);
         }
 
-        // Add info-pdct-name-pf class to product name in loop 
+        // Add info-itm-name-pf class to product name in loop 
         // (Add this to the product name)
         if ($this->is_class_enabled('woo_class_product_name')) {
             add_filter('woocommerce_product_loop_title_classes', array($this, 'add_product_name_class_loop'));
 
-            // Add info-pdct-name-pf class to product name on single product page
+            // Add info-itm-name-pf class to product name on single product page
             // (Add this to the product name)
             add_action('woocommerce_single_product_summary', array($this, 'add_product_name_class_single_start'), 4);
             add_action('woocommerce_single_product_summary', array($this, 'add_product_name_class_single_end'), 6);
         }
 
-        // Add info-pdct-price-pf class to product price
+        // Add info-itm-prc-pf class to product price
         // (Add this to the Item price:)
         if ($this->is_class_enabled('woo_class_product_price')) {
             add_filter('woocommerce_get_price_html', array($this, 'add_product_price_class'), 10, 2);
         }
 
-        // Add info-pdct-qnty-pf class to quantity input 
+        // Add info-itm-qnty-pf class to quantity input 
         // (Add this to the Item quantity:)
         if ($this->is_class_enabled('woo_class_product_quantity')) {
             add_filter('woocommerce_quantity_input_args', array($this, 'add_product_quantity_class'), 10, 2);
@@ -94,27 +94,27 @@ class PixelFlow_WooCommerce_Product_Hooks
         }
     }
 
-    // Add info-pdct-ctnr-pf class to product container 
+    // Add info-chk-itm-pf class to product container 
     // (Add this to the product container)
     public function add_product_container_class($classes, $product)
     {
-        $classes[] = ' info-pdct-ctnr-pf ';
+        $classes[] = ' info-chk-itm-pf ';
 
         return $classes;
     }
 
-    // Add info-pdct-name-pf class to product name in loop 
+    // Add info-itm-name-pf class to product name in loop 
     // (Add this to the product name)
     public function add_product_name_class_loop($classes)
     {
-        return $classes . ' info-pdct-name-pf ';
+        return $classes . ' info-itm-name-pf ';
     }
 
-    // Add info-pdct-price-pf class to product price 
+    // Add info-itm-prc-pf class to product price 
     // (Add this to the Item price:)
     public function add_product_price_class($price, $product)
     {
-        $className = 'info-pdct-price-pf';
+        $className = 'info-itm-prc-pf';
 
         if (empty($price) || ! is_a($product, 'WC_Product')) {
             return $price;
@@ -247,7 +247,7 @@ class PixelFlow_WooCommerce_Product_Hooks
         return $price;
     }
 
-    // Add info-pdct-name-pf class to product name on single product page 
+    // Add info-itm-name-pf class to product name on single product page 
     // (Add this to the product name)
     public function add_product_name_class_single_start()
     {
@@ -265,8 +265,8 @@ class PixelFlow_WooCommerce_Product_Hooks
                 $classes = $matches[1];
 
                 // Add class only if not already present
-                if (strpos($classes, 'info-pdct-name-pf') === false) {
-                    $classes .= ' info-pdct-name-pf';
+                if (strpos($classes, 'info-itm-name-pf') === false) {
+                    $classes .= ' info-itm-name-pf';
                 }
 
                 return '<h1 class="' . esc_attr(trim($classes)) . '"';
@@ -276,11 +276,11 @@ class PixelFlow_WooCommerce_Product_Hooks
         echo $content;
     }
 
-    // Add info-pdct-qnty-pf class to quantity input 
+    // Add info-itm-qnty-pf class to quantity input 
     // (Add this to the Item quantity:)
     public function add_product_quantity_class($args, $product)
     {
-        $className = 'info-pdct-qnty-pf';
+        $className = 'info-itm-qnty-pf';
 
         if ( ! isset($args['classes']) || ! is_array($args['classes'])) {
             $args['classes'] = array();

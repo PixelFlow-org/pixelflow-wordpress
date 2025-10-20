@@ -50,8 +50,8 @@ class PixelFlow_WooCommerce_Cart_Hooks
     private function init_hooks()
     {
         // Wrap class and 'proceed to checkout' button with the element with classes:
-        // For each product: info-pdct-ctnr-pf
-        // All products in: info-pdct-ctnr-list-pf
+        // For each product: info-chk-itm-pf
+        // All products in: info-chk-itm-ctnr-pf
         // There's no common wrapper around the cart table and the proceed to checkout button
         // So we need to add a wrapper around the cart table and another around the proceed to checkout button
         if ($this->is_class_enabled('woo_class_cart_products_container')) {
@@ -59,13 +59,13 @@ class PixelFlow_WooCommerce_Cart_Hooks
             add_action('woocommerce_after_cart_totals', [$this, 'end_cart_wrapper'], PHP_INT_MAX);
         }
 
-        // Add info-pdct-ctnr-pf class to each cart item row 
+        // Add info-chk-itm-pf class to each cart item row 
         // (Add this the container of each individual item)
         if ($this->is_class_enabled('woo_class_cart_item')) {
             add_filter('woocommerce_cart_item_class', array($this, 'add_cart_item_class'), 10, 3);
         }
 
-        // Add info-pdct-price-pf class to cart item price 
+        // Add info-itm-prc-pf class to cart item price 
         // (Add this to the Item price:)
         if ($this->is_class_enabled('woo_class_cart_price')) {
             add_filter('woocommerce_cart_item_price', array($this, 'add_cart_item_price_class'), 10, 3);
@@ -83,11 +83,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
         }
     }
 
-    // Add info-pdct-ctnr-pf class to the cart table 
+    // Add info-chk-itm-pf class to the cart table 
     // (Add this to the overall main/parent container containing all the cart items)
     public function start_cart_wrapper()
     {
-        $className = 'info-pdct-ctnr-list-pf ';
+        $className = 'info-chk-itm-ctnr-pf ';
         echo "<div class='" . esc_attr($className) . "'>";
     }
 
@@ -97,7 +97,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
         echo '</div>';
     }
 
-    // Add info-pdct-ctnr-pf class to each cart item row 
+    // Add info-chk-itm-pf class to each cart item row 
     // (Add this the container of each individual item)
     public function add_cart_item_class($classes, $cart_item, $cart_item_key)
     {
@@ -105,7 +105,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return $classes;
         }
 
-        $className = 'info-pdct-ctnr-pf';
+        $className = 'info-chk-itm-pf';
 
         if (strpos($classes, $className) === false) {
             $classes .= ' ' . $className;
@@ -114,7 +114,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
         return trim($classes);
     }
 
-    // Add info-pdct-price-pf class to cart item price 
+    // Add info-itm-prc-pf class to cart item price 
     // (Add this to the Item price:)
     public function add_cart_item_price_class($price, $cart_item, $cart_item_key)
     {
@@ -122,7 +122,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return $price;
         }
 
-        $className = 'info-pdct-price-pf';
+        $className = 'info-itm-prc-pf';
 
         // Add class to existing price span elements
         $price = preg_replace_callback(
@@ -174,7 +174,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
     public function add_cart_item_name_class($product_name, $cart_item, $cart_item_key)
     {
-        $className = 'info-pdct-name-pf';
+        $className = 'info-itm-name-pf';
         // Avoid double-wrapping if WooCommerce calls the filter twice
         if (strpos($product_name, 'class="' . $className . '"') !== false) {
             return $product_name;
@@ -199,7 +199,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
 
 
-    // Add info-pdct-ctnr-pf class to the cart table
+    // Add info-chk-itm-pf class to the cart table
     // (Add this to the overall main/parent container containing all the cart items)
     public function start_cart_table_buffer()
     {
@@ -210,9 +210,9 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
     public function add_cart_table_class($content)
     {
-        $className = 'info-pdct-ctnr-list-pf';
+        $className = 'info-chk-itm-ctnr-pf';
 
-        // Replace shop_table shop_table_responsive with shop_table shop_table_responsive info-pdct-ctnr-pf
+        // Replace shop_table shop_table_responsive with shop_table shop_table_responsive info-chk-itm-pf
         $content = str_replace(
             'shop_table shop_table_responsive',
             'shop_table shop_table_responsive ' . esc_attr($className) . ' ',

@@ -37,14 +37,14 @@ npm run dev  # Start development server with hot reload
 
 ### Adding New PixelFlow Classes
 
-To add a new class (e.g., `info-pdct-ctnr-list-pf`), update the following files:
+To add a new class (e.g., `info-chk-itm-ctnr-pf`), update the following files:
 
 1. **`app/source/src/wordpress/settings/classes.ts`**
    - Add the class to the appropriate array (`productClasses`, `cartClasses`, or `checkoutClasses`)
    ```typescript
    {
      key: 'woo_class_cart_products_container',
-     className: 'info-pdct-ctnr-list-pf',
+     className: 'info-chk-itm-ctnr-pf',
      description: 'Add this to the element which wraps all products',
    }
    ```
