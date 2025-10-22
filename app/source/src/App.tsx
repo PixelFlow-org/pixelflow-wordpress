@@ -7,7 +7,7 @@ import React from 'react';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from '@/store';
-import { LoadingScreen, ThemeProvider } from '@pixelflow-org/plugin-ui';
+import { LoadingScreen, ThemeProvider, TooltipProvider } from '@pixelflow-org/plugin-ui';
 import '@pixelflow-org/plugin-ui/dist/styles.css';
 import './App.css';
 
@@ -37,18 +37,20 @@ function AppWithPlatform() {
         themeDetector={() => adapter.getTheme()}
         onThemeChange={(callback) => adapter.onThemeChange(callback)}
       >
-        <PersistGate loading={<LoadingScreen />} persistor={persistor}>
-          <Bootstrap />
-          <ToastContainer
-            position="bottom-right"
-            autoClose={5000}
-            hideProgressBar={false}
-            closeOnClick={false}
-            pauseOnHover={true}
-            draggable={true}
-            theme={adapter.getTheme()}
-          />
-        </PersistGate>
+        <TooltipProvider>
+          <PersistGate loading={<LoadingScreen />} persistor={persistor}>
+            <Bootstrap />
+            <ToastContainer
+              position="bottom-right"
+              autoClose={5000}
+              hideProgressBar={false}
+              closeOnClick={false}
+              pauseOnHover={true}
+              draggable={true}
+              theme={adapter.getTheme()}
+            />
+          </PersistGate>
+        </TooltipProvider>
       </ThemeProvider>
     </Provider>
   );

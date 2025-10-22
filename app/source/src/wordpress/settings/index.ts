@@ -1,4 +1,5 @@
 export { SettingsPage } from './SettingsPage';
+export { ActivatePixelflow } from './components/ActivatePixelflow';
 export { GeneralSettings } from './components/GeneralSettings';
 export { WooCommerceSettings } from './components/WooCommerceSettings';
 export { DebugSettings } from './components/DebugSettings';

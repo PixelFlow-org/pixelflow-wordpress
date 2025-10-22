@@ -179,3 +179,4 @@ For more information:
 * Compatible with custom WooCommerce themes
 
 
+

@@ -29,7 +29,7 @@ const TopControls = ({ handleLogout }: { handleLogout: () => Promise<void> }) =>
   };
 
   return (
-    <div className="flex justify-end items-center gap-2 mb-[20px]">
+    <div className="flex items-center gap-2">
       <NarrowButton
         onClick={toggleTheme}
         width="!w-[110px]"

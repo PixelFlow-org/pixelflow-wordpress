@@ -87,3 +87,8 @@
     --tw-translate-x: calc(-50% - 160px) !important;
   }
 }
+
+/* Header */
+.pf-header {
+  gap: 20px;
+}

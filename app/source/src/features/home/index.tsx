@@ -44,7 +44,7 @@ import { BlockingRule, TrackingUrlScriptData } from '@pixelflow-org/plugin-core'
 import { WordPressNavPanelTab } from '@/features/home/types/index';
 
 /* Wordpress settings page */
-import { SettingsPage, useSettings } from '@/wordpress/settings';
+import { ActivatePixelflow, SettingsPage, useSettings } from '@/wordpress/settings';
 import TopControls from '@/components/TopControls/TopControls.tsx';
 
 interface HomeProps {
@@ -108,7 +108,7 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
   const { handleLogout } = useAuth({ adapter });
 
   // Get settings save function to disable integration on logout
-  const { saveSettings } = useSettings();
+  const { generalOptions, updateGeneralOption, saveSettings } = useSettings();
 
   const logoutHandler = async () => {
     try {
@@ -368,8 +368,14 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
 
   return (
     <div className="bg-background text-foreground min-h-full !p-[12px]">
-      <TopControls handleLogout={logoutHandler} />
-      <Header selectedCurrency={selectedCurrency} updateCurrency={onCurrencyChange} />
+      <nav className="flex justify-between items-center mb-6 gap-60">
+        <Header selectedCurrency={selectedCurrency} updateCurrency={onCurrencyChange} />
+        <TopControls handleLogout={logoutHandler} />
+      </nav>
+      <ActivatePixelflow
+        enabled={generalOptions.enabled}
+        onToggle={(enabled) => updateGeneralOption('enabled', enabled)}
+      />
       <NavPanel
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -377,12 +383,9 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
         config={wordPressNavPanelConfig}
       />
       {activeTab === 'woocommerce' && (
-        <div className="mt-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div className="mt-4 p-6 bg-background rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-4">WooCommerce Settings</h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            Configure WooCommerce-specific tracking settings here.
-          </p>
-          {/* Add your WooCommerce settings UI components here */}
+          <SettingsPage onRegenerateScript={onRegenerateScript} />
         </div>
       )}
       {activeTab === 'pixel' && (
@@ -420,7 +423,6 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
           {/* Add your advanced settings UI components here */}
         </div>
       )}
-      <SettingsPage onRegenerateScript={onRegenerateScript} />
     </div>
   );
 };
