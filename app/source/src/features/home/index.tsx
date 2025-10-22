@@ -62,7 +62,7 @@ interface HomeProps {
 const Home = ({ user, adapter }: HomeProps): ReactElement => {
   /** Local state */
   // Track which settings panel is currently visible to users
-  const [activeTab, setActiveTab] = useState<WordPressNavPanelTab>('pixel');
+  const [activeTab, setActiveTab] = useState<WordPressNavPanelTab>('woocommerce');
   // Store site ID to associate tracking data with specific sites
   const [siteExternalId, setSiteExternalId] = useState<string | null>(null);
   // Store site ID to associate tracking data with specific sites
