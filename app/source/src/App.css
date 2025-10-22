@@ -62,3 +62,28 @@
 .data-\[state\=checked\]\:translate-x-3[data-state=checked] {
   --tw-translate-x: calc(var(--spacing) * 3) !important;
 }
+/* Tabs titles */
+.pf-narrow-button {
+  white-space: nowrap;
+}
+/* Login */
+.flex.w-full.flex-col.gap-3 {
+  width: 300px !important;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* Modal */
+.-translate-y-1\/2 {
+  --tw-translate-y: -50% !important;
+  translate: var(--tw-translate-x) var(--tw-translate-y) !important;
+}
+.-translate-x-1\/2 {
+  --tw-translate-x: -50% !important;
+  translate: var(--tw-translate-x) var(--tw-translate-y) !important;
+}
+@media(min-width: 1300px){
+  div[role="dialog"].-translate-x-1\/2 {
+    --tw-translate-x: calc(-50% - 160px) !important;
+  }
+}

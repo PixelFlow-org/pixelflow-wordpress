@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { PixelFlowGeneralOptions, PixelFlowClasses, UserRole } from '../types/settings.types';
 import { toast } from 'react-toastify';
-import { productClasses, cartClasses, checkoutClasses } from '../const/classes.ts';
+import { productClasses, cartClasses } from '../const/classes.ts';
 
 export interface SaveSettingsOptions {
   generalOptionsOverride?: Partial<PixelFlowGeneralOptions>;
@@ -39,7 +39,7 @@ const defaultGeneralOptions: PixelFlowGeneralOptions = {
 
 // Generate default options from all class definitions
 const generateDefaultOptions = (defaultValue: 0 | 1): PixelFlowClasses => {
-  const allClasses = [...productClasses, ...cartClasses, ...checkoutClasses];
+  const allClasses = [...productClasses, ...cartClasses];
   return allClasses.reduce((acc, classItem) => {
     acc[classItem.key] = defaultValue;
     return acc;

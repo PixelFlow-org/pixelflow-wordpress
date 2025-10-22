@@ -40,7 +40,7 @@ npm run dev  # Start development server with hot reload
 To add a new class (e.g., `info-chk-itm-ctnr-pf`), update the following files:
 
 1. **`app/source/src/wordpress/settings/classes.ts`**
-   - Add the class to the appropriate array (`productClasses`, `cartClasses`, or `checkoutClasses`)
+   - Add the class to the appropriate array (`productClasses`, `cartClasses`)
    ```typescript
    {
      key: 'woo_class_cart_products_container',
@@ -65,7 +65,6 @@ To add a new class (e.g., `info-chk-itm-ctnr-pf`), update the following files:
    - Add the hook implementation in the appropriate file:
      - `class-woocommerce-product-hooks.php` for product page classes
      - `class-woocommerce-cart-hooks.php` for cart page classes
-     - `class-woocommerce-checkout-hooks.php` for checkout page classes
 
 After adding new classes, rebuild the frontend:
 ```bash
@@ -118,18 +117,9 @@ The plugin automatically adds PixelFlow event tracking classes to WooCommerce el
 All event classes follow the PixelFlow specification. For the complete list of available classes, see:
 [PixelFlow Classes Documentation](https://docs.pixelflow.so/pixelflow-classes-document#purchase-events-classes-document)
 
-### Purchase Event Classes
+### Purchase Event Tracking
 
-The following classes are automatically applied to WooCommerce checkout and order confirmation pages:
-
-| Class | Applied To |
-|-------|-----------|
-| `info-chk-itm-ctnr-pf` | Main container with all checkout items |
-| `info-chk-itm-pf` | Individual item container |
-| `info-itm-name-pf` | Item name |
-| `info-itm-prc-pf` | Item price |
-| `info-itm-qnty-pf` | Item quantity |
-| `info-totl-amt-pf` | Total amount |
+The Purchase Event will be sent from the Order Confirmed page automatically
 
 ### Theme Compatibility
 

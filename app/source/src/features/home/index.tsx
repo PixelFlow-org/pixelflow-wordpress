@@ -368,6 +368,7 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
 
   return (
     <div className="bg-background text-foreground min-h-full !p-[12px]">
+      <TopControls handleLogout={logoutHandler} />
       <Header selectedCurrency={selectedCurrency} updateCurrency={onCurrencyChange} />
       <NavPanel
         activeTab={activeTab}
@@ -420,7 +421,6 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
         </div>
       )}
       <SettingsPage onRegenerateScript={onRegenerateScript} />
-      <TopControls handleLogout={logoutHandler} />
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import * as UI from '@pixelflow-org/plugin-ui';
 import { WooClassSection } from './WooClassSection';
 import type { PixelFlowGeneralOptions, PixelFlowClasses } from '../types/settings.types';
-import { productClasses, cartClasses, checkoutClasses } from '../const/classes.ts';
+import { productClasses, cartClasses } from '../const/classes.ts';
 
 interface DebugSettingsProps {
   generalOptions: PixelFlowGeneralOptions;
@@ -86,24 +86,15 @@ export function DebugSettings({
               sectionKey="debug-cart"
               isDebugMode={true}
             />
-
-            <WooClassSection
-              title="DEBUG Checkout Classes"
-              items={checkoutClasses}
-              values={debugOptions}
-              onUpdate={onUpdateDebug}
-              sectionKey="debug-checkout"
-              isDebugMode={true}
-            />
           </div>
 
           <div className="bg-blue-50 border border-blue-200 rounded-md p-4 text-sm">
             <p className="text-blue-900">
               <strong>Note:</strong> Some classes could appear in different locations (like for
               example <code className="bg-blue-100 px-1 rounded">info-itm-name-pf</code> exists on
-              the <strong>Product page</strong> and <strong>Checkout page</strong>). Therefore it
-              will be highlighted on the <strong>Checkout page</strong> even if it was enabled for
-              debug only in <strong>Product page</strong>, and vice versa.
+              the <strong>Product page</strong>). Therefore it will be highlighted on the{' '}
+              <strong>Cart page</strong> even if it was enabled for debug only in{' '}
+              <strong>Product page</strong>, and vice versa.
             </p>
           </div>
         </div>

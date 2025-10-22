@@ -1,7 +1,7 @@
 import * as UI from '@pixelflow-org/plugin-ui';
 import { WooClassSection } from './WooClassSection';
 import type { PixelFlowGeneralOptions, PixelFlowClasses } from '../types/settings.types';
-import { productClasses, cartClasses, checkoutClasses } from '../const/classes.ts';
+import { productClasses, cartClasses } from '../const/classes.ts';
 
 interface WooCommerceSettingsProps {
   generalOptions: PixelFlowGeneralOptions;
@@ -80,7 +80,7 @@ export function WooCommerceSettings({
                 </UI.Label.Root>
               </UI.TooltipTrigger>
               <UI.TooltipContent>
-                Enable automatic tracking of WooCommerce purchase events on checkout
+                Enable automatic tracking of WooCommerce purchase events after checkout
               </UI.TooltipContent>
             </UI.TooltipRoot>
           </div>
@@ -106,14 +106,6 @@ export function WooCommerceSettings({
               values={classOptions}
               onUpdate={onUpdateClass}
               sectionKey="cart"
-            />
-
-            <WooClassSection
-              title="Checkout Classes"
-              items={checkoutClasses}
-              values={classOptions}
-              onUpdate={onUpdateClass}
-              sectionKey="checkout"
             />
           </div>
         </div>

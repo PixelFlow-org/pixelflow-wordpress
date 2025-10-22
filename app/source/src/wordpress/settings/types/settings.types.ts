@@ -27,14 +27,6 @@ export interface PixelFlowClasses {
   woo_class_cart_checkout_button: number;
   woo_class_cart_product_name: number;
   woo_class_cart_products_container: number;
-  // Checkout classes
-  woo_class_checkout_form: number;
-  woo_class_checkout_item: number;
-  woo_class_checkout_item_name: number;
-  woo_class_checkout_item_price: number;
-  woo_class_checkout_item_quantity: number;
-  woo_class_checkout_total: number;
-  woo_class_checkout_place_order: number;
 }
 
 export interface PixelFlowSettings {

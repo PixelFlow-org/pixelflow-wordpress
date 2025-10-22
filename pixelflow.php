@@ -95,16 +95,6 @@ class PixelFlow
     public function admin_enqueue_scripts($hook)
     {
         if ($hook === 'settings_page_pixelflow-settings') {
-            $css_path = plugin_dir_path(__FILE__) . 'app/dist/style.css';
-            $css_url  = PIXELFLOW_PLUGIN_URL . 'app/dist/style.css';
-
-            $cssVersion = file_exists($css_path) ? filemtime($css_path) : '';
-
-            echo '<link rel="stylesheet" crossorigin href="'
-                 . esc_url($css_url . '?ver=' . $cssVersion)
-                 . '">' . "\n";
-
-
             add_action('admin_footer', function () {
                 // Localize settings data and nonce for React app
                 $general_options = get_option('pixelflow_general_options', array());
@@ -132,6 +122,15 @@ class PixelFlow
                 echo '<script type="module" crossorigin src="'
                      . esc_url($js_url . '?ver=' . $jsVersion)
                      . '"></script>' . "\n";
+
+
+                $css_path = plugin_dir_path(__FILE__) . 'app/dist/style.css';
+                $css_url  = PIXELFLOW_PLUGIN_URL . 'app/dist/style.css';
+
+                $cssVersion = file_exists($css_path) ? filemtime($css_path) : '';
+                echo '<link rel="stylesheet" crossorigin href="'
+                     . esc_url($css_url . '?ver=' . $cssVersion)
+                     . '">' . "\n";
             });
         }
     }
@@ -216,14 +215,6 @@ class PixelFlow
             'woo_class_cart_checkout_button',
             'woo_class_cart_product_name',
             'woo_class_cart_products_container',
-            // Checkout classes
-            'woo_class_checkout_form',
-            'woo_class_checkout_item',
-            'woo_class_checkout_item_name',
-            'woo_class_checkout_item_price',
-            'woo_class_checkout_item_quantity',
-            'woo_class_checkout_total',
-            'woo_class_checkout_place_order',
         );
 
         // Set all checkboxes: 1 if checked, 0 if not
@@ -318,14 +309,6 @@ class PixelFlow
             'woo_class_cart_price'             => '.info-itm-prc-pf { border: 1px solid blue !important; }',
             'woo_class_cart_checkout_button'   => '.action-btn-buy-004-pf { border: 3px solid #67a174 !important; }',
             'woo_class_cart_products_container'   => '.info-chk-itm-ctnr-pf { border: 3px solid #fcdb03 !important; }',
-            // Checkout classes
-            'woo_class_checkout_form'          => '.info-chk-itm-ctnr-pf { border: 1px solid green !important; }',
-            'woo_class_checkout_item'          => '.info-chk-itm-pf { background: rgba(0,0,0,0.1) !important; }',
-            'woo_class_checkout_item_name'     => '.info-itm-name-pf { border: 1px solid orange !important; }',
-            'woo_class_checkout_item_price'    => '.info-itm-prc-pf { border: 1px solid blue !important; }',
-            'woo_class_checkout_item_quantity' => '.info-itm-qnty-pf { border: 1px solid #03adfc !important; }',
-            'woo_class_checkout_total'         => '.info-totl-amt-pf { border: 1px solid #b103fc !important; }',
-            'woo_class_checkout_place_order'   => '.action-btn-plc-ord-018-pf { border: 3px solid #b01a81 !important; }',
         );
 
         $enabled_styles = array();
