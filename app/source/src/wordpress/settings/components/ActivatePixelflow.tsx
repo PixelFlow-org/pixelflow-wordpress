@@ -1,11 +1,16 @@
 import * as UI from '@pixelflow-org/plugin-ui';
+import { useSettings } from '../hooks/useSettings';
 
-interface ActivatePixelflowProps {
-  enabled: number;
-  onToggle: (enabled: number) => void;
-}
+export function ActivatePixelflow() {
+  const { generalOptions, updateGeneralOption, saveSettings, isSaving } = useSettings();
 
-export function ActivatePixelflow({ enabled, onToggle }: ActivatePixelflowProps) {
+  const handleToggle = async (checked: boolean) => {
+    const newValue = checked ? 1 : 0;
+    updateGeneralOption('enabled', newValue);
+    // Save immediately
+    await saveSettings({ generalOptionsOverride: { enabled: newValue } });
+  };
+
   return (
     <div className="space-y-6 pf-layout-main pf-module-home bg-background text-foreground min-h-full !p-[12px]">
       <div className="flex items-center gap-3">
@@ -20,8 +25,9 @@ export function ActivatePixelflow({ enabled, onToggle }: ActivatePixelflowProps)
           </UI.TooltipContent>
         </UI.TooltipRoot>
         <UI.Switch.Root
-          checked={enabled === 1}
-          onCheckedChange={(checked) => onToggle(checked ? 1 : 0)}
+          checked={generalOptions.enabled === 1}
+          onCheckedChange={handleToggle}
+          disabled={isSaving}
           id="enablePixelflow"
         ></UI.Switch.Root>
       </div>

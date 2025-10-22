@@ -1,7 +1,5 @@
 import { useSettings } from './hooks/useSettings';
-import { GeneralSettings } from './components/GeneralSettings';
 import { WooCommerceSettings } from './components/WooCommerceSettings';
-import { DebugSettings } from './components/DebugSettings';
 import * as UI from '@pixelflow-org/plugin-ui';
 import { useState } from 'react';
 
@@ -14,17 +12,13 @@ export function SettingsPage(props: SettingsPageProps) {
   const {
     generalOptions,
     classOptions,
-    debugOptions,
     scriptCode,
-    availableRoles,
     isWooCommerceActive,
     isLoading,
     isSaving,
     error,
     updateGeneralOption,
     updateClassOption,
-    updateDebugOption,
-    toggleExcludedRole,
     saveSettings,
   } = useSettings();
 
@@ -65,27 +59,11 @@ export function SettingsPage(props: SettingsPageProps) {
         <h3>WooCommerce Settings</h3>
 
         <div className="space-y-6">
-          <GeneralSettings
-            generalOptions={generalOptions}
-            availableRoles={availableRoles}
-            onUpdate={updateGeneralOption}
-            onToggleRole={toggleExcludedRole}
-          />
-
           <WooCommerceSettings
             generalOptions={generalOptions}
             classOptions={classOptions}
             onUpdateGeneral={updateGeneralOption}
             onUpdateClass={updateClassOption}
-            isEnabled={generalOptions.enabled === 1}
-            isWooCommerceActive={isWooCommerceActive}
-          />
-
-          <DebugSettings
-            generalOptions={generalOptions}
-            debugOptions={debugOptions}
-            onUpdateGeneral={updateGeneralOption}
-            onUpdateDebug={updateDebugOption}
             isEnabled={generalOptions.enabled === 1}
             isWooCommerceActive={isWooCommerceActive}
           />

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { PixelFlowGeneralOptions, PixelFlowClasses, UserRole } from '../types/settings.types';
 import { toast } from 'react-toastify';
 import { productClasses, cartClasses } from '../const/classes.ts';
+import { useSaveSettingsMutation } from '../api';
 
 export interface SaveSettingsOptions {
   generalOptionsOverride?: Partial<PixelFlowGeneralOptions>;
@@ -53,6 +54,10 @@ const defaultClassOptions: PixelFlowClasses = generateDefaultOptions(1);
 const defaultDebugOptions: PixelFlowClasses = generateDefaultOptions(0);
 
 export function useSettings(): UseSettingsReturn {
+  // RTK Mutation hooks (queries are skipped, we use window.pixelflowSettings for initial data)
+  const [saveSettingsMutation, { isLoading: isSaving }] = useSaveSettingsMutation();
+
+  // Local state for form editing (optimistic updates)
   const [generalOptions, setGeneralOptions] =
     useState<PixelFlowGeneralOptions>(defaultGeneralOptions);
   const [classOptions, setClassOptions] = useState<PixelFlowClasses>(defaultClassOptions);
@@ -61,27 +66,9 @@ export function useSettings(): UseSettingsReturn {
   const [availableRoles, setAvailableRoles] = useState<UserRole[]>([]);
   const [isWooCommerceActive, setIsWooCommerceActive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Parse available user roles from hidden input
-  useEffect(() => {
-    const rolesInput = document.getElementById('pixelflow-user-roles');
-    if (rolesInput) {
-      const rolesString = rolesInput.getAttribute('value') || '';
-      // Parse: "administrator|Administrator,editor|Editor,..."
-      const parsedRoles: UserRole[] = rolesString
-        .split(',')
-        .filter((role) => role.trim())
-        .map((role) => {
-          const [key, label] = role.split('|');
-          return { key: key.trim(), label: label.trim() };
-        });
-      setAvailableRoles(parsedRoles);
-    }
-  }, []);
-
-  // Load settings on mount
+  // Load initial settings from window.pixelflowSettings (provided by WordPress on page load)
   useEffect(() => {
     const settings = window.pixelflowSettings;
     if (settings) {
@@ -98,28 +85,26 @@ export function useSettings(): UseSettingsReturn {
       setIsLoading(false);
     } else {
       setError('Failed to load settings');
-      toast('Failed to load settings', {
-        type: 'error',
-      });
+      toast('Failed to load settings', { type: 'error' });
       setIsLoading(false);
     }
   }, []);
 
-  // Listen for script code updates (when generated/regenerated)
+  // Parse available user roles from hidden input
   useEffect(() => {
-    const handleScriptUpdate = () => {
-      const settings = window.pixelflowSettings;
-      if (settings) {
-        setScriptCode(settings.script_code || '');
-      }
-    };
-
-    // Listen for custom event dispatched when script is saved
-    window.addEventListener('pixelflow:script-updated', handleScriptUpdate);
-
-    return () => {
-      window.removeEventListener('pixelflow:script-updated', handleScriptUpdate);
-    };
+    const rolesInput = document.getElementById('pixelflow-user-roles');
+    if (rolesInput) {
+      const rolesString = rolesInput.getAttribute('value') || '';
+      // Parse: "administrator|Administrator,editor|Editor,..."
+      const parsedRoles: UserRole[] = rolesString
+        .split(',')
+        .filter((role) => role.trim())
+        .map((role) => {
+          const [key, label] = role.split('|');
+          return { key: key.trim(), label: label.trim() };
+        });
+      setAvailableRoles(parsedRoles);
+    }
   }, []);
 
   const updateGeneralOption = <K extends keyof PixelFlowGeneralOptions>(
@@ -154,91 +139,33 @@ export function useSettings(): UseSettingsReturn {
   };
 
   const saveSettings = async (options?: SaveSettingsOptions) => {
-    const settings = window.pixelflowSettings;
-    if (!settings) {
-      setError('Settings configuration not available');
-      toast('Settings configuration not available', {
-        type: 'error',
-      });
-
-      return;
-    }
-
-    setIsSaving(true);
-    setError(null);
-
     try {
-      const formData = new FormData();
-      formData.append('action', 'pixelflow_save_settings');
-      formData.append('nonce', settings.nonce);
-
       // Merge current state with overrides
       const finalGeneralOptions = { ...generalOptions, ...options?.generalOptionsOverride };
       const finalClassOptions = { ...classOptions, ...options?.classOptionsOverride };
       const finalDebugOptions = { ...debugOptions, ...options?.debugOptionsOverride };
 
-      // Add general options (script_code is managed separately)
-      Object.entries(finalGeneralOptions).forEach(([key, value]) => {
-        formData.append(`general_options[${key}]`, String(value));
-      });
+      const result = await saveSettingsMutation({
+        generalOptions: finalGeneralOptions,
+        classOptions: finalClassOptions,
+        debugOptions: finalDebugOptions,
+      }).unwrap();
 
-      // Add class options
-      Object.entries(finalClassOptions).forEach(([key, value]) => {
-        formData.append(`class_options[${key}]`, String(value));
-      });
-
-      // Add debug options
-      Object.entries(finalDebugOptions).forEach(([key, value]) => {
-        formData.append(`debug_options[${key}]`, String(value));
-      });
-
-      const response = await fetch(settings.ajax_url, {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        // Update local state with sanitized values
-        if (data.data.general_options) {
-          setGeneralOptions({ ...defaultGeneralOptions, ...data.data.general_options });
-        }
-        if (data.data.class_options) {
-          setClassOptions({ ...defaultClassOptions, ...data.data.class_options });
-        }
-        if (data.data.debug_options) {
-          setDebugOptions({ ...defaultDebugOptions, ...data.data.debug_options });
-        }
-
-        // Also apply overrides to local state immediately if they were used
-        if (options?.generalOptionsOverride) {
-          setGeneralOptions((prev) => ({ ...prev, ...options.generalOptionsOverride }));
-        }
-        if (options?.classOptionsOverride) {
-          setClassOptions((prev) => ({ ...prev, ...options.classOptionsOverride }));
-        }
-        if (options?.debugOptionsOverride) {
-          setDebugOptions((prev) => ({ ...prev, ...options.debugOptionsOverride }));
-        }
-
-        toast('Settings saved successfully', {
-          type: 'info',
-        });
-      } else {
-        setError(data.data?.message || 'Failed to save settings');
-        toast('Failed to save settings', {
-          type: 'error',
-        });
+      // Update local state with sanitized values from server
+      if (result.general_options) {
+        setGeneralOptions({ ...defaultGeneralOptions, ...result.general_options });
       }
+      if (result.class_options) {
+        setClassOptions({ ...defaultClassOptions, ...result.class_options });
+      }
+      if (result.debug_options) {
+        setDebugOptions({ ...defaultDebugOptions, ...result.debug_options });
+      }
+
+      toast('Settings saved successfully', { type: 'info' });
     } catch (err) {
-      setError('An error occurred while saving settings');
+      toast('Failed to save settings', { type: 'error' });
       console.error('Save settings error:', err);
-      toast('Save settings error, see browser console for details', {
-        type: 'error',
-      });
-    } finally {
-      setIsSaving(false);
     }
   };
 

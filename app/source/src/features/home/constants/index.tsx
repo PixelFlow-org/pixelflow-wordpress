@@ -30,13 +30,13 @@ export const wordPressNavPanelConfig: NavPanelConfig<WordPressNavPanelTab> = {
         return {
           icon: <StoreIcon />,
           label: 'Configure',
-          width: '!w-[90px]',
+          width: 'bf-hidden',
         };
       case 'advanced':
         return {
           icon: <SettingsIcon />,
           label: 'Edit',
-          width: '!w-[70px]',
+          width: 'bf-hidden',
         };
       // Use default behavior for standard tabs
       case 'pixel':

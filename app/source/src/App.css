@@ -92,3 +92,8 @@
 .pf-header {
   gap: 20px;
 }
+
+/* common */
+.bf-hidden {
+  display: none !important;
+}

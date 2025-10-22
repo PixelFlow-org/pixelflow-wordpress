@@ -44,7 +44,14 @@ import { BlockingRule, TrackingUrlScriptData } from '@pixelflow-org/plugin-core'
 import { WordPressNavPanelTab } from '@/features/home/types/index';
 
 /* Wordpress settings page */
-import { ActivatePixelflow, SettingsPage, useSettings } from '@/wordpress/settings';
+import {
+  ActivatePixelflow,
+  SettingsPage,
+  useSettings,
+  useSaveScriptCodeMutation,
+  useRemoveScriptCodeMutation,
+  AdvancedSettings,
+} from '@/wordpress/settings';
 import TopControls from '@/components/TopControls/TopControls.tsx';
 
 interface HomeProps {
@@ -108,7 +115,11 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
   const { handleLogout } = useAuth({ adapter });
 
   // Get settings save function to disable integration on logout
-  const { generalOptions, updateGeneralOption, saveSettings } = useSettings();
+  const { saveSettings } = useSettings();
+
+  // RTK mutations for script management
+  const [saveScriptCode] = useSaveScriptCodeMutation();
+  const [removeScriptCode] = useRemoveScriptCodeMutation();
 
   const logoutHandler = async () => {
     try {
@@ -180,15 +191,8 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
           blockingRules
         );
 
-        // Save script to WordPress database (doesn't enable it automatically)
-        await adapter.injectScript(script);
-
-        // Update window.pixelflowSettings so SettingsPage shows the new script immediately
-        if (window.pixelflowSettings) {
-          window.pixelflowSettings.script_code = script;
-          // Notify SettingsPage to refresh script display
-          window.dispatchEvent(new CustomEvent('pixelflow:script-updated'));
-        }
+        // Save script to WordPress database using RTK mutation
+        await saveScriptCode(script).unwrap();
 
         console.log('[PixelFlow] Tracking script saved successfully. Use settings to enable.');
       } catch (error) {
@@ -269,11 +273,8 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
    */
   const onRegenerateScript = async (): Promise<boolean> => {
     try {
-      await adapter.injectScript('');
-      if (window.pixelflowSettings) {
-        window.pixelflowSettings.script_code = '';
-        window.dispatchEvent(new CustomEvent('pixelflow:script-updated'));
-      }
+      // Clear existing script first
+      await removeScriptCode().unwrap();
 
       // Validate API key availability
       const apiKey = await getHashedApiKey();
@@ -326,15 +327,8 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
         blockingRules
       );
 
-      // Save script to WordPress database
-      await adapter.injectScript(script);
-
-      // Update window.pixelflowSettings so SettingsPage shows the new script immediately
-      if (window.pixelflowSettings) {
-        window.pixelflowSettings.script_code = script;
-        // Notify SettingsPage to refresh script display
-        window.dispatchEvent(new CustomEvent('pixelflow:script-updated'));
-      }
+      // Save script to WordPress database using RTK mutation
+      await saveScriptCode(script).unwrap();
 
       adapter.showNotification('Tracking script regenerated successfully', 'success');
       return true;
@@ -372,10 +366,7 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
         <Header selectedCurrency={selectedCurrency} updateCurrency={onCurrencyChange} />
         <TopControls handleLogout={logoutHandler} />
       </nav>
-      <ActivatePixelflow
-        enabled={generalOptions.enabled}
-        onToggle={(enabled) => updateGeneralOption('enabled', enabled)}
-      />
+      <ActivatePixelflow />
       <NavPanel
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -417,10 +408,7 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
       {activeTab === 'advanced' && (
         <div className="mt-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-4">Advanced Settings</h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            Configure advanced tracking and plugin settings here.
-          </p>
-          {/* Add your advanced settings UI components here */}
+          <AdvancedSettings />
         </div>
       )}
     </div>

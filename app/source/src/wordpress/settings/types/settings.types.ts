@@ -45,6 +45,21 @@ export interface WooClassItem {
   description: string;
 }
 
+// RTK Query types
+export interface SettingsResponse {
+  general_options: PixelFlowGeneralOptions;
+  class_options: PixelFlowClasses;
+  debug_options: PixelFlowClasses;
+  script_code: string;
+  is_woocommerce_active: boolean;
+}
+
+export interface SaveSettingsRequest {
+  generalOptions: PixelFlowGeneralOptions;
+  classOptions: PixelFlowClasses;
+  debugOptions: PixelFlowClasses;
+}
+
 declare global {
   interface Window {
     pixelflowSettings?: PixelFlowSettings;

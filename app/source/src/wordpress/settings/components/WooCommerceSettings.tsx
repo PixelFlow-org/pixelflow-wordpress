@@ -20,10 +20,9 @@ export function WooCommerceSettings({
   classOptions,
   onUpdateGeneral,
   onUpdateClass,
-  isEnabled,
   isWooCommerceActive,
 }: WooCommerceSettingsProps) {
-  if (!isWooCommerceActive || !isEnabled) {
+  if (!isWooCommerceActive) {
     return null;
   }
 
@@ -38,59 +37,34 @@ export function WooCommerceSettings({
         <UI.TooltipRoot>
           <UI.TooltipTrigger asChild>
             <UI.Label.Root className="cursor-pointer" htmlFor="enableWoo">
-              Enable WooCommerce Integration
+              Track WooCommerce eCommerce Events
             </UI.Label.Root>
           </UI.TooltipTrigger>
           <UI.TooltipContent>
-            Enable WooCommerce integration to track eCommerce events
+            We will automatically track all add to cart, checkout and purchase events along with
+            associated metadata where available
           </UI.TooltipContent>
         </UI.TooltipRoot>
       </div>
       <div>
-        <p>
-          These options will add the classes to track your WooCommerce purchases automatically.
-          <br />
-          Please check your site thoroughly after enabling this option and saving the changes
+        <p className="text-sm text-foreground ml-11">
+          We will automatically track all add to cart, checkout and purchase events along with
+          associated metadata where available
         </p>
-        <p>
-          You can{' '}
-          <a
-            href="https://docs.pixelflow.so/pixelflow-classes-document#purchase-events-classes-document"
-            target="_blank"
-          >
-            read more about the classes here
-          </a>
-        </p>
+        {/*<p className="text-sm text-foreground ml-11">*/}
+        {/*  You can{' '}*/}
+        {/*  <a*/}
+        {/*    href="https://docs.pixelflow.so/pixelflow-classes-document#purchase-events-classes-document"*/}
+        {/*    target="_blank"*/}
+        {/*    className="text-primary underline"*/}
+        {/*  >*/}
+        {/*    read more about the classes here*/}
+        {/*  </a>*/}
+        {/*</p>*/}
       </div>
 
       {generalOptions.woo_enabled === 1 && (
         <div className="space-y-6 mt-6">
-          <div className="flex items-center gap-3">
-            <UI.Switch.Root
-              checked={generalOptions.woo_purchase_tracking === 1}
-              onCheckedChange={(checked) =>
-                onUpdateGeneral('woo_purchase_tracking', checked ? 1 : 0)
-              }
-              id="enableWooPurchaseTracking"
-            ></UI.Switch.Root>
-            <UI.TooltipRoot>
-              <UI.TooltipTrigger asChild>
-                <UI.Label.Root className="cursor-pointer" htmlFor="enableWooPurchaseTracking">
-                  Track WooCommerce Purchase
-                </UI.Label.Root>
-              </UI.TooltipTrigger>
-              <UI.TooltipContent>
-                Enable automatic tracking of WooCommerce purchase events after checkout
-              </UI.TooltipContent>
-            </UI.TooltipRoot>
-          </div>
-          <div>
-            <p>
-              Adds a script which will track the WooCommerce purchase event on the order received
-              page after a successful checkout
-            </p>
-          </div>
-
           <div className="flex gap-8 [@media(max-width:1100px)]:flex-wrap">
             <WooClassSection
               title="Product Classes"

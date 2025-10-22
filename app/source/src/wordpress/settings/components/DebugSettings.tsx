@@ -11,7 +11,6 @@ interface DebugSettingsProps {
     value: PixelFlowGeneralOptions[K]
   ) => void;
   onUpdateDebug: <K extends keyof PixelFlowClasses>(key: K, value: PixelFlowClasses[K]) => void;
-  isEnabled: boolean;
   isWooCommerceActive: boolean;
 }
 
@@ -20,10 +19,9 @@ export function DebugSettings({
   debugOptions,
   onUpdateGeneral,
   onUpdateDebug,
-  isEnabled,
   isWooCommerceActive,
 }: DebugSettingsProps) {
-  if (!isWooCommerceActive || !isEnabled) {
+  if (!isWooCommerceActive) {
     return null;
   }
 
@@ -47,27 +45,25 @@ export function DebugSettings({
             </UI.TooltipContent>
           </UI.TooltipRoot>
         </div>
-        <p className="text-sm text-foreground ml-12">
+        <p className="text-sm text-foreground ml-11">
           Enable debug mode to track which WooCommerce classes are being added. Turning this ON adds
           colored borders and backgrounds to the Woo elements making added the classes visible (for
           admin only).
+        </p>
+        <p className="text-sm text-foreground ml-11">
+          When debug mode is enabled, the <b>Track WooCommerce Purchase</b> option will be also
+          debugged.
+        </p>
+        <p className="text-sm text-foreground ml-11">
+          <b>Track WooCommerce Purchase</b> event usually run only once on the "Thank you" page
+          after the order was completed. <br />
+          When debug mode is enabled, the event will be triggered <b>EVERY TIME</b> you open or
+          refresh the "Thank you" page.
         </p>
       </div>
 
       {generalOptions.debug_enabled === 1 && (
         <div className="space-y-6 mt-6">
-          <h4>
-            Tracking WooCommerce Purchase debug is <b style={{ color: 'red' }}>ENABLED</b>
-          </h4>
-          <p className="text-sm text-foreground ml-12">
-            When debug mode is enabled, the <b>Track WooCommerce Purchase</b> option will be also
-            debugged.
-            <br />
-            <b>Track WooCommerce Purchase</b> event usually run only once on the "Thank you" page
-            after the order was completed. <br />
-            When debug mode is enabled, the event will be triggered <b>EVERY TIME</b> you open or
-            refresh the "Thank you" page.
-          </p>
           <div className="flex gap-8 [@media(max-width:1100px)]:flex-wrap">
             <WooClassSection
               title="DEBUG Product Classes"

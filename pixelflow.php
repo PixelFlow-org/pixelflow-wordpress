@@ -183,7 +183,6 @@ class PixelFlow
         }
 
         // Sanitize excluded_user_roles (array of role keys)
-
         if (isset($input['excluded_user_roles'])) {
           if(!is_array($input['excluded_user_roles'])){
             $input['excluded_user_roles'] = explode(',', $input['excluded_user_roles']);
