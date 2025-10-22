@@ -33,11 +33,15 @@ import {
   EventsModule,
 } from '@pixelflow-org/plugin-features';
 
+/** Constants */
+import { wordPressNavPanelConfig } from '@/features/home/constants/index';
+
 /** Utils */
 import { generateTrackingScript, useAuth } from '@pixelflow-org/plugin-features';
 
 /** Types */
 import { BlockingRule, TrackingUrlScriptData } from '@pixelflow-org/plugin-core';
+import { WordPressNavPanelTab } from '@/features/home/types/index';
 
 /* Wordpress settings page */
 import { SettingsPage, useSettings } from '@/wordpress/settings';
@@ -58,7 +62,7 @@ interface HomeProps {
 const Home = ({ user, adapter }: HomeProps): ReactElement => {
   /** Local state */
   // Track which settings panel is currently visible to users
-  const [activeTab, setActiveTab] = useState<'pixel' | 'url' | 'events'>('pixel');
+  const [activeTab, setActiveTab] = useState<WordPressNavPanelTab>('woocommerce');
   // Store site ID to associate tracking data with specific sites
   const [siteExternalId, setSiteExternalId] = useState<string | null>(null);
   // Store site ID to associate tracking data with specific sites
@@ -237,6 +241,10 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
   const onAddEntityClick = (): void => {
     // Route to appropriate modal based on current context to maintain user workflow continuity
     switch (activeTab) {
+      case 'woocommerce':
+        // Handle WooCommerce settings action
+        console.log('WooCommerce settings action');
+        break;
       case 'pixel':
         setOpenAddPixelModal(true);
         break;
@@ -245,6 +253,10 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
         break;
       case 'events':
         refreshEvents();
+        break;
+      case 'advanced':
+        // Handle advanced settings action
+        console.log('Advanced settings action');
         break;
     }
   };
@@ -360,13 +372,18 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
       <NavPanel
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onAddEntityClick={onAddEntityClick}
-        visibleTabs={{
-          pixel: true,
-          url: true,
-          events: true,
-        }}
+        onButtonClick={onAddEntityClick}
+        config={wordPressNavPanelConfig}
       />
+      {activeTab === 'woocommerce' && (
+        <div className="mt-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4">WooCommerce Settings</h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            Configure WooCommerce-specific tracking settings here.
+          </p>
+          {/* Add your WooCommerce settings UI components here */}
+        </div>
+      )}
       {activeTab === 'pixel' && (
         <PixelsModule
           pixels={pixels ?? []}
@@ -392,6 +409,15 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
       )}
       {activeTab === 'events' && (
         <EventsModule events={events} areEventsLoading={areEventsLoading} adapter={adapter} />
+      )}
+      {activeTab === 'advanced' && (
+        <div className="mt-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4">Advanced Settings</h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            Configure advanced tracking and plugin settings here.
+          </p>
+          {/* Add your advanced settings UI components here */}
+        </div>
       )}
       <SettingsPage onRegenerateScript={onRegenerateScript} />
       <TopControls handleLogout={logoutHandler} />

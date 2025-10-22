@@ -6,7 +6,7 @@
 import React from 'react';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
-import { store, persistor } from '@pixelflow-org/plugin-core';
+import { store, persistor } from '@/store';
 import { LoadingScreen, ThemeProvider } from '@pixelflow-org/plugin-ui';
 import '@pixelflow-org/plugin-ui/dist/styles.css';
 import './App.css';
