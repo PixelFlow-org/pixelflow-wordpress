@@ -1,5 +1,5 @@
 === PixelFlow ===
-Contributors: pixelflowteam
+Contributors: dependencyinjection
 Tags: facebook pixel, conversions api, meta pixel, woocommerce tracking, ecommerce
 Requires at least: 5.0
 Tested up to: 6.7
@@ -74,12 +74,7 @@ When WooCommerce is active, PixelFlow automatically:
 
 **Configuration:**
 
-1. Sign up for a free account at [PixelFlow.so](https://pixelflow.so)
-2. Get your PixelFlow tracking code
-3. Paste it into the plugin settings
-4. Enable WooCommerce integration (if using WooCommerce)
-5. Customize class assignments as needed
-6. Save your settings and test
+Please follow this guide to set up your PixelFlow tracking code: [PixelFlow Setup Guide](https://docs.pixelflow.so/getting-started)
 
 == Frequently Asked Questions ==
 
@@ -182,4 +177,5 @@ For more information:
 * The plugin is developer-friendly with filters and hooks
 * Custom event tracking can be implemented using PixelFlow classes
 * Compatible with custom WooCommerce themes
+
 

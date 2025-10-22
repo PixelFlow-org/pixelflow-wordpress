@@ -9,7 +9,7 @@ set -e  # Exit on error
 # Get build mode (default to prod)
 BUILD_MODE="${1:-prod}"
 
-if [[ "$BUILD_MODE" != "dev" && "$BUILD_MODE" != "prod" ]]; then
+if [ "$BUILD_MODE" != "dev" ] && [ "$BUILD_MODE" != "prod" ]; then
   echo "❌ Invalid build mode: $BUILD_MODE"
   echo "Usage: ./build_plugin.sh [dev|prod]"
   exit 1
@@ -33,21 +33,21 @@ mkdir -p "$BUILD_DIR"
 
 # Plugin name and version
 PLUGIN_NAME="pixelflow"
-ZIP_NAME="${PLUGIN_NAME}-${BUILD_MODE}.zip"
+ZIP_NAME="${PLUGIN_NAME}.zip"
 
 echo "📁 Creating deployment package: $ZIP_NAME"
 
 # Determine which env file to include
 ENV_FILE=""
-if [[ "$BUILD_MODE" == "dev" ]]; then
-  if [[ -f "app/source/.env.local" ]]; then
+if [ "$BUILD_MODE" = "dev" ]; then
+  if [ -f "app/source/.env.local" ]; then
     ENV_FILE="app/source/.env.local"
     echo "📋 Including .env.local for dev build"
   else
     echo "⚠️  Warning: .env.local not found, continuing without it"
   fi
 else
-  if [[ -f "app/source/.env" ]]; then
+  if [ -f "app/source/.env" ]; then
     ENV_FILE="app/source/.env"
     echo "📋 Including .env for prod build"
   else
@@ -56,7 +56,7 @@ else
 fi
 
 # Create zip with production files
-if [[ -n "$ENV_FILE" ]]; then
+if [ -n "$ENV_FILE" ]; then
   # Include env file in the zip
   zip -r "$BUILD_DIR/$ZIP_NAME" \
     app/dist/ \
@@ -94,7 +94,7 @@ echo "  ✅ admin/"
 echo "  ✅ pixelflow.php"
 echo "  ✅ README.md"
 echo "  ✅ readme.txt"
-if [[ -n "$ENV_FILE" ]]; then
+if [ -n "$ENV_FILE" ]; then
   echo "  ✅ $ENV_FILE"
 fi
 echo ""
