@@ -1,6 +1,6 @@
 /** External libraries */
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { WooCommerceState } from '../types';
+import { WooCommerceState } from '@/features/woocommerce/types';
 
 /** Types */
 

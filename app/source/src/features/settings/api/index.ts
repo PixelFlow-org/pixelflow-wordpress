@@ -1,6 +1,9 @@
 import pixelFlowApi from '@pixelflow-org/plugin-core/dist/api';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
-import type { SettingsResponse, SaveSettingsRequest } from '../types/settings.types';
+import type {
+  SettingsResponse,
+  SaveSettingsRequest,
+} from '@/features/settings/types/settings.types.ts';
 
 const wordpressSettingsApi = pixelFlowApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -171,4 +174,3 @@ export const {
   useSaveScriptCodeMutation,
   useRemoveScriptCodeMutation,
 } = wordpressSettingsApi;
-

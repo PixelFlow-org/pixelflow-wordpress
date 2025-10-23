@@ -8,9 +8,10 @@ import { AuthStatus } from '@pixelflow-org/plugin-core';
 import { LoadingScreen } from '@pixelflow-org/plugin-ui';
 import { AuthScreen, useAuth, useAuthSelector } from '@pixelflow-org/plugin-features';
 
-import Home from '../../home';
+import Home from '@/features/home';
+import { SettingsProvider } from '@/features/settings';
 
-import { usePlatform } from '../../../contexts/platform.context';
+import { usePlatform } from '@/contexts/platform.context';
 
 /**
  * Bootstrap component
@@ -24,7 +25,9 @@ const Bootstrap = () => {
   const { isAuthenticated } = useAuthSelector();
 
   // Auth operations (pass adapter for platform-specific operations)
-  const { authState, user, checkExistingAuth, handleAuthSuccess, handleLogout } = useAuth({ adapter });
+  const { authState, user, checkExistingAuth, handleAuthSuccess, handleLogout } = useAuth({
+    adapter,
+  });
 
   // Initialize authentication on mount
   useEffect(() => {
@@ -69,7 +72,11 @@ const Bootstrap = () => {
 
   // Show home module if authenticated
   if (authState === AuthStatus.AUTHENTICATED && isAuthenticated && user) {
-    return <Home adapter={adapter} user={user} />;
+    return (
+      <SettingsProvider>
+        <Home adapter={adapter} user={user} />
+      </SettingsProvider>
+    );
   }
 
   // Fallback loading screen

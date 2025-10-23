@@ -1,8 +1,8 @@
 import * as UI from '@pixelflow-org/plugin-ui';
-import { WooClassSection } from './WooClassSection';
-import { productClasses, cartClasses } from '../const/classes.ts';
-import { useSettings } from '../hooks/useSettings';
-import { DebugSettings } from '@/wordpress/settings';
+import { WooClassSection } from '@/features/settings/components/WooClassSection.tsx';
+import { productClasses, cartClasses } from '@/features/settings/const/classes.ts';
+import { useSettings } from '@/features/settings/contexts/SettingsContext.tsx';
+import { DebugSettings } from '@/features/settings';
 
 export function WooCommerceSettings() {
   const {
@@ -105,7 +105,7 @@ export function WooCommerceSettings() {
                     }
                     id="enableWooPurchaseTracking"
                     variant={'green'}
-                    disabled={isSaving}
+                    disabled={true}
                   ></UI.Switch.Root>
                   <UI.TooltipRoot>
                     <UI.TooltipTrigger asChild>

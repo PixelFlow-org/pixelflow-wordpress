@@ -1,8 +1,9 @@
 import * as UI from '@pixelflow-org/plugin-ui';
-import { useSettings } from '../hooks/useSettings';
+import { useSettings } from '@/features/settings/contexts/SettingsContext.tsx';
 
 export function AdvancedSettings() {
-  const { generalOptions, availableRoles, toggleExcludedRole, saveSettings } = useSettings();
+  const { generalOptions, availableRoles, toggleExcludedRole, saveSettings, isSaving } =
+    useSettings();
   const excludedRoles = generalOptions.excluded_user_roles || [];
 
   const handleRoleToggle = async (roleKey: string) => {
@@ -42,6 +43,7 @@ export function AdvancedSettings() {
                       onCheckedChange={() => handleRoleToggle(role.key)}
                       id={roleId}
                       variant={'green'}
+                      disabled={isSaving}
                     ></UI.Switch.Root>
                     <UI.Label.Root className="cursor-pointer" htmlFor={roleId}>
                       <span className="text-sm">{role.label}</span>

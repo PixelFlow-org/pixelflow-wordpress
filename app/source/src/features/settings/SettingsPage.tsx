@@ -1,5 +1,5 @@
-import { useSettings } from './hooks/useSettings';
-import { WooCommerceSettings } from './components/WooCommerceSettings';
+import { SettingsProvider, useSettings } from '@/features/settings/contexts/SettingsContext.tsx';
+import { WooCommerceSettings } from '@/features/settings/components/WooCommerceSettings.tsx';
 import * as UI from '@pixelflow-org/plugin-ui';
 import { useState } from 'react';
 
@@ -7,7 +7,7 @@ type SettingsPageProps = {
   onRegenerateScript: () => void;
 };
 
-export function SettingsPage(props: SettingsPageProps) {
+function SettingsPageContent(props: SettingsPageProps) {
   const { onRegenerateScript } = props;
   const { generalOptions, scriptCode, isLoading, error } = useSettings();
 
@@ -82,5 +82,13 @@ export function SettingsPage(props: SettingsPageProps) {
         ) : null}
       </div>
     </div>
+  );
+}
+
+export function SettingsPage(props: SettingsPageProps) {
+  return (
+    <SettingsProvider>
+      <SettingsPageContent {...props} />
+    </SettingsProvider>
   );
 }

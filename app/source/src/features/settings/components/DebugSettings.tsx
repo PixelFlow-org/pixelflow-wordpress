@@ -1,10 +1,11 @@
 import * as UI from '@pixelflow-org/plugin-ui';
-import { WooClassSection } from './WooClassSection';
-import { productClasses, cartClasses } from '../const/classes.ts';
-import { useSettings } from '../hooks/useSettings';
+import { WooClassSection } from '@/features/settings/components/WooClassSection.tsx';
+import { productClasses, cartClasses } from '@/features/settings/const/classes.ts';
+import { useSettings } from '@/features/settings/contexts/SettingsContext.tsx';
 
 export function DebugSettings() {
-  const { generalOptions, isWooCommerceActive, updateGeneralOption, saveSettings } = useSettings();
+  const { generalOptions, isWooCommerceActive, updateGeneralOption, saveSettings, isSaving } =
+    useSettings();
 
   if (!isWooCommerceActive) {
     return null;
@@ -27,6 +28,7 @@ export function DebugSettings() {
             onCheckedChange={handleToggle}
             id="enableWooDebug"
             variant={'green'}
+            disabled={isSaving}
           ></UI.Switch.Root>
           <UI.TooltipRoot>
             <UI.TooltipTrigger asChild>

@@ -46,12 +46,12 @@ import { WordPressNavPanelTab } from '@/features/home/types/index';
 /* Wordpress settings page */
 import {
   ActivatePixelflow,
-  useSettings,
   useSaveScriptCodeMutation,
   useRemoveScriptCodeMutation,
   AdvancedSettings,
   WooCommerceSettings,
-} from '@/wordpress/settings';
+} from '@/features/settings';
+import { useSettings } from '@/features/settings/contexts/SettingsContext';
 import TopControls from '@/shared/components/TopControls/TopControls.tsx';
 
 interface HomeProps {

@@ -1,5 +1,5 @@
 import * as UI from '@pixelflow-org/plugin-ui';
-import { useSettings } from '../hooks/useSettings';
+import { useSettings } from '@/features/settings/contexts/SettingsContext.tsx';
 import { Button } from '@pixelflow-org/plugin-ui';
 import { useState } from 'react';
 

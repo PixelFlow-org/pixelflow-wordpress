@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
-import { PixelFlowGeneralOptions, PixelFlowClasses, UserRole } from '../types/settings.types';
+import {
+  PixelFlowGeneralOptions,
+  PixelFlowClasses,
+  UserRole,
+} from '@/features/settings/types/settings.types.ts';
 import { toast } from 'react-toastify';
-import { productClasses, cartClasses } from '../const/classes.ts';
-import { useSaveSettingsMutation } from '../api';
+import { productClasses, cartClasses } from '@/features/settings/const/classes.ts';
+import { useSaveSettingsMutation } from '@/features/settings/api';
 
 export interface SaveSettingsOptions {
   generalOptionsOverride?: Partial<PixelFlowGeneralOptions>;
@@ -10,7 +14,7 @@ export interface SaveSettingsOptions {
   debugOptionsOverride?: Partial<PixelFlowClasses>;
 }
 
-interface UseSettingsReturn {
+export interface UseSettingsReturn {
   generalOptions: PixelFlowGeneralOptions;
   classOptions: PixelFlowClasses;
   debugOptions: PixelFlowClasses;
@@ -54,8 +58,8 @@ const defaultClassOptions: PixelFlowClasses = generateDefaultOptions(1);
 const defaultDebugOptions: PixelFlowClasses = generateDefaultOptions(0);
 
 export function useSettings(): UseSettingsReturn {
-  // RTK Mutation hooks (queries are skipped, we use window.pixelflowSettings for initial data)
-  const [saveSettingsMutation, { isLoading: isSaving }] = useSaveSettingsMutation();
+  // RTK Mutation hook (queries are skipped, we use window.pixelflowSettings for initial data)
+  const [saveSettingsMutation] = useSaveSettingsMutation();
 
   // Local state for form editing (optimistic updates)
   const [generalOptions, setGeneralOptions] =
@@ -67,6 +71,7 @@ export function useSettings(): UseSettingsReturn {
   const [isWooCommerceActive, setIsWooCommerceActive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Load initial settings from window.pixelflowSettings (provided by WordPress on page load)
   useEffect(() => {
@@ -139,7 +144,15 @@ export function useSettings(): UseSettingsReturn {
   };
 
   const saveSettings = async (options?: SaveSettingsOptions) => {
+    // Prevent concurrent saves
+    if (isSaving) {
+      console.warn('Save already in progress, skipping...');
+      return;
+    }
+
     try {
+      setIsSaving(true);
+
       // Merge current state with overrides
       const finalGeneralOptions = { ...generalOptions, ...options?.generalOptionsOverride };
       const finalClassOptions = { ...classOptions, ...options?.classOptionsOverride };
@@ -166,6 +179,8 @@ export function useSettings(): UseSettingsReturn {
     } catch (err) {
       toast('Failed to save settings', { type: 'error' });
       console.error('Save settings error:', err);
+    } finally {
+      setIsSaving(false);
     }
   };
 

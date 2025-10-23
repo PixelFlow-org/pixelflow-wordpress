@@ -8,8 +8,9 @@ import {
   Dropdown,
   Button,
 } from '@pixelflow-org/plugin-ui';
-import type { WooClassItem, PixelFlowClasses } from '../types/settings.types';
-import { useSettings } from '../hooks/useSettings';
+import type { WooClassItem, PixelFlowClasses } from '@/features/settings/types/settings.types.ts';
+import { useSettings } from '@/features/settings/contexts/SettingsContext.tsx';
+import { debugColors } from '@/features/settings/const/classes.ts';
 
 interface WooClassSectionProps {
   title: JSX.Element;
@@ -72,19 +73,6 @@ export function WooClassSection({
     });
   };
 
-  // Map class names to their debug colors
-  const debugColors: Record<string, string> = {
-    'info-chk-itm-pf': 'green',
-    'info-itm-name-pf': 'red',
-    'info-itm-prc-pf': 'blue',
-    'info-itm-qnty-pf': 'orange',
-    'action-btn-cart-005-pf': '#fc0390',
-    'action-btn-buy-004-pf': '#67a174',
-    'info-chk-itm-ctnr-pf': 'green',
-    'info-totl-amt-pf': '#b103fc',
-    'action-btn-plc-ord-018-pf': '#b01a81',
-  };
-
   return (
     <div className="mb-6 w-full max-w-1/3">
       <div className="flex items-center justify-between mb-3">
@@ -110,7 +98,7 @@ export function WooClassSection({
       <div className="mt-5  ml-11">
         <Dropdown.Root>
           <Dropdown.Trigger asChild>
-            <Button.Root size="xsmall">Advanced setting</Button.Root>
+            <Button.Root size="xsmall">Advanced settings</Button.Root>
           </Dropdown.Trigger>
           <Dropdown.Content>
             <Dropdown.Label>Fine-tune the elements</Dropdown.Label>

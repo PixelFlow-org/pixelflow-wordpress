@@ -1,4 +1,4 @@
-import type { WooClassItem } from '../types/settings.types.ts';
+import type { WooClassItem } from '@/features/settings/types/settings.types.ts';
 
 export const productClasses: WooClassItem[] = [
   {
@@ -55,3 +55,16 @@ export const cartClasses: WooClassItem[] = [
     description: 'Element which wraps all the products in the cart',
   },
 ];
+
+// Map class names to their debug colors
+export const debugColors: Record<string, string> = {
+  'info-chk-itm-pf': 'green',
+  'info-itm-name-pf': 'red',
+  'info-itm-prc-pf': 'blue',
+  'info-itm-qnty-pf': 'orange',
+  'action-btn-cart-005-pf': '#fc0390',
+  'action-btn-buy-004-pf': '#67a174',
+  'info-chk-itm-ctnr-pf': 'green',
+  'info-totl-amt-pf': '#b103fc',
+  'action-btn-plc-ord-018-pf': '#b01a81',
+};

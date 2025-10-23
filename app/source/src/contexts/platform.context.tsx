@@ -5,8 +5,8 @@
 
 import React, { createContext, useContext, ReactNode, useMemo } from 'react';
 import { PlatformAdapter } from '@pixelflow-org/plugin-core';
-import { WordpressAdapter } from '../adapters/wordpress-adapter';
-import { platformConfig } from '../config/platform.config';
+import { WordpressAdapter } from '@/adapters/wordpress-adapter';
+import { platformConfig } from '@/config/platform.config';
 
 interface PlatformContextType {
   adapter: PlatformAdapter;
