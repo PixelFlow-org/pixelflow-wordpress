@@ -1,8 +1,22 @@
 import * as UI from '@pixelflow-org/plugin-ui';
 import { useSettings } from '../hooks/useSettings';
+import { Button } from '@pixelflow-org/plugin-ui';
+import { useState } from 'react';
 
-export function ActivatePixelflow() {
+interface ActivatePixelflowProps {
+  onRegenerateScript: () => void;
+}
+
+export function ActivatePixelflow(props: ActivatePixelflowProps) {
+  const { onRegenerateScript } = props;
   const { generalOptions, updateGeneralOption, saveSettings, isSaving } = useSettings();
+
+  const [regenerateScriptLoading, setRegenerateScriptLoading] = useState(false);
+  const onRegenerateScriptHandle = async () => {
+    setRegenerateScriptLoading(true);
+    await onRegenerateScript();
+    setRegenerateScriptLoading(false);
+  };
 
   const handleToggle = async (checked: boolean) => {
     const newValue = checked ? 1 : 0;
@@ -12,7 +26,7 @@ export function ActivatePixelflow() {
   };
 
   return (
-    <div className="space-y-6 pf-layout-main pf-module-home bg-background text-foreground min-h-full !p-[12px]">
+    <div className="space-y-6 pf-layout-main pf-module-home bg-background text-foreground min-h-full !p-[12px] flex flex-wrap justify-between content-center">
       <div className="flex items-center gap-3">
         <UI.TooltipRoot>
           <UI.TooltipTrigger asChild>
@@ -31,6 +45,15 @@ export function ActivatePixelflow() {
           id="enablePixelflow"
           variant={'green'}
         ></UI.Switch.Root>
+      </div>
+      <div>
+        <Button.Root
+          size="xsmall"
+          onClick={onRegenerateScriptHandle}
+          disabled={regenerateScriptLoading}
+        >
+          {regenerateScriptLoading ? 'Updating...' : 'Update Script'}
+        </Button.Root>
       </div>
     </div>
   );

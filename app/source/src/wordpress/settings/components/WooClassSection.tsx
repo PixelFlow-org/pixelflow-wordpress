@@ -1,3 +1,4 @@
+import { JSX } from 'react';
 import {
   Switch,
   TooltipRoot,
@@ -11,7 +12,7 @@ import type { WooClassItem, PixelFlowClasses } from '../types/settings.types';
 import { useSettings } from '../hooks/useSettings';
 
 interface WooClassSectionProps {
-  title: JSX.Elements;
+  title: JSX.Element;
   comment?: string;
   items: WooClassItem[];
   sectionKey: string;

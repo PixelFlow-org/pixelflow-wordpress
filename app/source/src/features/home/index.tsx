@@ -46,11 +46,11 @@ import { WordPressNavPanelTab } from '@/features/home/types/index';
 /* Wordpress settings page */
 import {
   ActivatePixelflow,
-  SettingsPage,
   useSettings,
   useSaveScriptCodeMutation,
   useRemoveScriptCodeMutation,
   AdvancedSettings,
+  WooCommerceSettings,
 } from '@/wordpress/settings';
 import TopControls from '@/components/TopControls/TopControls.tsx';
 
@@ -366,14 +366,14 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
         <Header selectedCurrency={selectedCurrency} updateCurrency={onCurrencyChange} />
         <TopControls handleLogout={logoutHandler} />
       </nav>
-      <ActivatePixelflow />
+      <ActivatePixelflow onRegenerateScript={onRegenerateScript} />
       <NavPanel
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onButtonClick={onAddEntityClick}
         config={wordPressNavPanelConfig}
       />
-      {activeTab === 'woocommerce' && <SettingsPage onRegenerateScript={onRegenerateScript} />}
+      {activeTab === 'woocommerce' && <WooCommerceSettings />}
       {activeTab === 'pixel' && (
         <PixelsModule
           pixels={pixels ?? []}
