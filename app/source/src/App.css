@@ -97,3 +97,13 @@
 .bf-hidden {
   display: none !important;
 }
+
+/* Toggle */
+#pixelflowroot .pf-switch[disabled][data-state="checked"] .pf-switch__track {
+  --bg-white-0: var(--color-success);
+  opacity: 0.8;
+}
+#pixelflowroot .pf-switch[disabled][data-state="unchecked"] .pf-switch__track {
+  --bg-white-0: #202020;
+  opacity: 0.8;
+}

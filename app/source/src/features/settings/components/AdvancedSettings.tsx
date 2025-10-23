@@ -1,6 +1,19 @@
+/**
+ * @fileoverview Advanced Settings component
+ * @description Configuration for advanced options like user role exclusion
+ */
+
+/** UI Components */
 import * as UI from '@pixelflow-org/plugin-ui';
+
+/** Hooks */
 import { useSettings } from '@/features/settings/contexts/SettingsContext.tsx';
 
+/**
+ * AdvancedSettings component
+ * @description Provides interface to exclude specific user roles from tracking script injection
+ * @returns AdvancedSettings component
+ */
 export function AdvancedSettings() {
   const { generalOptions, availableRoles, toggleExcludedRole, saveSettings, isSaving } =
     useSettings();

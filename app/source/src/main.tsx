@@ -1,22 +1,26 @@
 /**
  * @fileoverview Entry point for PixelFlow WordPress plugin
- * @description Initializes environment and renders app
+ * @description Initializes environment configuration and renders app
  */
 
-// Configure core package with platform-specific URLs BEFORE rendering
+/** Core Configuration */
 import { setPixelFlowConfig } from '@pixelflow-org/plugin-core';
 
+// Configure core package with platform-specific URLs BEFORE rendering
 setPixelFlowConfig({
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL || '',
   uiBaseUrl: import.meta.env.VITE_UI_BASE_URL || '',
   cdnUrl: import.meta.env.VITE_CDN_URL || '',
 });
 
+/** External libraries */
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+
+/** Components */
 import { App } from './App';
 
-// Check if we're on the WordPress settings page
+// Mount app to root element
 const rootElement = document.getElementById('pixelflowroot');
 
 if (rootElement) {

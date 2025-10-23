@@ -1,21 +1,42 @@
+/**
+ * @fileoverview WordPress Settings API
+ * @description RTK Query endpoints for managing PixelFlow settings via WordPress AJAX
+ */
+
+/** API */
 import pixelFlowApi from '@pixelflow-org/plugin-core/dist/api';
+
+/** Utils */
+import { getWordPressAjaxConfig } from '@/features/settings/utils/wordpress-config';
+
+/** Types */
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import type {
   SettingsResponse,
   SaveSettingsRequest,
 } from '@/features/settings/types/settings.types.ts';
 
+// Extract WordPress AJAX config once at module load
+const { nonce, ajaxUrl } = getWordPressAjaxConfig();
+
+/**
+ * WordPress settings API endpoints
+ * @description Injects settings-related endpoints into the base PixelFlow API
+ */
 const wordpressSettingsApi = pixelFlowApi.injectEndpoints({
   endpoints: (builder) => ({
-    // Get all settings
+    /**
+     * Get all plugin settings
+     * @description Fetches current settings from WordPress backend
+     */
     getSettings: builder.query<SettingsResponse, void>({
       queryFn: async () => {
         try {
           const formData = new FormData();
           formData.append('action', 'pixelflow_get_settings');
-          formData.append('nonce', window.pixelflowSettings?.nonce || '');
+          formData.append('nonce', nonce);
 
-          const response = await fetch(window.pixelflowSettings?.ajax_url || '', {
+          const response = await fetch(ajaxUrl, {
             method: 'POST',
             body: formData,
           });
@@ -42,13 +63,16 @@ const wordpressSettingsApi = pixelFlowApi.injectEndpoints({
       },
     }),
 
-    // Save settings
+    /**
+     * Save plugin settings
+     * @description Persists settings changes to WordPress database with server-side validation
+     */
     saveSettings: builder.mutation<SettingsResponse, SaveSettingsRequest>({
       queryFn: async ({ generalOptions, classOptions, debugOptions }) => {
         try {
           const formData = new FormData();
           formData.append('action', 'pixelflow_save_settings');
-          formData.append('nonce', window.pixelflowSettings?.nonce || '');
+          formData.append('nonce', nonce);
 
           Object.entries(generalOptions).forEach(([key, value]) => {
             if (key === 'excluded_user_roles' && Array.isArray(value)) {
@@ -67,7 +91,7 @@ const wordpressSettingsApi = pixelFlowApi.injectEndpoints({
             formData.append(`debug_options[${key}]`, String(value));
           });
 
-          const response = await fetch(window.pixelflowSettings?.ajax_url || '', {
+          const response = await fetch(ajaxUrl, {
             method: 'POST',
             body: formData,
           });
@@ -94,16 +118,19 @@ const wordpressSettingsApi = pixelFlowApi.injectEndpoints({
       },
     }),
 
-    // Save script code
+    /**
+     * Save tracking script code
+     * @description Persists generated tracking script to WordPress database
+     */
     saveScriptCode: builder.mutation<{ script_code: string }, string>({
       queryFn: async (scriptCode) => {
         try {
           const formData = new FormData();
           formData.append('action', 'pixelflow_save_script_code');
-          formData.append('nonce', window.pixelflowSettings?.nonce || '');
+          formData.append('nonce', nonce);
           formData.append('script_code', scriptCode);
 
-          const response = await fetch(window.pixelflowSettings?.ajax_url || '', {
+          const response = await fetch(ajaxUrl, {
             method: 'POST',
             body: formData,
           });
@@ -130,15 +157,18 @@ const wordpressSettingsApi = pixelFlowApi.injectEndpoints({
       },
     }),
 
-    // Remove script code
+    /**
+     * Remove tracking script code
+     * @description Deletes the stored tracking script from WordPress database
+     */
     removeScriptCode: builder.mutation<{ message: string }, void>({
       queryFn: async () => {
         try {
           const formData = new FormData();
           formData.append('action', 'pixelflow_remove_script_code');
-          formData.append('nonce', window.pixelflowSettings?.nonce || '');
+          formData.append('nonce', nonce);
 
-          const response = await fetch(window.pixelflowSettings?.ajax_url || '', {
+          const response = await fetch(ajaxUrl, {
             method: 'POST',
             body: formData,
           });

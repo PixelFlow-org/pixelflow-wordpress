@@ -1,15 +1,21 @@
-/** PixelFlow Plugin Packages */
-import { useTheme } from '@pixelflow-org/plugin-ui';
-import { NarrowButton } from '@pixelflow-org/plugin-ui';
+/**
+ * @fileoverview Top controls component
+ * @description Theme switcher and logout controls for the application header
+ */
 
-/** Local Components */
+/** UI Components */
+import { useTheme, NarrowButton } from '@pixelflow-org/plugin-ui';
+
+/** Icons */
 import SunIcon from '@/shared/icons/sun.icon.tsx';
 import MoonIcon from '@/shared/icons/moon.icon.tsx';
 import LogoutIcon from '@/shared/icons/logout.icon.tsx';
 
 /**
  * TopControls component
- * @description Theme switcher and logout button positioned at top right
+ * @description Renders theme toggle and logout button at top right of the interface
+ * @param handleLogout - Async function to handle user logout
+ * @returns TopControls component
  */
 const TopControls = ({ handleLogout }: { handleLogout: () => Promise<void> }) => {
   const { resolvedTheme, setTheme } = useTheme();

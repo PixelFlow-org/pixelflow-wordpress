@@ -1,10 +1,18 @@
-import { PlatformAdapter, PlatformConfig } from '@pixelflow-org/plugin-core';
+/**
+ * @fileoverview WordPress Platform Adapter
+ * @description Platform-specific implementation for WordPress integration
+ */
+
+/** External libraries */
 import { toast } from 'react-toastify';
+
+/** Types */
+import { PlatformAdapter, PlatformConfig } from '@pixelflow-org/plugin-core';
 
 /**
  * WordPress Platform Adapter
- *
- * This adapter implements platform-specific functionality for WordPress.
+ * @description Implements platform-specific functionality for WordPress,
+ * including script injection, theme management, and notifications
  */
 export class WordpressAdapter implements PlatformAdapter {
   constructor(private config: PlatformConfig) {}

@@ -1,9 +1,27 @@
+/**
+ * @fileoverview WooCommerce Settings component
+ * @description Configuration interface for WooCommerce event tracking
+ */
+
+/** UI Components */
 import * as UI from '@pixelflow-org/plugin-ui';
+
+/** Components */
 import { WooClassSection } from '@/features/settings/components/WooClassSection.tsx';
-import { productClasses, cartClasses } from '@/features/settings/const/classes.ts';
-import { useSettings } from '@/features/settings/contexts/SettingsContext.tsx';
 import { DebugSettings } from '@/features/settings';
 
+/** Constants */
+import { productClasses, cartClasses } from '@/features/settings/const/classes.ts';
+
+/** Hooks */
+import { useSettings } from '@/features/settings/contexts/SettingsContext.tsx';
+
+/**
+ * WooCommerceSettings component
+ * @description Manages WooCommerce eCommerce event tracking configuration including
+ * Add to Cart, Checkout, and Purchase event tracking
+ * @returns WooCommerceSettings component
+ */
 export function WooCommerceSettings() {
   const {
     generalOptions,
@@ -24,6 +42,14 @@ export function WooCommerceSettings() {
 
     // Save immediately
     await saveSettings({ generalOptionsOverride: { woo_enabled: newValue } });
+  };
+
+  const handlePurchaseTrackingToggle = async (checked: boolean) => {
+    const newValue = checked ? 1 : 0;
+    updateGeneralOption('woo_purchase_tracking', newValue);
+
+    // Save immediately
+    await saveSettings({ generalOptionsOverride: { woo_purchase_tracking: newValue } });
   };
 
   return (
@@ -100,12 +126,10 @@ export function WooCommerceSettings() {
                 <div className="flex items-center gap-3 mb-3">
                   <UI.Switch.Root
                     checked={generalOptions.woo_purchase_tracking === 1}
-                    onCheckedChange={(checked) =>
-                      updateGeneralOption('woo_purchase_tracking', checked ? 1 : 0)
-                    }
+                    onCheckedChange={handlePurchaseTrackingToggle}
                     id="enableWooPurchaseTracking"
                     variant={'green'}
-                    disabled={true}
+                    disabled={isSaving}
                   ></UI.Switch.Root>
                   <UI.TooltipRoot>
                     <UI.TooltipTrigger asChild>

@@ -3,19 +3,30 @@
  * @description Orchestrates authentication and renders appropriate feature modules
  */
 
+/** External libraries */
 import { useState, useEffect } from 'react';
+
+/** Core */
 import { AuthStatus } from '@pixelflow-org/plugin-core';
+
+/** UI Components */
 import { LoadingScreen } from '@pixelflow-org/plugin-ui';
+
+/** Features */
 import { AuthScreen, useAuth, useAuthSelector } from '@pixelflow-org/plugin-features';
 
+/** Components */
 import Home from '@/features/home';
-import { SettingsProvider } from '@/features/settings';
 
+/** Contexts */
+import { SettingsProvider } from '@/features/settings';
 import { usePlatform } from '@/contexts/platform.context';
 
 /**
  * Bootstrap component
- * @description Main orchestrator for the application flow
+ * @description Main orchestrator for the application flow. Manages authentication state
+ * and renders appropriate UI based on auth status
+ * @returns Bootstrap component
  */
 const Bootstrap = () => {
   const [isInitializing, setIsInitializing] = useState(true);

@@ -1,5 +1,15 @@
+/**
+ * @fileoverview WooCommerce class definitions
+ * @description Defines WooCommerce CSS class configurations for tracking
+ */
+
+/** Types */
 import type { WooClassItem } from '@/features/settings/types/settings.types.ts';
 
+/**
+ * Product page class configurations
+ * @description CSS classes to track Add to Cart events on product and shop pages
+ */
 export const productClasses: WooClassItem[] = [
   {
     key: 'woo_class_product_container',
@@ -28,6 +38,10 @@ export const productClasses: WooClassItem[] = [
   },
 ];
 
+/**
+ * Cart page class configurations
+ * @description CSS classes to track Initiate Checkout events on the cart page
+ */
 export const cartClasses: WooClassItem[] = [
   {
     key: 'woo_class_cart_item',
@@ -56,7 +70,10 @@ export const cartClasses: WooClassItem[] = [
   },
 ];
 
-// Map class names to their debug colors
+/**
+ * Debug color mapping
+ * @description Maps WooCommerce class names to debug border colors for visual identification
+ */
 export const debugColors: Record<string, string> = {
   'info-chk-itm-pf': 'green',
   'info-itm-name-pf': 'red',

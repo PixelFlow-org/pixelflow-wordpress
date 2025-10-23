@@ -1,12 +1,29 @@
-import * as UI from '@pixelflow-org/plugin-ui';
-import { useSettings } from '@/features/settings/contexts/SettingsContext.tsx';
-import { Button } from '@pixelflow-org/plugin-ui';
+/**
+ * @fileoverview Activate PixelFlow component
+ * @description Main toggle to enable/disable PixelFlow integration
+ */
+
+/** External libraries */
 import { useState } from 'react';
+
+/** UI Components */
+import * as UI from '@pixelflow-org/plugin-ui';
+import { Button } from '@pixelflow-org/plugin-ui';
+
+/** Hooks */
+import { useSettings } from '@/features/settings/contexts/SettingsContext.tsx';
 
 interface ActivatePixelflowProps {
   onRegenerateScript: () => void;
 }
 
+/**
+ * ActivatePixelflow component
+ * @description Provides main toggle to activate/deactivate PixelFlow and regenerate script
+ * @param props - Component props
+ * @param props.onRegenerateScript - Callback to regenerate the tracking script
+ * @returns ActivatePixelflow component
+ */
 export function ActivatePixelflow(props: ActivatePixelflowProps) {
   const { onRegenerateScript } = props;
   const { generalOptions, updateGeneralOption, saveSettings, isSaving } = useSettings();

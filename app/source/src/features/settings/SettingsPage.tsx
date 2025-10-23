@@ -1,12 +1,31 @@
-import { SettingsProvider, useSettings } from '@/features/settings/contexts/SettingsContext.tsx';
-import { WooCommerceSettings } from '@/features/settings/components/WooCommerceSettings.tsx';
-import * as UI from '@pixelflow-org/plugin-ui';
+/**
+ * @fileoverview Settings Page component
+ * @description Main settings page container with provider wrapper
+ */
+
+/** External libraries */
 import { useState } from 'react';
+
+/** UI Components */
+import * as UI from '@pixelflow-org/plugin-ui';
+
+/** Components */
+import { WooCommerceSettings } from '@/features/settings/components/WooCommerceSettings.tsx';
+
+/** Hooks */
+import { SettingsProvider, useSettings } from '@/features/settings/contexts/SettingsContext.tsx';
 
 type SettingsPageProps = {
   onRegenerateScript: () => void;
 };
 
+/**
+ * SettingsPageContent component
+ * @description Inner content component that accesses settings context
+ * @param props - Component props
+ * @param props.onRegenerateScript - Callback to regenerate tracking script
+ * @returns SettingsPageContent component
+ */
 function SettingsPageContent(props: SettingsPageProps) {
   const { onRegenerateScript } = props;
   const { generalOptions, scriptCode, isLoading, error } = useSettings();
@@ -85,6 +104,13 @@ function SettingsPageContent(props: SettingsPageProps) {
   );
 }
 
+/**
+ * SettingsPage component
+ * @description Wraps SettingsPageContent with SettingsProvider for context access
+ * @param props - Component props
+ * @param props.onRegenerateScript - Callback to regenerate tracking script
+ * @returns SettingsPage component
+ */
 export function SettingsPage(props: SettingsPageProps) {
   return (
     <SettingsProvider>

@@ -3,21 +3,32 @@
  * @description Root application component with all providers
  */
 
+/** External libraries */
 import React from 'react';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
+import { ToastContainer } from 'react-toastify';
+
+/** Store */
 import { store, persistor } from '@/store';
+
+/** UI Components */
 import { LoadingScreen, ThemeProvider, TooltipProvider } from '@pixelflow-org/plugin-ui';
 import '@pixelflow-org/plugin-ui/dist/styles.css';
-import './App.css';
 
+/** Contexts */
 import { PlatformProvider, usePlatform } from './contexts/platform.context';
+
+/** Components */
 import Bootstrap from './features/bootstrap/components';
-import { ToastContainer } from 'react-toastify';
+
+/** Styles */
+import './App.css';
 
 /**
  * App with platform adapter
  * @description Inner app component that has access to platform adapter
+ * @returns AppWithPlatform component
  */
 function AppWithPlatform() {
   const { adapter } = usePlatform();

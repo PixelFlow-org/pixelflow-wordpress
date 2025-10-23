@@ -1,8 +1,26 @@
+/**
+ * @fileoverview Debug Settings component
+ * @description Debug mode configuration for WooCommerce integration testing
+ */
+
+/** UI Components */
 import * as UI from '@pixelflow-org/plugin-ui';
+
+/** Components */
 import { WooClassSection } from '@/features/settings/components/WooClassSection.tsx';
+
+/** Constants */
 import { productClasses, cartClasses } from '@/features/settings/const/classes.ts';
+
+/** Hooks */
 import { useSettings } from '@/features/settings/contexts/SettingsContext.tsx';
 
+/**
+ * DebugSettings component
+ * @description Enables debug mode to visually highlight WooCommerce class tracking
+ * for testing and troubleshooting purposes
+ * @returns DebugSettings component
+ */
 export function DebugSettings() {
   const { generalOptions, isWooCommerceActive, updateGeneralOption, saveSettings, isSaving } =
     useSettings();

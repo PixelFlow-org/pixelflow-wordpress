@@ -1,4 +1,12 @@
+/**
+ * @fileoverview WooCommerce Class Section component
+ * @description Configurable section for WooCommerce class tracking options
+ */
+
+/** External libraries */
 import { JSX } from 'react';
+
+/** UI Components */
 import {
   Switch,
   TooltipRoot,
@@ -8,8 +16,14 @@ import {
   Dropdown,
   Button,
 } from '@pixelflow-org/plugin-ui';
+
+/** Types */
 import type { WooClassItem, PixelFlowClasses } from '@/features/settings/types/settings.types.ts';
+
+/** Hooks */
 import { useSettings } from '@/features/settings/contexts/SettingsContext.tsx';
+
+/** Constants */
 import { debugColors } from '@/features/settings/const/classes.ts';
 
 interface WooClassSectionProps {
@@ -20,6 +34,18 @@ interface WooClassSectionProps {
   isDebugMode?: boolean;
 }
 
+/**
+ * WooClassSection component
+ * @description Renders a configurable section for managing WooCommerce class tracking options
+ * with toggle all functionality and per-item controls
+ * @param props - Component props
+ * @param props.title - Section title element
+ * @param props.comment - Optional descriptive comment
+ * @param props.items - Array of class items to configure
+ * @param props.sectionKey - Unique section identifier
+ * @param props.isDebugMode - Whether this section is for debug configuration
+ * @returns WooClassSection component
+ */
 export function WooClassSection({
   title,
   comment,

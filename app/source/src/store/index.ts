@@ -1,10 +1,16 @@
-// NOTE: These imports will work after pixelflow-plugin-core is built and published
-// Until then, linter errors are expected (this file won't be used until migration)
+/**
+ * @fileoverview Redux store configuration
+ * @description Configures Redux store with WordPress-specific reducers
+ */
+
+/** Store */
 import { createPixelFlowStore, CoreRootState } from '@pixelflow-org/plugin-core';
 import woocommerceReducer from '@/features/woocommerce/store/slices';
+
+/** Types */
 import { WooCommerceState } from '@/features/woocommerce/types';
 
-// Create store with additional reducers
+// Create store with WordPress-specific reducers
 export const { store, persistor } = createPixelFlowStore({
   additionalReducers: {
     woocommerce: woocommerceReducer,
