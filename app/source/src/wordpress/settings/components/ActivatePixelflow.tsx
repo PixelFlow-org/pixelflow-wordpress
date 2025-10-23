@@ -29,6 +29,7 @@ export function ActivatePixelflow() {
           onCheckedChange={handleToggle}
           disabled={isSaving}
           id="enablePixelflow"
+          variant={'green'}
         ></UI.Switch.Root>
       </div>
     </div>

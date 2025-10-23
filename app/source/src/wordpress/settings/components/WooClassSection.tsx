@@ -1,30 +1,69 @@
-import * as UI from '@pixelflow-org/plugin-ui';
+import {
+  Switch,
+  TooltipRoot,
+  TooltipTrigger,
+  Label,
+  TooltipContent,
+  Dropdown,
+  Button,
+} from '@pixelflow-org/plugin-ui';
 import type { WooClassItem, PixelFlowClasses } from '../types/settings.types';
+import { useSettings } from '../hooks/useSettings';
 
 interface WooClassSectionProps {
-  title: string;
+  title: JSX.Elements;
+  comment?: string;
   items: WooClassItem[];
-  values: PixelFlowClasses;
-  onUpdate: <K extends keyof PixelFlowClasses>(key: K, value: PixelFlowClasses[K]) => void;
   sectionKey: string;
   isDebugMode?: boolean;
 }
 
 export function WooClassSection({
   title,
+  comment,
   items,
-  values,
-  onUpdate,
   sectionKey,
   isDebugMode = false,
 }: WooClassSectionProps) {
-  const handleToggleAll = () => {
-    const allChecked = items.every((item) => values[item.key] === 1);
-    const newValue = allChecked ? 0 : 1;
-    items.forEach((item) => onUpdate(item.key, newValue));
-  };
+  const { classOptions, debugOptions, updateClassOption, updateDebugOption, saveSettings } =
+    useSettings();
+
+  // Use appropriate options based on mode
+  const values = isDebugMode ? debugOptions : classOptions;
+  const updateOption = isDebugMode ? updateDebugOption : updateClassOption;
+  const optionsKey = isDebugMode ? 'debugOptions' : 'classOptions';
 
   const allChecked = items.every((item) => values[item.key] === 1);
+
+  const handleToggleAll = async () => {
+    const newValue = allChecked ? 0 : 1;
+
+    // Update all items locally
+    items.forEach((item) => updateOption(item.key, newValue));
+
+    // Build override object with all items
+    const override: Partial<PixelFlowClasses> = {};
+    items.forEach((item) => {
+      override[item.key] = newValue;
+    });
+
+    // Save immediately with override
+    await saveSettings({
+      [optionsKey === 'classOptions' ? 'classOptionsOverride' : 'debugOptionsOverride']: override,
+    });
+  };
+
+  const handleItemToggle = async (key: keyof PixelFlowClasses, checked: boolean) => {
+    const newValue = checked ? 1 : 0;
+    updateOption(key, newValue);
+
+    // Save immediately with single item override
+    await saveSettings({
+      [optionsKey === 'classOptions' ? 'classOptionsOverride' : 'debugOptionsOverride']: {
+        [key]: newValue,
+      },
+    });
+  };
 
   // Map class names to their debug colors
   const debugColors: Record<string, string> = {
@@ -42,54 +81,76 @@ export function WooClassSection({
   return (
     <div className="mb-6 w-full max-w-1/3">
       <div className="flex items-center justify-between mb-3">
-        <h4 className="text-sm font-semibold !text-foreground">{title}</h4>
-        <button
-          type="button"
-          onClick={handleToggleAll}
-          className="button-primary text-xs text-foreground hover:opacity-80 focus:outline-none cursor-pointer"
-        >
-          [{allChecked ? 'Uncheck All' : 'Check All'}]
-        </button>
+        <div className="flex items-center gap-3">
+          <Switch.Root
+            checked={allChecked}
+            onCheckedChange={handleToggleAll}
+            id={`toggle-all-${sectionKey}`}
+            variant={'green'}
+          ></Switch.Root>
+          <TooltipRoot>
+            <TooltipTrigger asChild>
+              <Label.Root className="cursor-pointer" htmlFor={`toggle-all-${sectionKey}`}>
+                <span>{title}</span>
+              </Label.Root>
+            </TooltipTrigger>
+            <TooltipContent>Enable or disable all tracking</TooltipContent>
+          </TooltipRoot>
+        </div>
       </div>
-      <div className="space-y-3">
-        {items.map((item) => {
-          const id = '' + sectionKey + item.key + item.className;
-          const debugColor = debugColors[item.className];
-          return (
-            <div key={item.key} className="space-y-1">
-              <div className="flex items-center gap-2">
-                <UI.Switch.Root
-                  checked={values[item.key] === 1}
-                  onCheckedChange={(checked) => onUpdate(item.key, checked ? 1 : 0)}
-                  id={id}
-                ></UI.Switch.Root>
-                <UI.Label.Root htmlFor={id} className="flex items-center gap-2">
-                  <code className="text-xs bg-gray-100 px-2 py-1 rounded">{item.description}</code>
-                  {isDebugMode && debugColor && (
-                    <span
-                      className="inline-block w-4 h-4 border-2 rounded"
-                      style={{ borderColor: debugColor }}
-                      title={`Debug border color: ${debugColor}`}
-                    ></span>
-                  )}
-                </UI.Label.Root>
-              </div>
-              <p className="text-xs text-foreground ml-12">
-                {item.className}
-                {isDebugMode && debugColor && (
-                  <span className="text-gray-500">
-                    {' '}
-                    → Will show{' '}
-                    <span style={{ color: debugColor }} className="font-semibold">
-                      {debugColor}
-                    </span>{' '}
-                    border
-                  </span>
-                )}
-              </p>
+      {comment && <p className="text-sm text-foreground ml-12">{comment}</p>}
+      <div className="mt-5  ml-11">
+        <Dropdown.Root>
+          <Dropdown.Trigger asChild>
+            <Button.Root size="xsmall">Advanced setting</Button.Root>
+          </Dropdown.Trigger>
+          <Dropdown.Content>
+            <Dropdown.Label>Fine-tune the elements</Dropdown.Label>
+            <div className="space-y-3">
+              {items.map((item) => {
+                const id = '' + sectionKey + item.key + item.className;
+                const debugColor = debugColors[item.className];
+                return (
+                  <div key={item.key} className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Switch.Root
+                        checked={values[item.key] === 1}
+                        onCheckedChange={(checked) => handleItemToggle(item.key, checked)}
+                        id={id}
+                        variant={'green'}
+                      ></Switch.Root>
+                      <Label.Root htmlFor={id} className="flex items-center gap-2">
+                        <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                          {item.description}
+                        </code>
+                        {isDebugMode && debugColor && (
+                          <span
+                            className="inline-block w-4 h-4 border-2 rounded"
+                            style={{ borderColor: debugColor }}
+                            title={`Debug border color: ${debugColor}`}
+                          ></span>
+                        )}
+                      </Label.Root>
+                    </div>
+                    <p className="text-xs text-foreground ml-12">
+                      {item.className}
+                      {isDebugMode && debugColor && (
+                        <span className="text-gray-500">
+                          {' '}
+                          → Will show{' '}
+                          <span style={{ color: debugColor }} className="font-semibold">
+                            {debugColor}
+                          </span>{' '}
+                          border
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
+          </Dropdown.Content>
+        </Dropdown.Root>
       </div>
     </div>
   );

@@ -1,38 +1,32 @@
 import * as UI from '@pixelflow-org/plugin-ui';
 import { WooClassSection } from './WooClassSection';
-import type { PixelFlowGeneralOptions, PixelFlowClasses } from '../types/settings.types';
 import { productClasses, cartClasses } from '../const/classes.ts';
+import { useSettings } from '../hooks/useSettings';
+import { DebugSettings } from '@/wordpress/settings';
 
-interface WooCommerceSettingsProps {
-  generalOptions: PixelFlowGeneralOptions;
-  classOptions: PixelFlowClasses;
-  onUpdateGeneral: <K extends keyof PixelFlowGeneralOptions>(
-    key: K,
-    value: PixelFlowGeneralOptions[K]
-  ) => void;
-  onUpdateClass: <K extends keyof PixelFlowClasses>(key: K, value: PixelFlowClasses[K]) => void;
-  isEnabled: boolean;
-  isWooCommerceActive: boolean;
-}
+export function WooCommerceSettings() {
+  const { generalOptions, isWooCommerceActive, updateGeneralOption, saveSettings } = useSettings();
 
-export function WooCommerceSettings({
-  generalOptions,
-  classOptions,
-  onUpdateGeneral,
-  onUpdateClass,
-  isWooCommerceActive,
-}: WooCommerceSettingsProps) {
   if (!isWooCommerceActive) {
     return null;
   }
 
+  const handleToggle = async (checked: boolean) => {
+    const newValue = checked ? 1 : 0;
+    updateGeneralOption('woo_enabled', newValue);
+
+    // Save immediately
+    await saveSettings({ generalOptionsOverride: { woo_enabled: newValue } });
+  };
+
   return (
-    <div className="space-y-6 mt-8 pt-8 border-t">
+    <div className="space-y-6">
       <div className="flex items-center gap-3">
         <UI.Switch.Root
           checked={generalOptions.woo_enabled === 1}
-          onCheckedChange={(checked) => onUpdateGeneral('woo_enabled', checked ? 1 : 0)}
+          onCheckedChange={handleToggle}
           id="enableWoo"
+          variant={'green'}
         ></UI.Switch.Root>
         <UI.TooltipRoot>
           <UI.TooltipTrigger asChild>
@@ -67,21 +61,60 @@ export function WooCommerceSettings({
         <div className="space-y-6 mt-6">
           <div className="flex gap-8 [@media(max-width:1100px)]:flex-wrap">
             <WooClassSection
-              title="Product Classes"
+              title={
+                <>
+                  Enable <b>Add to Cart</b> tracking
+                </>
+              }
+              comment="Enable tracking for Add to Cart events on Product and Shop pages"
               items={productClasses}
-              values={classOptions}
-              onUpdate={onUpdateClass}
               sectionKey="product"
             />
 
             <WooClassSection
-              title="Cart Classes"
+              title={
+                <>
+                  Enable <b>Initiate checkout</b> tracking
+                </>
+              }
+              comment="Enable tracking for Initiate Checkout events on the Cart page"
               items={cartClasses}
-              values={classOptions}
-              onUpdate={onUpdateClass}
               sectionKey="cart"
             />
+
+            <div>
+              <div className="flex items-center gap-3 mb-3">
+                <UI.Switch.Root
+                  checked={generalOptions.woo_purchase_tracking === 1}
+                  onCheckedChange={(checked) =>
+                    updateGeneralOption('woo_purchase_tracking', checked ? 1 : 0)
+                  }
+                  id="enableWooPurchaseTracking"
+                  variant={'green'}
+                ></UI.Switch.Root>
+                <UI.TooltipRoot>
+                  <UI.TooltipTrigger asChild>
+                    <UI.Label.Root className="cursor-pointer" htmlFor="enableWooPurchaseTracking">
+                      <span>
+                        Enable <b>Purchase Event</b> tracking
+                      </span>
+                    </UI.Label.Root>
+                  </UI.TooltipTrigger>
+                  <UI.TooltipContent>
+                    Enable automatic tracking of WooCommerce purchase events on checkout
+                  </UI.TooltipContent>
+                </UI.TooltipRoot>
+              </div>
+              <div>
+                <p className="text-sm text-foreground ml-11">
+                  Adds a script which will track the WooCommerce purchase event on the order
+                  received page after a successful checkout
+                </p>
+              </div>
+            </div>
           </div>
+          <hr className="mt-6 opacity-30" />
+          <DebugSettings />
         </div>
       )}
     </div>

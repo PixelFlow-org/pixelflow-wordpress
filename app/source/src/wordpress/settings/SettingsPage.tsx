@@ -9,22 +9,7 @@ type SettingsPageProps = {
 
 export function SettingsPage(props: SettingsPageProps) {
   const { onRegenerateScript } = props;
-  const {
-    generalOptions,
-    classOptions,
-    scriptCode,
-    isWooCommerceActive,
-    isLoading,
-    isSaving,
-    error,
-    updateGeneralOption,
-    updateClassOption,
-    saveSettings,
-  } = useSettings();
-
-  const handleSave = async () => {
-    await saveSettings();
-  };
+  const { generalOptions, scriptCode, isLoading, error } = useSettings();
 
   const [regenerateScriptLoading, setRegenerateScriptLoading] = useState(false);
   const onRegenerateScriptHandle = async () => {
@@ -49,33 +34,21 @@ export function SettingsPage(props: SettingsPageProps) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-8">
+    <div className="max-w-6xl py-3">
       <div className=" rounded-lg shadow-sm border border-gray-200 p-6">
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
             <p className="text-red-800 text-sm">{error}</p>
           </div>
         )}
-        <h3>WooCommerce Settings</h3>
-
         <div className="space-y-6">
-          <WooCommerceSettings
-            generalOptions={generalOptions}
-            classOptions={classOptions}
-            onUpdateGeneral={updateGeneralOption}
-            onUpdateClass={updateClassOption}
-            isEnabled={generalOptions.enabled === 1}
-            isWooCommerceActive={isWooCommerceActive}
-          />
+          <WooCommerceSettings />
         </div>
 
-        <div className="mt-8 pt-6 border-t flex items-center justify-between">
+        <div className="mt-3 flex items-center justify-between">
           <p className="text-sm text-foreground">
-            Changes will be saved and applied after you click the <b>'Save settings'</b> buutton
+            Changes will be saved and applied automatically.
           </p>
-          <button onClick={handleSave} disabled={isSaving} className="button button-primary">
-            {isSaving ? 'Saving...' : 'Save Settings'}
-          </button>
         </div>
 
         {generalOptions.enabled ? (

@@ -1,38 +1,32 @@
 import * as UI from '@pixelflow-org/plugin-ui';
 import { WooClassSection } from './WooClassSection';
-import type { PixelFlowGeneralOptions, PixelFlowClasses } from '../types/settings.types';
 import { productClasses, cartClasses } from '../const/classes.ts';
+import { useSettings } from '../hooks/useSettings';
 
-interface DebugSettingsProps {
-  generalOptions: PixelFlowGeneralOptions;
-  debugOptions: PixelFlowClasses;
-  onUpdateGeneral: <K extends keyof PixelFlowGeneralOptions>(
-    key: K,
-    value: PixelFlowGeneralOptions[K]
-  ) => void;
-  onUpdateDebug: <K extends keyof PixelFlowClasses>(key: K, value: PixelFlowClasses[K]) => void;
-  isWooCommerceActive: boolean;
-}
+export function DebugSettings() {
+  const { generalOptions, isWooCommerceActive, updateGeneralOption, saveSettings } = useSettings();
 
-export function DebugSettings({
-  generalOptions,
-  debugOptions,
-  onUpdateGeneral,
-  onUpdateDebug,
-  isWooCommerceActive,
-}: DebugSettingsProps) {
   if (!isWooCommerceActive) {
     return null;
   }
 
+  const handleToggle = async (checked: boolean) => {
+    const newValue = checked ? 1 : 0;
+    updateGeneralOption('debug_enabled', newValue);
+
+    // Save immediately
+    await saveSettings({ generalOptionsOverride: { debug_enabled: newValue } });
+  };
+
   return (
-    <div className="space-y-6 mt-8 pt-8 border-t">
+    <div className="space-y-6 mt-6">
       <div className="space-y-3">
         <div className="flex items-center gap-3">
           <UI.Switch.Root
             checked={generalOptions.debug_enabled === 1}
-            onCheckedChange={(checked) => onUpdateGeneral('debug_enabled', checked ? 1 : 0)}
+            onCheckedChange={handleToggle}
             id="enableWooDebug"
+            variant={'green'}
           ></UI.Switch.Root>
           <UI.TooltipRoot>
             <UI.TooltipTrigger asChild>
@@ -68,8 +62,6 @@ export function DebugSettings({
             <WooClassSection
               title="DEBUG Product Classes"
               items={productClasses}
-              values={debugOptions}
-              onUpdate={onUpdateDebug}
               sectionKey="debug-product"
               isDebugMode={true}
             />
@@ -77,8 +69,6 @@ export function DebugSettings({
             <WooClassSection
               title="DEBUG Cart Classes"
               items={cartClasses}
-              values={debugOptions}
-              onUpdate={onUpdateDebug}
               sectionKey="debug-cart"
               isDebugMode={true}
             />

@@ -373,12 +373,7 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
         onButtonClick={onAddEntityClick}
         config={wordPressNavPanelConfig}
       />
-      {activeTab === 'woocommerce' && (
-        <div className="mt-4 p-6 bg-background rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">WooCommerce Settings</h2>
-          <SettingsPage onRegenerateScript={onRegenerateScript} />
-        </div>
-      )}
+      {activeTab === 'woocommerce' && <SettingsPage onRegenerateScript={onRegenerateScript} />}
       {activeTab === 'pixel' && (
         <PixelsModule
           pixels={pixels ?? []}
@@ -405,12 +400,7 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
       {activeTab === 'events' && (
         <EventsModule events={events} areEventsLoading={areEventsLoading} adapter={adapter} />
       )}
-      {activeTab === 'advanced' && (
-        <div className="mt-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Advanced Settings</h2>
-          <AdvancedSettings />
-        </div>
-      )}
+      {activeTab === 'advanced' && <AdvancedSettings />}
     </div>
   );
 };
