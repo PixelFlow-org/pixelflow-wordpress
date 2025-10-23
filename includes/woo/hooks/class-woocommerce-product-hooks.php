@@ -62,8 +62,7 @@ class PixelFlow_WooCommerce_Product_Hooks
 
             // Add info-itm-name-pf class to product name on single product page
             // (Add this to the product name)
-            add_action('woocommerce_single_product_summary', array($this, 'add_product_name_class_single_start'), 4);
-            add_action('woocommerce_single_product_summary', array($this, 'add_product_name_class_single_end'), 6);
+            add_action('woocommerce_single_product_summary', array($this, 'add_product_name_class_single'), 6);
         }
 
         // Add info-itm-prc-pf class to product price
@@ -85,12 +84,7 @@ class PixelFlow_WooCommerce_Product_Hooks
 
             // Add action-btn-cart-005-pf class to single product add to cart button
             // (Add this to the add to cart button)
-            add_action('woocommerce_before_add_to_cart_button', array($this, 'start_single_add_to_cart_buffer'), 0);
-            add_action(
-                'woocommerce_after_add_to_cart_button',
-                array($this, 'end_single_add_to_cart_buffer'),
-                PHP_INT_MAX
-            );
+            add_action('woocommerce_after_add_to_cart_button', array($this, 'single_add_to_cart_button'), 10);
         }
     }
 
@@ -120,160 +114,184 @@ class PixelFlow_WooCommerce_Product_Hooks
             return $price;
         }
 
-        // === 1️⃣ VARIABLE PRODUCTS ===
-        if ($product->is_type('variable')) {
-            if (strpos($price, 'woocommerce-variation-price') !== false) {
-                // Discounted variation
-                $price = preg_replace_callback(
-                    '/(<div[^>]*class="[^"]*woocommerce-variation-price[^"]*"[^>]*>.*?<ins[^>]*>\s*<span\s+class="([^"]*woocommerce-Price-amount[^"]*)"([^>]*)>)/is',
-                    function ($matches) use ($className) {
-                        $before  = $matches[1];
-                        $classes = $matches[2];
-                        if (strpos($classes, $className) === false) {
-                            $classes .= ' ' . $className;
-                        }
+//        // === 1️⃣ VARIABLE PRODUCTS ===
+//        if ($product->is_type('variable')) {
+//            if (strpos($price, 'woocommerce-variation-price') !== false) {
+//                // Discounted variation
+//                $price = preg_replace_callback(
+//                    '/(<div[^>]*class="[^"]*woocommerce-variation-price[^"]*"[^>]*>.*?<ins[^>]*>\s*<span\s+class="([^"]*woocommerce-Price-amount[^"]*)"([^>]*)>)/is',
+//                    function ($matches) use ($className) {
+//                        $before  = $matches[1];
+//                        $classes = $matches[2];
+//                        if (strpos($classes, $className) === false) {
+//                            $classes .= ' ' . $className;
+//                        }
+//
+//                        return str_replace(
+//                            '<span class="' . $matches[2] . '"',
+//                            '<span class="' . esc_attr(trim($classes)) . '"',
+//                            $before
+//                        );
+//                    },
+//                    $price,
+//                    1
+//                );
+//
+//                // Non-discounted variation fallback
+//                if (strpos($price, '<ins') === false) {
+//                    $price = preg_replace_callback(
+//                        '/(<div[^>]*class="[^"]*woocommerce-variation-price[^"]*"[^>]*>.*?<span\s+class="([^"]*woocommerce-Price-amount[^"]*)"([^>]*)>)/is',
+//                        function ($matches) use ($className) {
+//                            $before  = $matches[1];
+//                            $classes = $matches[2];
+//                            if (strpos($classes, $className) === false) {
+//                                $classes .= ' ' . $className;
+//                            }
+//
+//                            return str_replace(
+//                                '<span class="' . $matches[2] . '"',
+//                                '<span class="' . esc_attr(trim($classes)) . '"',
+//                                $before
+//                            );
+//                        },
+//                        $price,
+//                        1
+//                    );
+//                }
+//            }
+//
+//            return $price;
+//        }
+//
+//        // === 2️⃣ GROUPED PRODUCTS ===
+//        if ($product->is_type('grouped')) {
+//            // Skip grouped range price (it doesn't have .woocommerce-grouped-product-list-item)
+//            if (strpos($price, 'woocommerce-grouped-product-list-item') === false) {
+//                return $price;
+//            }
+//
+//            // Discounted grouped child
+//            $price = preg_replace_callback(
+//                '/<ins[^>]*>\s*<span\s+class="([^"]*woocommerce-Price-amount[^"]*)"([^>]*)>/i',
+//                function ($matches) use ($className) {
+//                    $classes = $matches[1];
+//                    if (strpos($classes, $className) === false) {
+//                        $classes .= ' ' . $className;
+//                    }
+//
+//                    return '<ins><span class="' . esc_attr(trim($classes)) . '"' . $matches[2] . '>';
+//                },
+//                $price,
+//                1
+//            );
+//
+//            // Non-discounted grouped child
+//            if (strpos($price, '<ins') === false) {
+//                $price = preg_replace_callback(
+//                    '/<span\s+class="([^"]*woocommerce-Price-amount[^"]*)"([^>]*)>/i',
+//                    function ($matches) use ($className) {
+//                        $classes = $matches[1];
+//                        if (strpos($classes, $className) === false) {
+//                            $classes .= ' ' . $className;
+//                        }
+//
+//                        return '<span class="' . esc_attr(trim($classes)) . '"' . $matches[2] . '>';
+//                    },
+//                    $price,
+//                    1
+//                );
+//            }
+//
+//            return $price;
+//        }
+//
+//        // === 3️⃣ SIMPLE PRODUCTS ===
+//        // Discounted simple
+//        $price = preg_replace_callback(
+//            '/<ins[^>]*>\s*<span\s+class="([^"]*woocommerce-Price-amount[^"]*)"([^>]*)>/i',
+//            function ($matches) use ($className) {
+//                $classes = $matches[1];
+//                if (strpos($classes, $className) === false) {
+//                    $classes .= ' ' . $className;
+//                }
+//
+//                return '<ins><span class="' . esc_attr(trim($classes)) . '"' . $matches[2] . '>';
+//            },
+//            $price,
+//            1
+//        );
+//
+//        // Non-discounted simple
+//        if (strpos($price, '<ins') === false) {
+//            $price = preg_replace_callback(
+//                '/<span\s+class="([^"]*woocommerce-Price-amount[^"]*)"([^>]*)>/i',
+//                function ($matches) use ($className) {
+//                    $classes = $matches[1];
+//                    if (strpos($classes, $className) === false) {
+//                        $classes .= ' ' . $className;
+//                    }
+//
+//                    return '<span class="' . esc_attr(trim($classes)) . '"' . $matches[2] . '>';
+//                },
+//                $price,
+//                1
+//            );
+//        }
 
-                        return str_replace(
-                            '<span class="' . $matches[2] . '"',
-                            '<span class="' . esc_attr(trim($classes)) . '"',
-                            $before
-                        );
-                    },
-                    $price,
-                    1
-                );
+        $price .= <<<JS
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const className = '$className';
 
-                // Non-discounted variation fallback
-                if (strpos($price, '<ins') === false) {
-                    $price = preg_replace_callback(
-                        '/(<div[^>]*class="[^"]*woocommerce-variation-price[^"]*"[^>]*>.*?<span\s+class="([^"]*woocommerce-Price-amount[^"]*)"([^>]*)>)/is',
-                        function ($matches) use ($className) {
-                            $before  = $matches[1];
-                            $classes = $matches[2];
-                            if (strpos($classes, $className) === false) {
-                                $classes .= ' ' . $className;
-                            }
+  document.querySelectorAll('.product').forEach(product => {
+    // === Variable product (price inside .woocommerce-variation-price)
+    const variationPrice = product.querySelector('.woocommerce-variation-price');
+    if (variationPrice) {
+      const discounted = variationPrice.querySelector('ins .woocommerce-Price-amount');
+      const normal = variationPrice.querySelector('.woocommerce-Price-amount');
+      const target = discounted || normal;
+      if (target && !target.classList.contains(className)) target.classList.add(className);
+      return;
+    }
 
-                            return str_replace(
-                                '<span class="' . $matches[2] . '"',
-                                '<span class="' . esc_attr(trim($classes)) . '"',
-                                $before
-                            );
-                        },
-                        $price,
-                        1
-                    );
-                }
-            }
+    // === Grouped product (price rows inside .woocommerce-grouped-product-list-item)
+    const groupedItems = product.querySelectorAll('.woocommerce-grouped-product-list-item');
+    if (groupedItems.length > 0) {
+      groupedItems.forEach(item => {
+        const discounted = item.querySelector('ins .woocommerce-Price-amount');
+        const normal = item.querySelector('.woocommerce-Price-amount');
+        const target = discounted || normal;
+        if (target && !target.classList.contains(className)) target.classList.add(className);
+      });
+      return;
+    }
 
-            return $price;
-        }
+    // === Simple product (standard .price wrapper)
+    const priceWrapper = product.querySelector('.price');
+    if (priceWrapper) {
+      const discounted = priceWrapper.querySelector('ins .woocommerce-Price-amount');
+      const normal = priceWrapper.querySelector('.woocommerce-Price-amount');
+      const target = discounted || normal;
+      if (target && !target.classList.contains(className)) target.classList.add(className);
+    }
+  });
+});
+</script>
+JS;
 
-        // === 2️⃣ GROUPED PRODUCTS ===
-        if ($product->is_type('grouped')) {
-            // Skip grouped range price (it doesn't have .woocommerce-grouped-product-list-item)
-            if (strpos($price, 'woocommerce-grouped-product-list-item') === false) {
-                return $price;
-            }
-
-            // Discounted grouped child
-            $price = preg_replace_callback(
-                '/<ins[^>]*>\s*<span\s+class="([^"]*woocommerce-Price-amount[^"]*)"([^>]*)>/i',
-                function ($matches) use ($className) {
-                    $classes = $matches[1];
-                    if (strpos($classes, $className) === false) {
-                        $classes .= ' ' . $className;
-                    }
-
-                    return '<ins><span class="' . esc_attr(trim($classes)) . '"' . $matches[2] . '>';
-                },
-                $price,
-                1
-            );
-
-            // Non-discounted grouped child
-            if (strpos($price, '<ins') === false) {
-                $price = preg_replace_callback(
-                    '/<span\s+class="([^"]*woocommerce-Price-amount[^"]*)"([^>]*)>/i',
-                    function ($matches) use ($className) {
-                        $classes = $matches[1];
-                        if (strpos($classes, $className) === false) {
-                            $classes .= ' ' . $className;
-                        }
-
-                        return '<span class="' . esc_attr(trim($classes)) . '"' . $matches[2] . '>';
-                    },
-                    $price,
-                    1
-                );
-            }
-
-            return $price;
-        }
-
-        // === 3️⃣ SIMPLE PRODUCTS ===
-        // Discounted simple
-        $price = preg_replace_callback(
-            '/<ins[^>]*>\s*<span\s+class="([^"]*woocommerce-Price-amount[^"]*)"([^>]*)>/i',
-            function ($matches) use ($className) {
-                $classes = $matches[1];
-                if (strpos($classes, $className) === false) {
-                    $classes .= ' ' . $className;
-                }
-
-                return '<ins><span class="' . esc_attr(trim($classes)) . '"' . $matches[2] . '>';
-            },
-            $price,
-            1
-        );
-
-        // Non-discounted simple
-        if (strpos($price, '<ins') === false) {
-            $price = preg_replace_callback(
-                '/<span\s+class="([^"]*woocommerce-Price-amount[^"]*)"([^>]*)>/i',
-                function ($matches) use ($className) {
-                    $classes = $matches[1];
-                    if (strpos($classes, $className) === false) {
-                        $classes .= ' ' . $className;
-                    }
-
-                    return '<span class="' . esc_attr(trim($classes)) . '"' . $matches[2] . '>';
-                },
-                $price,
-                1
-            );
-        }
 
         return $price;
     }
 
-    // Add info-itm-name-pf class to product name on single product page 
-    // (Add this to the product name)
-    public function add_product_name_class_single_start()
+    // Add info-itm-name-pf class to product name on single product page
+    public function add_product_name_class_single()
     {
-        ob_start();
-    }
-
-    public function add_product_name_class_single_end()
-    {
-        $content = ob_get_clean();
-
-        // Add our class to any <h1 ... class="..."> inside the product title
-        $content = preg_replace_callback(
-            '/<h1\s+class="([^"]+)"/i',
-            function ($matches) {
-                $classes = $matches[1];
-
-                // Add class only if not already present
-                if (strpos($classes, 'info-itm-name-pf') === false) {
-                    $classes .= ' info-itm-name-pf';
-                }
-
-                return '<h1 class="' . esc_attr(trim($classes)) . '"';
-            },
-            $content
-        );
-        echo $content;
+        echo <<<JS
+<script>
+  const el = document.querySelector('.product_title');
+  if (el && !el.classList.contains('info-itm-name-pf')) el.classList.add('info-itm-name-pf');
+</script>
+JS;
     }
 
     // Add info-itm-qnty-pf class to quantity input 
@@ -316,32 +334,16 @@ class PixelFlow_WooCommerce_Product_Hooks
 
     // Add action-btn-cart-005-pf class to single product add to cart button 
     // (Add this to the add to cart button)
-    public function start_single_add_to_cart_buffer()
+    public function single_add_to_cart_button()
     {
-        if (is_product()) {
-            ob_start(array($this, 'filter_single_add_to_cart_button'));
-        }
-    }
-
-    public function filter_single_add_to_cart_button($content)
-    {
-        $className = 'action-btn-cart-005-pf';
-
-        $content = preg_replace(
-            '/class="([^"]*\badd_to_cart_button\b[^"]*|[^"]*\bsingle_add_to_cart_button\b[^"]*)"/i',
-            'class="$1 ' . esc_attr($className) . '"',
-            $content,
-            1
-        );
-
-        return $content;
-    }
-
-    public function end_single_add_to_cart_buffer()
-    {
-        if (is_product()) {
-            ob_end_flush();
-        }
+        echo <<<JS
+<script>
+  const btn = document.querySelector('.single_add_to_cart_button');
+  if (btn && !btn.classList.contains('action-btn-cart-005-pf')) {
+    btn.classList.add('action-btn-cart-005-pf');
+  }
+</script>
+JS;
     }
 }
 

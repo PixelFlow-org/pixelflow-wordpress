@@ -176,7 +176,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
     {
         $className = 'info-itm-name-pf';
         // Avoid double-wrapping if WooCommerce calls the filter twice
-        if (strpos($product_name, 'class="' . $className . '"') !== false) {
+        if (strpos($product_name, $className) !== false) {
             return $product_name;
         }
 
@@ -195,38 +195,6 @@ class PixelFlow_WooCommerce_Cart_Hooks
         }
 
         return $wrapped_name;
-    }
-
-
-
-    // Add info-chk-itm-pf class to the cart table
-    // (Add this to the overall main/parent container containing all the cart items)
-    public function start_cart_table_buffer()
-    {
-        if (is_cart()) {
-            ob_start(array($this, 'add_cart_table_class'));
-        }
-    }
-
-    public function add_cart_table_class($content)
-    {
-        $className = 'info-chk-itm-ctnr-pf';
-
-        // Replace shop_table shop_table_responsive with shop_table shop_table_responsive info-chk-itm-pf
-        $content = str_replace(
-            'shop_table shop_table_responsive',
-            'shop_table shop_table_responsive ' . esc_attr($className) . ' ',
-            $content
-        );
-
-        return $content;
-    }
-
-    public function end_cart_table_buffer()
-    {
-        if (is_cart()) {
-            ob_end_flush();
-        }
     }
 }
 
