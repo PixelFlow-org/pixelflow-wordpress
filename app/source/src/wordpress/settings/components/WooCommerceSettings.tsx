@@ -5,8 +5,14 @@ import { useSettings } from '../hooks/useSettings';
 import { DebugSettings } from '@/wordpress/settings';
 
 export function WooCommerceSettings() {
-  const { generalOptions, isWooCommerceActive, updateGeneralOption, saveSettings, error } =
-    useSettings();
+  const {
+    generalOptions,
+    isWooCommerceActive,
+    updateGeneralOption,
+    saveSettings,
+    error,
+    isSaving,
+  } = useSettings();
 
   if (!isWooCommerceActive) {
     return null;
@@ -34,6 +40,7 @@ export function WooCommerceSettings() {
             onCheckedChange={handleToggle}
             id="enableWoo"
             variant={'green'}
+            disabled={isSaving}
           ></UI.Switch.Root>
           <UI.TooltipRoot>
             <UI.TooltipTrigger asChild>
@@ -98,6 +105,7 @@ export function WooCommerceSettings() {
                     }
                     id="enableWooPurchaseTracking"
                     variant={'green'}
+                    disabled={isSaving}
                   ></UI.Switch.Root>
                   <UI.TooltipRoot>
                     <UI.TooltipTrigger asChild>

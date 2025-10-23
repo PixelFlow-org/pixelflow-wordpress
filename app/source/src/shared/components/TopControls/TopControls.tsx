@@ -3,9 +3,9 @@ import { useTheme } from '@pixelflow-org/plugin-ui';
 import { NarrowButton } from '@pixelflow-org/plugin-ui';
 
 /** Local Components */
-import SunIcon from '@/shared/icons/sun.icon';
-import MoonIcon from '@/shared/icons/moon.icon';
-import LogoutIcon from '@/shared/icons/logout.icon';
+import SunIcon from '@/shared/icons/sun.icon.tsx';
+import MoonIcon from '@/shared/icons/moon.icon.tsx';
+import LogoutIcon from '@/shared/icons/logout.icon.tsx';
 
 /**
  * TopControls component

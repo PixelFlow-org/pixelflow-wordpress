@@ -52,7 +52,7 @@ import {
   AdvancedSettings,
   WooCommerceSettings,
 } from '@/wordpress/settings';
-import TopControls from '@/components/TopControls/TopControls.tsx';
+import TopControls from '@/shared/components/TopControls/TopControls.tsx';
 
 interface HomeProps {
   user: User;

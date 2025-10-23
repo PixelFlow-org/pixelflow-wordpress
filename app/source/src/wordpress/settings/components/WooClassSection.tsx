@@ -26,8 +26,14 @@ export function WooClassSection({
   sectionKey,
   isDebugMode = false,
 }: WooClassSectionProps) {
-  const { classOptions, debugOptions, updateClassOption, updateDebugOption, saveSettings } =
-    useSettings();
+  const {
+    classOptions,
+    debugOptions,
+    updateClassOption,
+    updateDebugOption,
+    saveSettings,
+    isSaving,
+  } = useSettings();
 
   // Use appropriate options based on mode
   const values = isDebugMode ? debugOptions : classOptions;
@@ -88,6 +94,7 @@ export function WooClassSection({
             onCheckedChange={handleToggleAll}
             id={`toggle-all-${sectionKey}`}
             variant={'green'}
+            disabled={isSaving}
           ></Switch.Root>
           <TooltipRoot>
             <TooltipTrigger asChild>
@@ -119,6 +126,7 @@ export function WooClassSection({
                         onCheckedChange={(checked) => handleItemToggle(item.key, checked)}
                         id={id}
                         variant={'green'}
+                        disabled={isSaving}
                       ></Switch.Root>
                       <Label.Root htmlFor={id} className="flex items-center gap-2">
                         <code className="text-xs bg-gray-100 px-2 py-1 rounded">
