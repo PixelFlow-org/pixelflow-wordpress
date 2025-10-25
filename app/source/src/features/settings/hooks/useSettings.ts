@@ -55,6 +55,7 @@ const defaultGeneralOptions: PixelFlowGeneralOptions = {
   woo_purchase_tracking: 1,
   debug_enabled: 0,
   excluded_user_roles: [],
+  remove_on_uninstall: 0,
 };
 
 // Generate default options from all class definitions

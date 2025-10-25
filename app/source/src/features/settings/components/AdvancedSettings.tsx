@@ -15,7 +15,7 @@ import { useSettings } from '@/features/settings/contexts/SettingsContext.tsx';
  * @returns AdvancedSettings component
  */
 export function AdvancedSettings() {
-  const { generalOptions, availableRoles, toggleExcludedRole, saveSettings, isSaving } =
+  const { generalOptions, availableRoles, toggleExcludedRole, saveSettings, isSaving, updateGeneralOption } =
     useSettings();
   const excludedRoles = generalOptions.excluded_user_roles || [];
 
@@ -30,6 +30,14 @@ export function AdvancedSettings() {
 
     // Save immediately with override
     await saveSettings({ generalOptionsOverride: { excluded_user_roles: updated } });
+  };
+
+  const handleUninstallToggle = async (checked: boolean) => {
+    const newValue = checked ? 1 : 0;
+    updateGeneralOption('remove_on_uninstall', newValue);
+
+    // Save immediately
+    await saveSettings({ generalOptionsOverride: { remove_on_uninstall: newValue } });
   };
 
   return (
@@ -74,6 +82,42 @@ export function AdvancedSettings() {
             )}
           </section>
         )}
+
+        {/* Data Cleanup Section */}
+        <section className={availableRoles.length > 0 ? 'mt-6 pt-6 border-t border-gray-200' : ''}>
+          <h3 className="text-base font-semibold mb-2 !text-foreground">
+            Plugin Data Management
+          </h3>
+          <p className="text-sm text-foreground ml-12 mb-4">
+            Control what happens to your plugin data when you uninstall PixelFlow.
+          </p>
+          <div className="flex items-center gap-3">
+            <UI.Switch.Root
+              checked={generalOptions.remove_on_uninstall === 1}
+              onCheckedChange={handleUninstallToggle}
+              id="remove-on-uninstall"
+              variant={'green'}
+              disabled={isSaving}
+            ></UI.Switch.Root>
+            <UI.Label.Root className="cursor-pointer" htmlFor="remove-on-uninstall">
+              <span className="text-sm">Remove plugin data on uninstall</span>
+            </UI.Label.Root>
+          </div>
+          <p className="text-xs text-gray-600 mt-3 ml-11">
+            {generalOptions.remove_on_uninstall === 1 ? (
+              <>
+                <strong>Enabled:</strong> When you delete this plugin, all PixelFlow settings,
+                tracking scripts, and configurations will be permanently removed from your database.
+              </>
+            ) : (
+              <>
+                <strong>Disabled:</strong> Your PixelFlow settings will be preserved in the
+                database even after uninstalling the plugin. This allows you to reinstall later
+                without losing your configuration.
+              </>
+            )}
+          </p>
+        </section>
       </div>
     </div>
   );

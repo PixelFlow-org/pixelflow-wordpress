@@ -111,7 +111,9 @@ export class WordpressAdapter implements PlatformAdapter {
    */
   showNotification(message: string, type: 'success' | 'error' | 'info' | 'warning'): void {
     toast(message, { type });
-    console.log(`[WordPress] [${type.toUpperCase()}] ${message}`);
+    if (type === 'error') {
+      console.error(`[PixelFlow][${this.getPlatformName()}] ${message}`);
+    }
   }
 
   /**

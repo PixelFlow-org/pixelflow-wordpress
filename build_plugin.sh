@@ -63,6 +63,7 @@ if [ -n "$ENV_FILE" ]; then
     includes/ \
     admin/ \
     pixelflow.php \
+    uninstall.php \
     README.md \
     readme.txt \
     "$ENV_FILE" \

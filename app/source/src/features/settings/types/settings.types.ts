@@ -5,6 +5,7 @@ export interface PixelFlowGeneralOptions {
   woo_enabled: number;
   woo_purchase_tracking: number;
   excluded_user_roles: string[]; // Array of role keys to exclude from script injection
+  remove_on_uninstall: number; // Remove all plugin settings when plugin is uninstalled
 }
 
 // User role structure parsed from WordPress

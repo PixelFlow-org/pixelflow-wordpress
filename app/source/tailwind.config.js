@@ -168,9 +168,18 @@ export const shadows = {
   'regular-xs': '0 1px 2px 0 #0a0d1408',
   'regular-sm': '0 2px 4px #1b1c1d0a',
   'regular-md': '0 16px 32px -12px #0e121b1a',
-  'button-primary-focus': ['0 0 0 2px theme(colors.bg[white-0])', '0 0 0 4px theme(colors.primary[alpha-10])'],
-  'button-important-focus': ['0 0 0 2px theme(colors.bg[white-0])', '0 0 0 4px theme(colors.neutral[alpha-16])'],
-  'button-error-focus': ['0 0 0 2px theme(colors.bg[white-0])', '0 0 0 4px theme(colors.red[alpha-10])'],
+  'button-primary-focus': [
+    '0 0 0 2px theme(colors.bg[white-0])',
+    '0 0 0 4px theme(colors.primary[alpha-10])',
+  ],
+  'button-important-focus': [
+    '0 0 0 2px theme(colors.bg[white-0])',
+    '0 0 0 4px theme(colors.neutral[alpha-16])',
+  ],
+  'button-error-focus': [
+    '0 0 0 2px theme(colors.bg[white-0])',
+    '0 0 0 4px theme(colors.red[alpha-10])',
+  ],
 };
 
 export const borderRadii = {

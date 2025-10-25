@@ -17,6 +17,11 @@
  */
 
 /* Add your platform-specific theme overrides below (optional) */
+
+#pixelflowroot,
+[data-theme=light] {
+  --color-success: #722CFF;
+}
 .pixelflow-app h1 {
   display: flex;
   flex-wrap: wrap;
@@ -106,4 +111,72 @@
 #pixelflowroot .pf-switch[disabled][data-state="unchecked"] .pf-switch__track {
   --bg-white-0: #202020;
   opacity: 0.8;
+}
+
+/* Tables */
+.pf-table__header-cell:first-child {
+  min-width: 240px;
+}
+.pf-module-pixels .pf-table__header-cell:first-child {
+  min-width: 240px;
+}
+.pf-module-sites .pf-table__header-cell:first-child {
+  min-width: 560px;
+}
+.pf-module-events .pf-table__header-cell:first-child {
+  min-width: 320px;
+}
+.pf-table__header-cell {
+  min-width: 360px;
+}
+.pf-table__header-cell:last-child {
+  min-width: 60px;
+}
+
+.pf-table__cell:first-child {
+  min-width: 240px;
+}
+.pf-module-pixels .pf-table__cell:first-child {
+  min-width: 240px;
+}
+.pf-module-sites .pf-table__cell:first-child {
+  min-width: 560px;
+}
+.pf-module-events .pf-table__cell:first-child {
+  min-width: 320px;
+}
+.pf-table__cell {
+  min-width: 360px;
+}
+.pf-table__cell:last-child {
+  min-width: 60px;
+}
+.pf-table__cell:last-child {
+  min-width: 60px;
+  justify-content: end;
+}
+.pf-add-pixel-button {
+
+  animation: glow 2s infinite;
+}
+
+@keyframes glow {
+  0% {
+    box-shadow:
+        0 0 1px #FF2CFF,
+        0 0 2px #722CFF,
+        0 0 3px #2C72FF;
+  }
+  50% {
+    box-shadow:
+        0 0 9px #FF2CFF,
+        0 0 11px #722CFF,
+        0 0 13px #2C72FF;
+  }
+  100% {
+    box-shadow:
+        0 0 1px #FF2CFF,
+        0 0 2px #722CFF,
+        0 0 3px #2C72FF;
+  }
 }

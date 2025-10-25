@@ -4,7 +4,7 @@
  */
 
 /** External libraries */
-import { useEffect, useState, ReactElement } from 'react';
+import { useEffect, useState, useMemo, ReactElement } from 'react';
 
 /** Store */
 import { getCdnUrl } from '@pixelflow-org/plugin-core';
@@ -13,7 +13,7 @@ import { getCdnUrl } from '@pixelflow-org/plugin-core';
 import { useLazyGetSiteQuery } from '@pixelflow-org/plugin-core';
 
 /** UI Components */
-import { Header } from '@pixelflow-org/plugin-ui';
+import { Button, Header } from '@pixelflow-org/plugin-ui';
 
 /** Types */
 import { User } from '@pixelflow-org/plugin-core';
@@ -53,6 +53,7 @@ import {
 } from '@/features/settings';
 import { useSettings } from '@/features/settings/contexts/SettingsContext';
 import TopControls from '@/shared/components/TopControls/TopControls.tsx';
+import Notification from '@/shared/components/Notification/Notification.tsx';
 
 interface HomeProps {
   user: User;
@@ -115,7 +116,24 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
   const { handleLogout } = useAuth({ adapter });
 
   // Get settings save function to disable integration on logout
-  const { saveSettings } = useSettings();
+  const { saveSettings, isWooCommerceActive } = useSettings();
+
+  useEffect(() => {
+    if (!isWooCommerceActive) {
+      setActiveTab('pixel');
+    }
+  }, []);
+
+  // Create dynamic nav config based on WooCommerce availability
+  const navConfig = useMemo(
+    () => ({
+      ...wordPressNavPanelConfig,
+      tabs: wordPressNavPanelConfig.tabs.map((tab) =>
+        tab.id === 'woocommerce' ? { ...tab, visible: isWooCommerceActive } : tab
+      ),
+    }),
+    [isWooCommerceActive]
+  );
 
   // RTK mutations for script management
   const [saveScriptCode] = useSaveScriptCodeMutation();
@@ -246,8 +264,6 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
     // Route to appropriate modal based on current context to maintain user workflow continuity
     switch (activeTab) {
       case 'woocommerce':
-        // Handle WooCommerce settings action
-        console.log('WooCommerce settings action');
         break;
       case 'pixel':
         setOpenAddPixelModal(true);
@@ -259,12 +275,12 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
         refreshEvents();
         break;
       case 'advanced':
-        // Handle advanced settings action
-        console.log('Advanced settings action');
         break;
     }
   };
 
+  const [error, setError] = useState('');
+  const [errorType, setErrorType] = useState<'warning' | 'error'>('error');
   /**
    * Manually regenerate the tracking script
    * @description Forces regeneration of the tracking script with current configuration.
@@ -274,24 +290,37 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
   const onRegenerateScript = async (): Promise<boolean> => {
     try {
       // Clear existing script first
+      setError('');
       await removeScriptCode().unwrap();
 
       // Validate API key availability
       const apiKey = await getHashedApiKey();
       if (!apiKey) {
-        adapter.showNotification('API key is missing. Please contact support.', 'error');
+        const errorMsg = 'API key is missing. Please contact support.';
+        adapter.showNotification(errorMsg, 'error');
+        setError(errorMsg);
+        setErrorType('error');
         return false;
       }
 
       // Verify site context is available
       if (!siteExternalId) {
-        adapter.showNotification('Failed to regenerate script. Please try again later.', 'error');
+        const errorMsg = 'Failed to regenerate script. Please try again later.';
+        adapter.showNotification(errorMsg, 'error');
+        setError(errorMsg);
+        setErrorType('error');
         return false;
       }
 
       // Ensure tracking configuration exists
       if (!pixels || pixels.length === 0) {
-        adapter.showNotification('Add at least one pixel before generating script', 'warning');
+        const errorMsg = 'Add at least one pixel before generating script';
+        adapter.showNotification(errorMsg, 'warning');
+        setError(errorMsg);
+        setErrorType('warning');
+        // Switch to the Pixel tab
+        setActiveTab('pixel');
+
         return false;
       }
 
@@ -311,7 +340,11 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
           }
         }
       } catch (error) {
-        console.warn('[PixelFlow] Could not fetch blocking rules:', error);
+        const errorMsg = '[PixelFlow] Could not fetch blocking rules:';
+        adapter.showNotification(errorMsg, 'warning');
+        setError(errorMsg);
+        setErrorType('warning');
+        console.warn(errorMsg, error);
       }
 
       // Generate tracking script with all validated parameters
@@ -333,7 +366,10 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
       adapter.showNotification('Tracking script regenerated successfully', 'success');
       return true;
     } catch (error) {
-      adapter.showNotification('Failed to regenerate script', 'error');
+      const errorMsg = 'Failed to regenerate script';
+      adapter.showNotification(errorMsg, 'error');
+      setError(errorMsg);
+      setErrorType('error');
       console.error('[PixelFlow] Script regeneration failed:', error);
       return false;
     }
@@ -366,36 +402,55 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
         <Header selectedCurrency={selectedCurrency} updateCurrency={onCurrencyChange} />
         <TopControls handleLogout={logoutHandler} />
       </nav>
+      {error && <Notification message={error} type={errorType} />}
       <ActivatePixelflow onRegenerateScript={onRegenerateScript} />
       <NavPanel
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onButtonClick={onAddEntityClick}
-        config={wordPressNavPanelConfig}
+        config={navConfig}
       />
       {activeTab === 'woocommerce' && <WooCommerceSettings />}
       {activeTab === 'pixel' && (
-        <PixelsModule
-          pixels={pixels ?? []}
-          siteExternalId={siteExternalId}
-          addPixel={addPixel}
-          updatePixel={updatePixel}
-          deletePixel={deletePixel}
-          open={openAddPixelModal}
-          setOpen={setOpenAddPixelModal}
-          adapter={adapter}
-        />
+        <>
+          <PixelsModule
+            pixels={pixels ?? []}
+            siteExternalId={siteExternalId}
+            addPixel={addPixel}
+            updatePixel={updatePixel}
+            deletePixel={deletePixel}
+            open={openAddPixelModal}
+            setOpen={setOpenAddPixelModal}
+            adapter={adapter}
+          />
+          <Button.Root
+            size="xsmall"
+            className={`${pixels?.length ? '' : 'pf-add-pixel-button'} my-4 mx-auto`}
+            onClick={() => setOpenAddPixelModal(true)}
+          >
+            Add pixel
+          </Button.Root>
+        </>
       )}
       {activeTab === 'url' && (
-        <TrackingUrlsModule
-          trackingUrls={trackingUrls ?? []}
-          trackingUrlsEvents={trackingUrlsEvents ?? []}
-          addTrackingUrl={addTrackingUrl}
-          deleteTrackingUrl={deleteTrackingUrl}
-          open={openAddUrlModal}
-          setOpen={setOpenAddUrlModal}
-          adapter={adapter}
-        />
+        <>
+          <TrackingUrlsModule
+            trackingUrls={trackingUrls ?? []}
+            trackingUrlsEvents={trackingUrlsEvents ?? []}
+            addTrackingUrl={addTrackingUrl}
+            deleteTrackingUrl={deleteTrackingUrl}
+            open={openAddUrlModal}
+            setOpen={setOpenAddUrlModal}
+            adapter={adapter}
+          />
+          <Button.Root
+            size="xsmall"
+            className="my-4 mx-auto"
+            onClick={() => setOpenAddUrlModal(true)}
+          >
+            Add Url
+          </Button.Root>
+        </>
       )}
       {activeTab === 'events' && (
         <EventsModule events={events} areEventsLoading={areEventsLoading} adapter={adapter} />

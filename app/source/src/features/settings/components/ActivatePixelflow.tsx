@@ -26,7 +26,9 @@ interface ActivatePixelflowProps {
  */
 export function ActivatePixelflow(props: ActivatePixelflowProps) {
   const { onRegenerateScript } = props;
-  const { generalOptions, updateGeneralOption, saveSettings, isSaving } = useSettings();
+  const { generalOptions, updateGeneralOption, saveSettings, isSaving, scriptCode } = useSettings();
+
+  const isScriptInserted = Boolean(scriptCode);
 
   const [regenerateScriptLoading, setRegenerateScriptLoading] = useState(false);
   const onRegenerateScriptHandle = async () => {
@@ -69,7 +71,13 @@ export function ActivatePixelflow(props: ActivatePixelflowProps) {
           onClick={onRegenerateScriptHandle}
           disabled={regenerateScriptLoading}
         >
-          {regenerateScriptLoading ? 'Updating...' : 'Update Script'}
+          {regenerateScriptLoading
+            ? isScriptInserted
+              ? 'Saving Changes & Updating...'
+              : 'Saving Changes & Inserting...'
+            : isScriptInserted
+              ? 'Save Changes & Update Script'
+              : 'Save Changes & Insert Script'}
         </Button.Root>
       </div>
     </div>
