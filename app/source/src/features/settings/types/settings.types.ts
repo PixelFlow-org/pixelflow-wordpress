@@ -25,6 +25,7 @@ export interface PixelFlowClasses {
   // Cart classes
   woo_class_cart_item: number;
   woo_class_cart_price: number;
+  woo_class_cart_quantity: number;
   woo_class_cart_checkout_button: number;
   woo_class_cart_product_name: number;
   woo_class_cart_products_container: number;

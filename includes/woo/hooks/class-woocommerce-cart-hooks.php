@@ -72,6 +72,12 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 add_filter('woocommerce_cart_item_price', array($this, 'add_cart_item_price_class'), 10, 3);
             }
 
+            // Add info-itm-qnty-pf class to cart item quantity
+            // (Add this to the Item quantity:)
+            if ($this->is_class_enabled('woo_class_cart_quantity')) {
+                add_filter('woocommerce_cart_item_quantity', array($this, 'add_cart_item_quantity_class'), 10, 3);
+            }
+
             // Add action-btn-buy-004-pf class to the proceed to checkout button
             // (Add this to the proceed to checkout button)
             if ($this->is_class_enabled('woo_class_cart_checkout_button')) {
@@ -82,9 +88,9 @@ class PixelFlow_WooCommerce_Cart_Hooks
             if ($this->is_class_enabled('woo_class_cart_product_name')) {
                 add_filter('woocommerce_cart_item_name', array($this, 'add_cart_item_name_class'), 10, 3);
             }
-//            if($this->options[""]) {
-                add_action('wp_footer', array($this, 'pf_add_gutenberg_cart_classes'));
-//            }
+
+            // Gutenberg/Block cart support
+            add_action('wp_footer', array($this, 'pf_add_gutenberg_cart_classes'));
         }
     }
     // Add info-chk-itm-pf class to the cart table 
@@ -149,6 +155,37 @@ class PixelFlow_WooCommerce_Cart_Hooks
         return $price;
     }
 
+    // Add info-itm-qnty-pf class to cart item quantity
+    // (Add this to the Item quantity:)
+    public function add_cart_item_quantity_class($product_quantity, $cart_item_key, $cart_item)
+    {
+        if ( ! is_cart() || empty($product_quantity)) {
+            return $product_quantity;
+        }
+
+        $className = 'info-itm-qnty-pf';
+
+        // Check if it's already added
+        if (strpos($product_quantity, $className) !== false) {
+            return $product_quantity;
+        }
+
+        // Add class to quantity input element
+        $quantityUpdated = preg_replace_callback(
+            '/<input([^>]*class="[^"]*)/i',
+            function ($matches) use ($className) {
+                return '<input' . $matches[1] . ' ' . esc_attr($className);
+            },
+            $product_quantity,
+            1
+        );
+
+        if ($quantityUpdated) {
+            return $quantityUpdated;
+        }
+
+        return $product_quantity;
+    }
 
     public function pf_proceed_btn_buffer_start() {
         if (!is_cart()) {
@@ -217,15 +254,54 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return;
         }
 
+        // Check which classes are enabled
+        $enabled_classes = array();
+        
+        if ($this->is_class_enabled('woo_class_cart_products_container')) {
+            $enabled_classes['cart'] = 'info-chk-itm-ctnr-pf';
+        }
+        if ($this->is_class_enabled('woo_class_cart_item')) {
+            $enabled_classes['item'] = 'info-chk-itm-pf';
+        }
+        if ($this->is_class_enabled('woo_class_cart_price')) {
+            $enabled_classes['price'] = 'info-itm-prc-pf';
+        }
+        if ($this->is_class_enabled('woo_class_cart_quantity')) {
+            $enabled_classes['qty'] = 'info-itm-qnty-pf';
+        }
+        if ($this->is_class_enabled('woo_class_cart_checkout_button')) {
+            $enabled_classes['btn'] = 'action-btn-buy-004-pf';
+        }
+        if ($this->is_class_enabled('woo_class_cart_product_name')) {
+            $enabled_classes['name'] = 'info-itm-name-pf';
+        }
+
+        // If no classes are enabled, don't output anything
+        if (empty($enabled_classes)) {
+            return;
+        }
+
         ?>
         <script>
             (function() {
-                const CLASS_CART  = 'info-chk-itm-ctnr-pf';
-                const CLASS_ITEM  = 'info-chk-itm-pf';
-                const CLASS_PRICE = 'info-itm-prc-pf';
-                const CLASS_BTN   = 'action-btn-buy-004-pf';
-                const CLASS_NAME  = 'info-itm-name-pf';
-                const CLASS_QTY  = 'info-itm-qnty-pf';
+                <?php if (isset($enabled_classes['cart'])): ?>
+                const CLASS_CART = <?php echo wp_json_encode($enabled_classes['cart']); ?>;
+                <?php endif; ?>
+                <?php if (isset($enabled_classes['item'])): ?>
+                const CLASS_ITEM = <?php echo wp_json_encode($enabled_classes['item']); ?>;
+                <?php endif; ?>
+                <?php if (isset($enabled_classes['price'])): ?>
+                const CLASS_PRICE = <?php echo wp_json_encode($enabled_classes['price']); ?>;
+                <?php endif; ?>
+                <?php if (isset($enabled_classes['qty'])): ?>
+                const CLASS_QTY = <?php echo wp_json_encode($enabled_classes['qty']); ?>;
+                <?php endif; ?>
+                <?php if (isset($enabled_classes['btn'])): ?>
+                const CLASS_BTN = <?php echo wp_json_encode($enabled_classes['btn']); ?>;
+                <?php endif; ?>
+                <?php if (isset($enabled_classes['name'])): ?>
+                const CLASS_NAME = <?php echo wp_json_encode($enabled_classes['name']); ?>;
+                <?php endif; ?>
 
                 const MAX_CHECKS = 500;
                 const CHECK_DELAY_MS = 50;
@@ -240,14 +316,30 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 const applyClasses = root => {
                     if (!root) return;
 
+                    <?php if (isset($enabled_classes['cart'])): ?>
                     const cart = root.querySelector('.wc-block-cart');
                     if (cart) cart.classList.add(CLASS_CART);
+                    <?php endif; ?>
 
+                    <?php if (isset($enabled_classes['item'])): ?>
                     root.querySelectorAll('.wc-block-cart-items .wc-block-cart-items__row').forEach(el => el.classList.add(CLASS_ITEM));
+                    <?php endif; ?>
+
+                    <?php if (isset($enabled_classes['price'])): ?>
                     root.querySelectorAll('.wc-block-cart-item__total .price .wc-block-formatted-money-amount').forEach(el => el.classList.add(CLASS_PRICE));
-                    root.querySelectorAll('.wc-block-cart__submit-button, .wc-block-components-checkout-place-order-button').forEach(el => el.classList.add(CLASS_BTN));
-                    root.querySelectorAll('.wc-block-components-product-name, .wc-block-components-product-name a').forEach(el => el.classList.add(CLASS_NAME));
+                    <?php endif; ?>
+
+                    <?php if (isset($enabled_classes['qty'])): ?>
                     root.querySelectorAll('.wc-block-components-quantity-selector__input').forEach(el => el.classList.add(CLASS_QTY));
+                    <?php endif; ?>
+
+                    <?php if (isset($enabled_classes['btn'])): ?>
+                    root.querySelectorAll('.wc-block-cart__submit-button, .wc-block-components-checkout-place-order-button').forEach(el => el.classList.add(CLASS_BTN));
+                    <?php endif; ?>
+
+                    <?php if (isset($enabled_classes['name'])): ?>
+                    root.querySelectorAll('.wc-block-components-product-name, .wc-block-components-product-name a').forEach(el => el.classList.add(CLASS_NAME));
+                    <?php endif; ?>
                 };
 
                 const startObserver = cart => {
@@ -308,9 +400,6 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 }
             })();
         </script>
-
-
-
         <?php
     }
 }

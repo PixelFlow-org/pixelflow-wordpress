@@ -54,6 +54,11 @@ export const cartClasses: WooClassItem[] = [
     description: 'Item price',
   },
   {
+    key: 'woo_class_cart_quantity',
+    className: 'info-itm-qnty-pf',
+    description: 'Item quantity',
+  },
+  {
     key: 'woo_class_cart_checkout_button',
     className: 'action-btn-buy-004-pf',
     description: 'Proceed to checkout button',

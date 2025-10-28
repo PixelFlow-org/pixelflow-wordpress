@@ -215,6 +215,7 @@ class PixelFlow
             'woo_class_cart_checkout_button',
             'woo_class_cart_product_name',
             'woo_class_cart_products_container',
+            'woo_class_cart_quantity',
         );
 
         // Set all checkboxes: 1 if checked, 0 if not
