@@ -121,8 +121,10 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
   useEffect(() => {
     if (!isWooCommerceActive) {
       setActiveTab('pixel');
+    } else {
+      setActiveTab('woocommerce');
     }
-  }, []);
+  }, [isWooCommerceActive]);
 
   // Create dynamic nav config based on WooCommerce availability
   const navConfig = useMemo(

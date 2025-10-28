@@ -195,13 +195,16 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $product_link = $product->is_visible() ? $product->get_permalink() : '';
 
         if ($product_link) {
-            $wrapped_name = sprintf(
-                '<a href="%s" class="' . $className . '">%s</a>',
+            $wrapped_name = sprintf('<a href="%s" class="%s">%s</a>',
                 esc_url($product_link),
+                esc_attr($className),
                 esc_html($name)
             );
         } else {
-            $wrapped_name = sprintf('<span class="' . $className . '">%s</span>', esc_html($name));
+            $wrapped_name = sprintf('<span class="%s">%s</span>',
+                esc_attr($className),
+                esc_html($name)
+            );
         }
 
         return $wrapped_name;

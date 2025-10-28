@@ -49,7 +49,7 @@ class PixelFlow_WooCommerce_Product_Hooks
      */
     private function init_hooks()
     {
-        if(!is_admin()) {
+        if ( ! is_admin()) {
             // Add info-chk-itm-pf class to product container
             // (Add this to the product container)
             if ($this->is_class_enabled('woo_class_product_container')) {
@@ -63,7 +63,12 @@ class PixelFlow_WooCommerce_Product_Hooks
 
                 // Add info-itm-name-pf class to product name on single product page
                 // (Add this to the product name)
-                add_action('woocommerce_single_product_summary', array($this, 'add_product_name_class_single'), 6);
+                add_action(
+                    'woocommerce_single_product_summary',
+                    array($this, 'add_product_name_class_single_start'),
+                    4
+                );
+                add_action('woocommerce_single_product_summary', array($this, 'add_product_name_class_single_end'), 6);
             }
 
             // Add info-itm-prc-pf class to product price
@@ -85,7 +90,12 @@ class PixelFlow_WooCommerce_Product_Hooks
 
                 // Add action-btn-cart-005-pf class to single product add to cart button
                 // (Add this to the add to cart button)
-                add_action('woocommerce_after_add_to_cart_button', array($this, 'single_add_to_cart_button'), 10);
+                add_action('woocommerce_before_add_to_cart_button', array($this, 'start_single_add_to_cart_buffer'), 0);
+                add_action(
+                    'woocommerce_after_add_to_cart_button',
+                    array($this, 'end_single_add_to_cart_buffer'),
+                    PHP_INT_MAX
+                );
             }
         }
     }
@@ -94,7 +104,7 @@ class PixelFlow_WooCommerce_Product_Hooks
     // (Add this to the product container)
     public function add_product_container_class($classes, $product)
     {
-        $classes[] = ' info-chk-itm-pf ';
+        $classes[] = 'info-chk-itm-pf';
 
         return $classes;
     }
@@ -103,7 +113,7 @@ class PixelFlow_WooCommerce_Product_Hooks
     // (Add this to the product name)
     public function add_product_name_class_loop($classes)
     {
-        return $classes . ' info-itm-name-pf ';
+        return $classes . ' info-itm-name-pf';
     }
 
     // Add info-itm-prc-pf class to product price 
@@ -120,7 +130,7 @@ class PixelFlow_WooCommerce_Product_Hooks
         if ($product->is_type('variable')) {
             if (strpos($price, 'woocommerce-variation-price') !== false) {
                 // Discounted variation
-                $price = preg_replace_callback(
+                $priceUpdated = preg_replace_callback(
                     '/(<div[^>]*class="[^"]*woocommerce-variation-price[^"]*"[^>]*>.*?<ins[^>]*>\s*<span\s+class="([^"]*woocommerce-Price-amount[^"]*)"([^>]*)>)/is',
                     function ($matches) use ($className) {
                         $before  = $matches[1];
@@ -138,10 +148,13 @@ class PixelFlow_WooCommerce_Product_Hooks
                     $price,
                     1
                 );
+                if($priceUpdated) {
+                    $price = $priceUpdated;
+                }
 
                 // Non-discounted variation fallback
                 if (strpos($price, '<ins') === false) {
-                    $price = preg_replace_callback(
+                    $priceUpdated = preg_replace_callback(
                         '/(<div[^>]*class="[^"]*woocommerce-variation-price[^"]*"[^>]*>.*?<span\s+class="([^"]*woocommerce-Price-amount[^"]*)"([^>]*)>)/is',
                         function ($matches) use ($className) {
                             $before  = $matches[1];
@@ -159,6 +172,9 @@ class PixelFlow_WooCommerce_Product_Hooks
                         $price,
                         1
                     );
+                    if($priceUpdated) {
+                        $price = $priceUpdated;
+                    }
                 }
             }
 
@@ -173,7 +189,7 @@ class PixelFlow_WooCommerce_Product_Hooks
             }
 
             // Discounted grouped child
-            $price = preg_replace_callback(
+            $priceUpdated = preg_replace_callback(
                 '/<ins[^>]*>\s*<span\s+class="([^"]*woocommerce-Price-amount[^"]*)"([^>]*)>/i',
                 function ($matches) use ($className) {
                     $classes = $matches[1];
@@ -186,10 +202,13 @@ class PixelFlow_WooCommerce_Product_Hooks
                 $price,
                 1
             );
+            if($priceUpdated) {
+                $price = $priceUpdated;
+            }
 
             // Non-discounted grouped child
             if (strpos($price, '<ins') === false) {
-                $price = preg_replace_callback(
+                $priceUpdated = preg_replace_callback(
                     '/<span\s+class="([^"]*woocommerce-Price-amount[^"]*)"([^>]*)>/i',
                     function ($matches) use ($className) {
                         $classes = $matches[1];
@@ -202,6 +221,9 @@ class PixelFlow_WooCommerce_Product_Hooks
                     $price,
                     1
                 );
+                if($priceUpdated) {
+                    $price = $priceUpdated;
+                }
             }
 
             return $price;
@@ -209,7 +231,7 @@ class PixelFlow_WooCommerce_Product_Hooks
 
         // === 3️⃣ SIMPLE PRODUCTS ===
         // Discounted simple
-        $price = preg_replace_callback(
+        $priceUpdated = preg_replace_callback(
             '/<ins[^>]*>\s*<span\s+class="([^"]*woocommerce-Price-amount[^"]*)"([^>]*)>/i',
             function ($matches) use ($className) {
                 $classes = $matches[1];
@@ -222,10 +244,13 @@ class PixelFlow_WooCommerce_Product_Hooks
             $price,
             1
         );
+        if($priceUpdated) {
+            $price = $priceUpdated;
+        }
 
         // Non-discounted simple
         if (strpos($price, '<ins') === false) {
-            $price = preg_replace_callback(
+            $priceUpdated = preg_replace_callback(
                 '/<span\s+class="([^"]*woocommerce-Price-amount[^"]*)"([^>]*)>/i',
                 function ($matches) use ($className) {
                     $classes = $matches[1];
@@ -238,22 +263,48 @@ class PixelFlow_WooCommerce_Product_Hooks
                 $price,
                 1
             );
+            if($priceUpdated) {
+                $price = $priceUpdated;
+            }
         }
-
-        remove_filter('woocommerce_get_price_html', array($this, 'add_product_price_class_once'), 10);
 
         return $price;
     }
 
     // Add info-itm-name-pf class to product name on single product page
-    public function add_product_name_class_single()
+    // (Add this to the product name)
+    public function add_product_name_class_single_start()
     {
-        echo <<<JS
-<script>
-  const el = document.querySelector('.product_title');
-  if (el && !el.classList.contains('info-itm-name-pf')) el.classList.add('info-itm-name-pf');
-</script>
-JS;
+        if (is_product()) {
+            ob_start();
+        }
+    }
+
+    public function add_product_name_class_single_end()
+    {
+        if (is_product() && ob_get_level() > 0) {
+            $content = ob_get_clean();
+
+            // Add our class to any <h1 ... class="..."> inside the product title
+            $contentUpdated = preg_replace_callback(
+                '/<h1\s+class="([^"]+)"/i',
+                function ($matches) {
+                    $classes = $matches[1];
+
+                    // Add class only if not already present
+                    if (strpos($classes, 'info-itm-name-pf') === false) {
+                        $classes .= ' info-itm-name-pf';
+                    }
+
+                    return '<h1 class="' . esc_attr(trim($classes)) . '"';
+                },
+                $content
+            );
+            if ($contentUpdated) {
+                $content = $contentUpdated;
+            }
+            echo $content;
+        }
     }
 
     // Add info-itm-qnty-pf class to quantity input 
@@ -296,16 +347,35 @@ JS;
 
     // Add action-btn-cart-005-pf class to single product add to cart button 
     // (Add this to the add to cart button)
-    public function single_add_to_cart_button()
+    public function start_single_add_to_cart_buffer()
     {
-        echo <<<JS
-<script>
-  const btn = document.querySelector('.single_add_to_cart_button');
-  if (btn && !btn.classList.contains('action-btn-cart-005-pf')) {
-    btn.classList.add('action-btn-cart-005-pf');
-  }
-</script>
-JS;
+        if (is_product()) {
+            ob_start(array($this, 'filter_single_add_to_cart_button'));
+        }
+    }
+
+    public function filter_single_add_to_cart_button($content)
+    {
+        $className = 'action-btn-cart-005-pf';
+
+        $contentUpdated = preg_replace(
+            '/class="([^"]*\badd_to_cart_button\b[^"]*|[^"]*\bsingle_add_to_cart_button\b[^"]*)"/i',
+            'class="$1 ' . esc_attr($className) . '"',
+            $content,
+            1
+        );
+        if($contentUpdated) {
+            $content = $contentUpdated;
+        }
+
+        return $content;
+    }
+
+    public function end_single_add_to_cart_buffer()
+    {
+        if (is_product()) {
+            ob_end_flush();
+        }
     }
 }
 
