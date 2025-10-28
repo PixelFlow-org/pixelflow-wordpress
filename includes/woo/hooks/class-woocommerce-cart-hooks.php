@@ -82,9 +82,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
             if ($this->is_class_enabled('woo_class_cart_product_name')) {
                 add_filter('woocommerce_cart_item_name', array($this, 'add_cart_item_name_class'), 10, 3);
             }
+//            if($this->options[""]) {
+                add_action('wp_footer', array($this, 'pf_add_gutenberg_cart_classes'));
+//            }
         }
     }
-
     // Add info-chk-itm-pf class to the cart table 
     // (Add this to the overall main/parent container containing all the cart items)
     public function start_cart_wrapper()
@@ -208,6 +210,108 @@ class PixelFlow_WooCommerce_Cart_Hooks
         }
 
         return $wrapped_name;
+    }
+
+    public function pf_add_gutenberg_cart_classes() {
+        if (!is_cart()) {
+            return;
+        }
+
+        ?>
+        <script>
+            (function() {
+                const CLASS_CART  = 'info-chk-itm-ctnr-pf';
+                const CLASS_ITEM  = 'info-chk-itm-pf';
+                const CLASS_PRICE = 'info-itm-prc-pf';
+                const CLASS_BTN   = 'action-btn-buy-004-pf';
+                const CLASS_NAME  = 'info-itm-name-pf';
+                const CLASS_QTY  = 'info-itm-qnty-pf';
+
+                const MAX_CHECKS = 500;
+                const CHECK_DELAY_MS = 50;
+
+                let checks = 0;
+                let observer = null;
+                let timerId = null;
+
+                const hasClassicCart = () => !!document.querySelector('.woocommerce-cart-form, form.woocommerce-cart-form');
+                const getBlocksCart = () => document.querySelector('.wc-block-cart');
+
+                const applyClasses = root => {
+                    if (!root) return;
+
+                    const cart = root.querySelector('.wc-block-cart');
+                    if (cart) cart.classList.add(CLASS_CART);
+
+                    root.querySelectorAll('.wc-block-cart-items .wc-block-cart-items__row').forEach(el => el.classList.add(CLASS_ITEM));
+                    root.querySelectorAll('.wc-block-cart-item__total .price .wc-block-formatted-money-amount').forEach(el => el.classList.add(CLASS_PRICE));
+                    root.querySelectorAll('.wc-block-cart__submit-button, .wc-block-components-checkout-place-order-button').forEach(el => el.classList.add(CLASS_BTN));
+                    root.querySelectorAll('.wc-block-components-product-name, .wc-block-components-product-name a').forEach(el => el.classList.add(CLASS_NAME));
+                    root.querySelectorAll('.wc-block-components-quantity-selector__input').forEach(el => el.classList.add(CLASS_QTY));
+                };
+
+                const startObserver = cart => {
+                    if (!cart) return;
+                    if (observer) observer.disconnect();
+                    observer = new MutationObserver(() => applyClasses(document));
+                    observer.observe(cart, { childList: true, subtree: true });
+                    applyClasses(document);
+                    console.log('[PF] Blocks cart ready. Classes applied and observer active.');
+                };
+
+                const stopPolling = reason => {
+                    if (timerId !== null) {
+                        clearInterval(timerId);
+                        timerId = null;
+                    }
+                    if (observer) {
+                        observer.disconnect();
+                        observer = null;
+                    }
+                    if (reason) console.log('[PF] Stopped:', reason);
+                };
+
+                const pollUntilReady = () => {
+                    timerId = setInterval(() => {
+                        checks++;
+                        const cart = getBlocksCart();
+                        console.log('[PF] Polling for Blocks cart... Check #' + checks);
+
+                        if (cart && document.querySelectorAll('.wc-block-cart-items .wc-block-cart-items__row').length > 0) {
+                            stopPolling();
+                            startObserver(cart);
+                            return;
+                        }
+
+                        if (hasClassicCart()) {
+                            stopPolling('Classic cart detected. No Blocks cart on this page.');
+                            return;
+                        }
+
+                        if (checks >= MAX_CHECKS) {
+                            stopPolling('No Blocks cart found after limit. Bailing safely.');
+                        }
+                    }, CHECK_DELAY_MS);
+                };
+
+                const init = () => {
+                    if (hasClassicCart() && !getBlocksCart()) {
+                        return;
+                    }
+                    pollUntilReady();
+                };
+
+                if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                    init();
+                } else {
+                    window.addEventListener('DOMContentLoaded', init, { once: true });
+                }
+            })();
+        </script>
+
+
+
+        <?php
     }
 }
 
