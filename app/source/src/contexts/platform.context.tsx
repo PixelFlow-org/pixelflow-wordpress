@@ -5,8 +5,7 @@
 
 import React, { createContext, useContext, ReactNode, useMemo } from 'react';
 import { PlatformAdapter } from '@pixelflow-org/plugin-core';
-import { WordpressAdapter } from '@/adapters/wordpress-adapter';
-import { platformConfig } from '@/config/platform.config';
+import { wordpressAdapter } from '@/adapters';
 
 interface PlatformContextType {
   adapter: PlatformAdapter;
@@ -20,10 +19,10 @@ interface PlatformProviderProps {
 
 /**
  * Platform Provider component
- * @description Creates and provides the WordPress adapter instance
+ * @description Provides the WordPress adapter singleton instance
  */
 export const PlatformProvider: React.FC<PlatformProviderProps> = ({ children }) => {
-  const adapter = useMemo(() => new WordpressAdapter(platformConfig), []);
+  const adapter = useMemo(() => wordpressAdapter, []);
 
   return <PlatformContext.Provider value={{ adapter }}>{children}</PlatformContext.Provider>;
 };

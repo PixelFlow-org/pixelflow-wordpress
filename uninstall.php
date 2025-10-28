@@ -46,3 +46,4 @@ if (isset($general_options['remove_on_uninstall']) && $general_options['remove_o
     }
 }
 
+

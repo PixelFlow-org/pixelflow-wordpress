@@ -31,7 +31,8 @@ export class WordpressAdapter implements PlatformAdapter {
     const formData = new FormData();
     formData.append('action', 'pixelflow_save_script_code');
     formData.append('nonce', settings.nonce);
-    formData.append('script_code', script);
+    const encoded = btoa(unescape(encodeURIComponent(script))); // base64 UTF-8 safe
+    formData.append('script_code', encoded);
 
     try {
       const response = await fetch(settings.ajax_url, {

@@ -6,6 +6,9 @@
 /** API */
 import pixelFlowApi from '@pixelflow-org/plugin-core/dist/api';
 
+/** Adapters */
+import { wordpressAdapter } from '@/adapters';
+
 /** Utils */
 import { getWordPressAjaxConfig } from '@/features/settings/utils/wordpress-config';
 
@@ -120,37 +123,18 @@ const wordpressSettingsApi = pixelFlowApi.injectEndpoints({
 
     /**
      * Save tracking script code
-     * @description Persists generated tracking script to WordPress database
+     * @description Persists generated tracking script to WordPress database via adapter
      */
     saveScriptCode: builder.mutation<{ script_code: string }, string>({
       queryFn: async (scriptCode) => {
         try {
-          const formData = new FormData();
-          formData.append('action', 'pixelflow_save_script_code');
-          formData.append('nonce', nonce);
-          formData.append('script_code', scriptCode);
-
-          const response = await fetch(ajaxUrl, {
-            method: 'POST',
-            body: formData,
-          });
-
-          const data = await response.json();
-
-          if (data.success) {
-            return { data: data.data as { script_code: string } };
-          }
-          return {
-            error: {
-              status: 'CUSTOM_ERROR',
-              error: data.data?.message || 'Failed to save script code',
-            } as FetchBaseQueryError,
-          };
+          await wordpressAdapter.injectScript(scriptCode);
+          return { data: { script_code: scriptCode } };
         } catch (error) {
           return {
             error: {
               status: 'FETCH_ERROR',
-              error: 'Network error while saving script',
+              error: error instanceof Error ? error.message : 'Failed to save script code',
             } as FetchBaseQueryError,
           };
         }
@@ -159,36 +143,18 @@ const wordpressSettingsApi = pixelFlowApi.injectEndpoints({
 
     /**
      * Remove tracking script code
-     * @description Deletes the stored tracking script from WordPress database
+     * @description Deletes the stored tracking script from WordPress database via adapter
      */
     removeScriptCode: builder.mutation<{ message: string }, void>({
       queryFn: async () => {
         try {
-          const formData = new FormData();
-          formData.append('action', 'pixelflow_remove_script_code');
-          formData.append('nonce', nonce);
-
-          const response = await fetch(ajaxUrl, {
-            method: 'POST',
-            body: formData,
-          });
-
-          const data = await response.json();
-
-          if (data.success) {
-            return { data: data.data as { message: string } };
-          }
-          return {
-            error: {
-              status: 'CUSTOM_ERROR',
-              error: data.data?.message || 'Failed to remove script code',
-            } as FetchBaseQueryError,
-          };
+          await wordpressAdapter.removeScript();
+          return { data: { message: 'Script removed successfully' } };
         } catch (error) {
           return {
             error: {
               status: 'FETCH_ERROR',
-              error: 'Network error while removing script',
+              error: error instanceof Error ? error.message : 'Failed to remove script code',
             } as FetchBaseQueryError,
           };
         }

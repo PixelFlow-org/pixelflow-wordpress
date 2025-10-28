@@ -467,8 +467,13 @@ class PixelFlow
         // Get the script code
         $script_code = isset($_POST['script_code']) ? wp_unslash($_POST['script_code']) : '';
 
+        $decoded = base64_decode($script_code, true);
+        if ($decoded === false) {
+            return new WP_REST_Response(['error' => 'invalid base64'], 400);
+        }
+
         // Save script code to separate option
-        update_option('pixelflow_script_code', $script_code);
+        update_option('pixelflow_script_code', $decoded);
 
         wp_send_json_success(array(
             'message'     => __('Script code saved successfully', 'pixelflow'),

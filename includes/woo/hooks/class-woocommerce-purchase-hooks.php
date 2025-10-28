@@ -28,8 +28,10 @@ class PixelFlow_WooCommerce_Purchase_Hooks {
         $this->options = $options;
         $this->general_options = $general_options;
 
-        // Track purchase on order received page
-        add_action('woocommerce_before_thankyou', array($this, 'track_purchase'), 10, 1);
+        if(!is_admin()) {
+            // Track purchase on order received page
+            add_action('woocommerce_before_thankyou', array($this, 'track_purchase'), 10, 1);
+        }
     }
     
     /**
