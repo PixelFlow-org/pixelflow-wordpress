@@ -164,7 +164,6 @@ HTML;
         
         pixelFlow.trackEvent('Purchase', payload, u.normalizeCustomerData(customerData));
         localStorage.setItem(key, '1');
-        console.log('PixelFlow Purchase event sent for order', data.orderId);
     } catch (e) {
         console.error('PixelFlow tracking error', e);
     }

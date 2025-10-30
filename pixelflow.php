@@ -18,7 +18,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('PIXELFLOW_VERSION', '0.1.11');
+define('PIXELFLOW_VERSION', '0.1.12');
 define('PIXELFLOW_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('PIXELFLOW_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('PIXELFLOW_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -95,43 +95,45 @@ class PixelFlow
     public function admin_enqueue_scripts($hook)
     {
         if ($hook === 'settings_page_pixelflow-settings') {
-            add_action('admin_footer', function () {
-                // Localize settings data and nonce for React app
-                $general_options = get_option('pixelflow_general_options', array());
-                $class_options   = get_option('pixelflow_class_options', array());
-                $debug_options   = get_option('pixelflow_debug_options', array());
-                $script_code     = get_option('pixelflow_script_code', '');
+            // Prepare settings for the admin app
+            $general_options = get_option('pixelflow_general_options', array());
+            $class_options   = get_option('pixelflow_class_options', array());
+            $debug_options   = get_option('pixelflow_debug_options', array());
+            $script_code     = get_option('pixelflow_script_code', '');
 
-                echo '<script>' . "\n";
-                echo 'window.pixelflowSettings = ' . wp_json_encode(array(
-                        'general_options'       => $general_options,
-                        'class_options'         => $class_options,
-                        'debug_options'         => $debug_options,
-                        'script_code'           => $script_code,
-                        'nonce'                 => wp_create_nonce('pixelflow_settings_nonce'),
-                        'ajax_url'              => admin_url('admin-ajax.php'),
-                        'is_woocommerce_active' => PixelFlow_WooCommerce_Integration::is_woocommerce_active(),
-                    )) . ';' . "\n";
-                echo '</script>' . "\n";
+            $settings = array(
+                'general_options'       => $general_options,
+                'class_options'         => $class_options,
+                'debug_options'         => $debug_options,
+                'script_code'           => $script_code,
+                'nonce'                 => wp_create_nonce('pixelflow_settings_nonce'),
+                'ajax_url'              => admin_url('admin-ajax.php'),
+                'is_woocommerce_active' => PixelFlow_WooCommerce_Integration::is_woocommerce_active(),
+            );
 
-                $js_path = plugin_dir_path(__FILE__) . 'app/dist/index.js';
-                $js_url  = PIXELFLOW_PLUGIN_URL . 'app/dist/index.js';
+            // Paths and versions
+            $js_path  = plugin_dir_path(__FILE__) . 'app/dist/index.js';
+            $css_path = plugin_dir_path(__FILE__) . 'app/dist/style.css';
+            $js_url   = PIXELFLOW_PLUGIN_URL . 'app/dist/index.js';
+            $css_url  = PIXELFLOW_PLUGIN_URL . 'app/dist/style.css';
 
-                $jsVersion = file_exists($js_path) ? filemtime($js_path) : '';
+            $js_version  = file_exists($js_path) ? filemtime($js_path) : false;
+            $css_version = file_exists($css_path) ? filemtime($css_path) : false;
 
-                echo '<script type="module" crossorigin src="'
-                     . esc_url($js_url . '?ver=' . $jsVersion)
-                     . '"></script>' . "\n";
+            // Register and enqueue style
+            wp_register_style('pixelflow-admin', $css_url, array(), $css_version ?: null);
+            wp_enqueue_style('pixelflow-admin');
 
+            // Register and enqueue script as ES module
+            wp_register_script('pixelflow-admin', $js_url, array(), $js_version ?: null, true);
+            // Mark as module (WP >= 6.3 supports 'type' data)
+            wp_script_add_data('pixelflow-admin', 'type', 'module');
 
-                $css_path = plugin_dir_path(__FILE__) . 'app/dist/style.css';
-                $css_url  = PIXELFLOW_PLUGIN_URL . 'app/dist/style.css';
+            // Provide settings before the script executes
+            $inline = 'window.pixelflowSettings = ' . wp_json_encode($settings) . ';';
+            wp_add_inline_script('pixelflow-admin', $inline, 'before');
 
-                $cssVersion = file_exists($css_path) ? filemtime($css_path) : '';
-                echo '<link rel="stylesheet" crossorigin href="'
-                     . esc_url($css_url . '?ver=' . $cssVersion)
-                     . '">' . "\n";
-            });
+            wp_enqueue_script('pixelflow-admin');
         }
     }
 
@@ -185,10 +187,10 @@ class PixelFlow
 
         // Sanitize excluded_user_roles (array of role keys)
         if (isset($input['excluded_user_roles'])) {
-          if(!is_array($input['excluded_user_roles'])){
-            $input['excluded_user_roles'] = explode(',', $input['excluded_user_roles']);
-          }
-          $sanitized['excluded_user_roles'] = array_map('sanitize_text_field', $input['excluded_user_roles']);
+            if ( ! is_array($input['excluded_user_roles'])) {
+                $input['excluded_user_roles'] = explode(',', $input['excluded_user_roles']);
+            }
+            $sanitized['excluded_user_roles'] = array_map('sanitize_text_field', $input['excluded_user_roles']);
         }
 
         return $sanitized;
@@ -250,6 +252,7 @@ class PixelFlow
      * Check if the current user's role is in the excluded list
      *
      * @param array $general_options General plugin options
+     *
      * @return bool True if user should be excluded, false otherwise
      */
     private function should_exclude_current_user($general_options)
@@ -260,7 +263,9 @@ class PixelFlow
         }
 
         // Get excluded user roles from settings
-        $excluded_roles = isset($general_options['excluded_user_roles']) && is_array($general_options['excluded_user_roles'])
+        $excluded_roles = isset($general_options['excluded_user_roles']) && is_array(
+            $general_options['excluded_user_roles']
+        )
             ? $general_options['excluded_user_roles']
             : array();
 
@@ -300,16 +305,16 @@ class PixelFlow
         // Map debug options to CSS styles
         $debug_styles = array(
             // Product classes
-            'woo_class_product_container'      => '.info-chk-itm-pf { border: 1px solid green !important; background: rgba(0,0,0,0.1) !important; }',
-            'woo_class_product_name'           => '.info-itm-name-pf { border: 1px solid red !important; }',
-            'woo_class_product_price'          => '.info-itm-prc-pf { border: 1px solid blue !important; }',
-            'woo_class_product_quantity'       => '.info-itm-qnty-pf { border: 1px solid orange !important; }',
-            'woo_class_product_add_to_cart'    => '.action-btn-cart-005-pf { border: 1px solid #fc0390 !important; }',
+            'woo_class_product_container'       => '.info-chk-itm-pf { border: 1px solid green !important; background: rgba(0,0,0,0.1) !important; }',
+            'woo_class_product_name'            => '.info-itm-name-pf { border: 1px solid red !important; }',
+            'woo_class_product_price'           => '.info-itm-prc-pf { border: 1px solid blue !important; }',
+            'woo_class_product_quantity'        => '.info-itm-qnty-pf { border: 1px solid orange !important; }',
+            'woo_class_product_add_to_cart'     => '.action-btn-cart-005-pf { border: 1px solid #fc0390 !important; }',
             // Cart classes
-            'woo_class_cart_item'              => '.info-chk-itm-pf { border: 1px solid green !important; background: rgba(0,0,0,0.1) !important; }',
-            'woo_class_cart_price'             => '.info-itm-prc-pf { border: 1px solid blue !important; }',
-            'woo_class_cart_checkout_button'   => '.action-btn-buy-004-pf { border: 3px solid #67a174 !important; }',
-            'woo_class_cart_products_container'   => '.info-chk-itm-ctnr-pf { border: 3px solid #fcdb03 !important; }',
+            'woo_class_cart_item'               => '.info-chk-itm-pf { border: 1px solid green !important; background: rgba(0,0,0,0.1) !important; }',
+            'woo_class_cart_price'              => '.info-itm-prc-pf { border: 1px solid blue !important; }',
+            'woo_class_cart_checkout_button'    => '.action-btn-buy-004-pf { border: 3px solid #67a174 !important; }',
+            'woo_class_cart_products_container' => '.info-chk-itm-ctnr-pf { border: 3px solid #fcdb03 !important; }',
         );
 
         $enabled_styles = array();
@@ -359,21 +364,23 @@ class PixelFlow
             echo esc_html(get_admin_page_title()); ?></h1>
         <p>Configure your PixelFlow integration and WooCommerce tracking settings</p>
         <div style="display: none" id="pixelflow-settings">
-          <?php
-          $pixelflowSiteId = apply_filters('pixelflow_site_id', "wp_" . md5(home_url()));
-          global $wp_roles;
+            <?php
+            $pixelflowSiteId = apply_filters('pixelflow_site_id', "wp_" . md5(home_url()));
+            global $wp_roles;
 
-          if (!isset($wp_roles)) {
-              $wp_roles = wp_roles();
-          }
-          $roles = [];
-          foreach ($wp_roles->roles as $role_key => $role) {
-              $roles[] = $role_key . "|" . $role["name"];
-          }
-          $pixelflowUserRoles = apply_filters('pixelflow_user_roles', implode(",", $roles));
-          ?>
-          <input id="pixelflow-site-id" value="<?php echo $pixelflowSiteId; ?>" type="hidden"/>
-          <input id="pixelflow-user-roles" value="<?php echo $pixelflowUserRoles; ?>" type="hidden"/>
+            if ( ! isset($wp_roles)) {
+                $wp_roles = wp_roles();
+            }
+            $roles = [];
+            foreach ($wp_roles->roles as $role_key => $role) {
+                $roles[] = $role_key . "|" . $role["name"];
+            }
+            $pixelflowUserRoles = apply_filters('pixelflow_user_roles', implode(",", $roles));
+            ?>
+          <input id="pixelflow-site-id" value="<?php
+          echo $pixelflowSiteId; ?>" type="hidden"/>
+          <input id="pixelflow-user-roles" value="<?php
+          echo $pixelflowUserRoles; ?>" type="hidden"/>
         </div>
         <div id="pixelflowroot" class="pixelflow-app"></div>
           <?php
@@ -470,7 +477,7 @@ class PixelFlow
 
         $decoded = base64_decode($script_code, true);
         if ($decoded === false) {
-            return new WP_REST_Response(['error' => 'invalid base64'], 400);
+            wp_send_json_error(array('message' => __('Invalid base64 payload', 'pixelflow')), 400);
         }
 
         // Save script code to separate option
