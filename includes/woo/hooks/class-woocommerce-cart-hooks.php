@@ -50,9 +50,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
     private function init_hooks()
     {
         if(!is_admin()) {
-            // Wrap class and 'proceed to checkout' button with the element with classes:
-            // For each product: info-chk-itm-pf
-            // All products in: info-chk-itm-ctnr-pf
+            // Wrap all products in: info-chk-itm-ctnr-pf
             // There's no common wrapper around the cart table and the proceed to checkout button
             // So we need to add a wrapper around the cart table and another around the proceed to checkout button
             if ($this->is_class_enabled('woo_class_cart_products_container')) {
@@ -91,6 +89,27 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
             // Gutenberg/Block cart support
             add_action('wp_footer', array($this, 'pf_add_gutenberg_cart_classes'));
+
+            /*
+             *  Mini Cart support
+             */
+
+            // Wrap all products in the mini cart into: info-chk-itm-ctnr-pf
+            add_action('woocommerce_before_mini_cart', [$this, 'start_cart_wrapper'], 0);
+            add_action('woocommerce_after_mini_cart', [$this, 'end_cart_wrapper'], PHP_INT_MAX);
+
+            // Add info-chk-itm-pf class to each cart item row
+            add_filter('woocommerce_mini_cart_item_class', array($this, 'add_cart_item_class'), 10, 3);
+
+            // Add info-itm-prc-pf class to cart item price
+            // already handled by 'woocommerce_cart_item_price' filter
+
+            // Add info-itm-qnty-pf class to cart item quantity
+            add_filter('woocommerce_widget_cart_item_quantity', array($this, 'add_mini_cart_item_quantity_class'), 10, 3);
+
+            // Add action-btn-buy-004-pf class to the proceed to checkout button
+            // TODO
+
         }
     }
     // Add info-chk-itm-pf class to the cart table 
@@ -111,10 +130,6 @@ class PixelFlow_WooCommerce_Cart_Hooks
     // (Add this the container of each individual item)
     public function add_cart_item_class($classes, $cart_item, $cart_item_key)
     {
-        if ( ! is_cart()) {
-            return $classes;
-        }
-
         $className = 'info-chk-itm-pf';
 
         if (strpos($classes, $className) === false) {
@@ -128,7 +143,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
     // (Add this to the Item price:)
     public function add_cart_item_price_class($price, $cart_item, $cart_item_key)
     {
-        if ( ! is_cart() || empty($price)) {
+        if ( empty($price)) {
             return $price;
         }
 
@@ -159,7 +174,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
     // (Add this to the Item quantity:)
     public function add_cart_item_quantity_class($product_quantity, $cart_item_key, $cart_item)
     {
-        if ( ! is_cart() || empty($product_quantity)) {
+        if ( empty($product_quantity)) {
             return $product_quantity;
         }
 
@@ -187,20 +202,42 @@ class PixelFlow_WooCommerce_Cart_Hooks
         return $product_quantity;
     }
 
-    public function pf_proceed_btn_buffer_start() {
-        if (!is_cart()) {
-            return;
+    // Add info-itm-qnty-pf class to mini cart item quantity
+    public function add_mini_cart_item_quantity_class($product_quantity, $cart_item_key, $cart_item)
+    {
+        if ( empty($product_quantity)) {
+            return $product_quantity;
         }
+
+        $className = 'info-itm-qnty-pf';
+
+        // Check if it's already added
+        if (strpos($product_quantity, $className) !== false) {
+            return $product_quantity;
+        }
+
+        // Add class to quantity input element
+        $quantityUpdated = preg_replace_callback(
+            '/<span([^>]*class="[^"]*)/i',
+            function ($matches) use ($className) {
+                return '<span' . $matches[1] . ' ' . esc_attr($className);
+            },
+            $product_quantity,
+            1
+        );
+
+        if ($quantityUpdated) {
+            return $quantityUpdated;
+        }
+
+        return $product_quantity;
+    }
+
+    public function pf_proceed_btn_buffer_start() {
         ob_start();
     }
 
     public function pf_proceed_btn_buffer_end() {
-        if (!is_cart()) {
-            if (ob_get_level() > 0) {
-                ob_end_clean();
-            }
-            return;
-        }
         $html = ob_get_clean();
 
         $extra_class  = 'action-btn-buy-004-pf';
@@ -250,9 +287,6 @@ class PixelFlow_WooCommerce_Cart_Hooks
     }
 
     public function pf_add_gutenberg_cart_classes() {
-        if (!is_cart()) {
-            return;
-        }
 
         // Check which classes are enabled
         $enabled_classes = array();
@@ -303,7 +337,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 const CLASS_NAME = <?php echo wp_json_encode($enabled_classes['name']); ?>;
                 <?php endif; ?>
 
-                const MAX_CHECKS = 500;
+                const MAX_CHECKS = 200;
                 const CHECK_DELAY_MS = 50;
 
                 let checks = 0;
@@ -348,7 +382,6 @@ class PixelFlow_WooCommerce_Cart_Hooks
                     observer = new MutationObserver(() => applyClasses(document));
                     observer.observe(cart, { childList: true, subtree: true });
                     applyClasses(document);
-                    console.log('[PF] Blocks cart ready. Classes applied and observer active.');
                 };
 
                 const stopPolling = reason => {
@@ -360,14 +393,12 @@ class PixelFlow_WooCommerce_Cart_Hooks
                         observer.disconnect();
                         observer = null;
                     }
-                    if (reason) console.log('[PF] Stopped:', reason);
                 };
 
                 const pollUntilReady = () => {
                     timerId = setInterval(() => {
                         checks++;
                         const cart = getBlocksCart();
-                        console.log('[PF] Polling for Blocks cart... Check #' + checks);
 
                         if (cart && document.querySelectorAll('.wc-block-cart-items .wc-block-cart-items__row').length > 0) {
                             stopPolling();

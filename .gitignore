@@ -32,6 +32,6 @@ app/source/*.sln
 app/source/*.sw?
 
 # Environment
-app/source/.env
+app/source/.env.production
 app/source/.env.local
 app/source/.env.*.local
