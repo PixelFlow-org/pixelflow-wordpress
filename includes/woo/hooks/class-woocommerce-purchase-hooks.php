@@ -56,11 +56,11 @@ class PixelFlow_WooCommerce_Purchase_Hooks
         // on the Thank you page like /checkout/order-received/193/?key=wc_order_jKu7fu8uWsCAz
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $order_key = isset($_GET['key']) ? sanitize_text_field(wp_unslash($_GET['key'])) : '';
-        if ( empty($order_key)) {
+        if (empty($order_key)) {
             return; // Unauthorized access
         }
 
-        if (! $order->key_is_valid($order_key)) {
+        if ( ! $order->key_is_valid($order_key)) {
             return; // Unauthorized access
         }
 
@@ -142,7 +142,7 @@ function runPixelFlowPurchase() {
     try {
 ";
         // Prevent duplicate purchase events using localStorage
-        if (!$shouldAlwaysSendOrder) {
+        if ( ! $shouldAlwaysSendOrder) {
             $purchaseTrackingCode .= "if (localStorage.getItem(key)) {console.log('PixelFlow: purchase already sent for order', data.orderId);return;}";
         }
 
@@ -188,7 +188,7 @@ function runPixelFlowPurchase() {
 
         if ($show_tracking) {
             $script_key = 'pixelflow-woocommerce-purchase-tracking';
-            wp_register_script( $script_key, null );
+            wp_register_script($script_key, null, array(), PIXELFLOW_VERSION, array('in_footer' => false));
             wp_add_inline_script($script_key, $purchaseTrackingCode, 'before');
             wp_enqueue_script($script_key);
         }

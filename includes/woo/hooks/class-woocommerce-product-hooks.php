@@ -148,7 +148,7 @@ class PixelFlow_WooCommerce_Product_Hooks
                     $price,
                     1
                 );
-                if($priceUpdated) {
+                if ($priceUpdated) {
                     $price = $priceUpdated;
                 }
 
@@ -172,7 +172,7 @@ class PixelFlow_WooCommerce_Product_Hooks
                         $price,
                         1
                     );
-                    if($priceUpdated) {
+                    if ($priceUpdated) {
                         $price = $priceUpdated;
                     }
                 }
@@ -202,7 +202,7 @@ class PixelFlow_WooCommerce_Product_Hooks
                 $price,
                 1
             );
-            if($priceUpdated) {
+            if ($priceUpdated) {
                 $price = $priceUpdated;
             }
 
@@ -221,7 +221,7 @@ class PixelFlow_WooCommerce_Product_Hooks
                     $price,
                     1
                 );
-                if($priceUpdated) {
+                if ($priceUpdated) {
                     $price = $priceUpdated;
                 }
             }
@@ -244,7 +244,7 @@ class PixelFlow_WooCommerce_Product_Hooks
             $price,
             1
         );
-        if($priceUpdated) {
+        if ($priceUpdated) {
             $price = $priceUpdated;
         }
 
@@ -263,7 +263,7 @@ class PixelFlow_WooCommerce_Product_Hooks
                 $price,
                 1
             );
-            if($priceUpdated) {
+            if ($priceUpdated) {
                 $price = $priceUpdated;
             }
         }
@@ -364,7 +364,7 @@ class PixelFlow_WooCommerce_Product_Hooks
             $content,
             1
         );
-        if($contentUpdated) {
+        if ($contentUpdated) {
             $content = $contentUpdated;
         }
 

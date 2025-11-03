@@ -49,7 +49,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
      */
     private function init_hooks()
     {
-        if(!is_admin()) {
+        if ( ! is_admin()) {
             // Wrap all products in: info-chk-itm-ctnr-pf
             // There's no common wrapper around the cart table and the proceed to checkout button
             // So we need to add a wrapper around the cart table and another around the proceed to checkout button
@@ -105,7 +105,12 @@ class PixelFlow_WooCommerce_Cart_Hooks
             // already handled by 'woocommerce_cart_item_price' filter
 
             // Add info-itm-qnty-pf class to cart item quantity
-            add_filter('woocommerce_widget_cart_item_quantity', array($this, 'add_mini_cart_item_quantity_class'), 10, 3);
+            add_filter(
+                'woocommerce_widget_cart_item_quantity',
+                array($this, 'add_mini_cart_item_quantity_class'),
+                10,
+                3
+            );
 
             // Add action-btn-buy-004-pf class to the proceed to checkout button
             // TODO
@@ -143,7 +148,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
     // (Add this to the Item price:)
     public function add_cart_item_price_class($price, $cart_item, $cart_item_key)
     {
-        if ( empty($price)) {
+        if (empty($price)) {
             return $price;
         }
 
@@ -163,7 +168,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             $price,
             1
         );
-        if($priceUpdated) {
+        if ($priceUpdated) {
             return $priceUpdated;
         }
 
@@ -174,7 +179,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
     // (Add this to the Item quantity:)
     public function add_cart_item_quantity_class($product_quantity, $cart_item_key, $cart_item)
     {
-        if ( empty($product_quantity)) {
+        if (empty($product_quantity)) {
             return $product_quantity;
         }
 
@@ -205,7 +210,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
     // Add info-itm-qnty-pf class to mini cart item quantity
     public function add_mini_cart_item_quantity_class($product_quantity, $cart_item_key, $cart_item)
     {
-        if ( empty($product_quantity)) {
+        if (empty($product_quantity)) {
             return $product_quantity;
         }
 
@@ -233,14 +238,16 @@ class PixelFlow_WooCommerce_Cart_Hooks
         return $product_quantity;
     }
 
-    public function pf_proceed_btn_buffer_start() {
+    public function pf_proceed_btn_buffer_start()
+    {
         ob_start();
     }
 
-    public function pf_proceed_btn_buffer_end() {
+    public function pf_proceed_btn_buffer_end()
+    {
         $html = ob_get_clean();
 
-        $extra_class  = 'action-btn-buy-004-pf';
+        $extra_class = 'action-btn-buy-004-pf';
 
         if (stripos($html, $extra_class) === false) {
             // Only replace in class attribute context
@@ -250,7 +257,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 $html,
                 1
             );
-            if($htmlUpdated) {
+            if ($htmlUpdated) {
                 $html = $htmlUpdated;
             }
         }
@@ -265,18 +272,20 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return $product_name;
         }
 
-        $product      = $cart_item['data'];
-        $name         = $product->get_name();
+        $product = $cart_item['data'];
+        $name = $product->get_name();
         $product_link = $product->is_visible() ? $product->get_permalink() : '';
 
         if ($product_link) {
-            $wrapped_name = sprintf('<a href="%s" class="%s">%s</a>',
+            $wrapped_name = sprintf(
+                '<a href="%s" class="%s">%s</a>',
                 esc_url($product_link),
                 esc_attr($className),
                 esc_html($name)
             );
         } else {
-            $wrapped_name = sprintf('<span class="%s">%s</span>',
+            $wrapped_name = sprintf(
+                '<span class="%s">%s</span>',
                 esc_attr($className),
                 esc_html($name)
             );
@@ -285,11 +294,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
         return $wrapped_name;
     }
 
-    public function pf_add_gutenberg_cart_classes() {
-
+    public function pf_add_gutenberg_cart_classes()
+    {
         // Check which classes are enabled
         $enabled_classes = array();
-        
+
         if ($this->is_class_enabled('woo_class_cart_products_container')) {
             $enabled_classes['cart'] = 'info-chk-itm-ctnr-pf';
         }
@@ -315,121 +324,121 @@ class PixelFlow_WooCommerce_Cart_Hooks
         }
 
         ?>
-        <script>
-            (function() {
-                <?php if (isset($enabled_classes['cart'])): ?>
-                const CLASS_CART = <?php echo wp_json_encode($enabled_classes['cart']); ?>;
-                <?php endif; ?>
-                <?php if (isset($enabled_classes['item'])): ?>
-                const CLASS_ITEM = <?php echo wp_json_encode($enabled_classes['item']); ?>;
-                <?php endif; ?>
-                <?php if (isset($enabled_classes['price'])): ?>
-                const CLASS_PRICE = <?php echo wp_json_encode($enabled_classes['price']); ?>;
-                <?php endif; ?>
-                <?php if (isset($enabled_classes['qty'])): ?>
-                const CLASS_QTY = <?php echo wp_json_encode($enabled_classes['qty']); ?>;
-                <?php endif; ?>
-                <?php if (isset($enabled_classes['btn'])): ?>
-                const CLASS_BTN = <?php echo wp_json_encode($enabled_classes['btn']); ?>;
-                <?php endif; ?>
-                <?php if (isset($enabled_classes['name'])): ?>
-                const CLASS_NAME = <?php echo wp_json_encode($enabled_classes['name']); ?>;
-                <?php endif; ?>
+      <script>
+          (function () {
+              <?php if (isset($enabled_classes['cart'])): ?>
+              const CLASS_CART = <?php echo wp_json_encode($enabled_classes['cart']); ?>;
+              <?php endif; ?>
+              <?php if (isset($enabled_classes['item'])): ?>
+              const CLASS_ITEM = <?php echo wp_json_encode($enabled_classes['item']); ?>;
+              <?php endif; ?>
+              <?php if (isset($enabled_classes['price'])): ?>
+              const CLASS_PRICE = <?php echo wp_json_encode($enabled_classes['price']); ?>;
+              <?php endif; ?>
+              <?php if (isset($enabled_classes['qty'])): ?>
+              const CLASS_QTY = <?php echo wp_json_encode($enabled_classes['qty']); ?>;
+              <?php endif; ?>
+              <?php if (isset($enabled_classes['btn'])): ?>
+              const CLASS_BTN = <?php echo wp_json_encode($enabled_classes['btn']); ?>;
+              <?php endif; ?>
+              <?php if (isset($enabled_classes['name'])): ?>
+              const CLASS_NAME = <?php echo wp_json_encode($enabled_classes['name']); ?>;
+              <?php endif; ?>
 
-                const MAX_CHECKS = 200;
-                const CHECK_DELAY_MS = 50;
+              const MAX_CHECKS = 200;
+              const CHECK_DELAY_MS = 50;
 
-                let checks = 0;
-                let observer = null;
-                let timerId = null;
+              let checks = 0;
+              let observer = null;
+              let timerId = null;
 
-                const hasClassicCart = () => !!document.querySelector('.woocommerce-cart-form, form.woocommerce-cart-form');
-                const getBlocksCart = () => document.querySelector('.wc-block-cart');
+              const hasClassicCart = () => !!document.querySelector('.woocommerce-cart-form, form.woocommerce-cart-form');
+              const getBlocksCart = () => document.querySelector('.wc-block-cart');
 
-                const applyClasses = root => {
-                    if (!root) return;
+              const applyClasses = root => {
+                  if (!root) return;
 
-                    <?php if (isset($enabled_classes['cart'])): ?>
-                    const cart = root.querySelector('.wc-block-cart');
-                    if (cart) cart.classList.add(CLASS_CART);
-                    <?php endif; ?>
+                  <?php if (isset($enabled_classes['cart'])): ?>
+                  const cart = root.querySelector('.wc-block-cart');
+                  if (cart) cart.classList.add(CLASS_CART);
+                  <?php endif; ?>
 
-                    <?php if (isset($enabled_classes['item'])): ?>
-                    root.querySelectorAll('.wc-block-cart-items .wc-block-cart-items__row').forEach(el => el.classList.add(CLASS_ITEM));
-                    <?php endif; ?>
+                  <?php if (isset($enabled_classes['item'])): ?>
+                  root.querySelectorAll('.wc-block-cart-items .wc-block-cart-items__row').forEach(el => el.classList.add(CLASS_ITEM));
+                  <?php endif; ?>
 
-                    <?php if (isset($enabled_classes['price'])): ?>
-                    root.querySelectorAll('.wc-block-cart-item__total .price .wc-block-formatted-money-amount').forEach(el => el.classList.add(CLASS_PRICE));
-                    <?php endif; ?>
+                  <?php if (isset($enabled_classes['price'])): ?>
+                  root.querySelectorAll('.wc-block-cart-item__total .price .wc-block-formatted-money-amount').forEach(el => el.classList.add(CLASS_PRICE));
+                  <?php endif; ?>
 
-                    <?php if (isset($enabled_classes['qty'])): ?>
-                    root.querySelectorAll('.wc-block-components-quantity-selector__input').forEach(el => el.classList.add(CLASS_QTY));
-                    <?php endif; ?>
+                  <?php if (isset($enabled_classes['qty'])): ?>
+                  root.querySelectorAll('.wc-block-components-quantity-selector__input').forEach(el => el.classList.add(CLASS_QTY));
+                  <?php endif; ?>
 
-                    <?php if (isset($enabled_classes['btn'])): ?>
-                    root.querySelectorAll('.wc-block-cart__submit-button, .wc-block-components-checkout-place-order-button').forEach(el => el.classList.add(CLASS_BTN));
-                    <?php endif; ?>
+                  <?php if (isset($enabled_classes['btn'])): ?>
+                  root.querySelectorAll('.wc-block-cart__submit-button, .wc-block-components-checkout-place-order-button').forEach(el => el.classList.add(CLASS_BTN));
+                  <?php endif; ?>
 
-                    <?php if (isset($enabled_classes['name'])): ?>
-                    root.querySelectorAll('.wc-block-components-product-name, .wc-block-components-product-name a').forEach(el => el.classList.add(CLASS_NAME));
-                    <?php endif; ?>
-                };
+                  <?php if (isset($enabled_classes['name'])): ?>
+                  root.querySelectorAll('.wc-block-components-product-name, .wc-block-components-product-name a').forEach(el => el.classList.add(CLASS_NAME));
+                  <?php endif; ?>
+              };
 
-                const startObserver = cart => {
-                    if (!cart) return;
-                    if (observer) observer.disconnect();
-                    observer = new MutationObserver(() => applyClasses(document));
-                    observer.observe(cart, { childList: true, subtree: true });
-                    applyClasses(document);
-                };
+              const startObserver = cart => {
+                  if (!cart) return;
+                  if (observer) observer.disconnect();
+                  observer = new MutationObserver(() => applyClasses(document));
+                  observer.observe(cart, {childList: true, subtree: true});
+                  applyClasses(document);
+              };
 
-                const stopPolling = reason => {
-                    if (timerId !== null) {
-                        clearInterval(timerId);
-                        timerId = null;
-                    }
-                    if (observer) {
-                        observer.disconnect();
-                        observer = null;
-                    }
-                };
+              const stopPolling = reason => {
+                  if (timerId !== null) {
+                      clearInterval(timerId);
+                      timerId = null;
+                  }
+                  if (observer) {
+                      observer.disconnect();
+                      observer = null;
+                  }
+              };
 
-                const pollUntilReady = () => {
-                    timerId = setInterval(() => {
-                        checks++;
-                        const cart = getBlocksCart();
+              const pollUntilReady = () => {
+                  timerId = setInterval(() => {
+                      checks++;
+                      const cart = getBlocksCart();
 
-                        if (cart && document.querySelectorAll('.wc-block-cart-items .wc-block-cart-items__row').length > 0) {
-                            stopPolling();
-                            startObserver(cart);
-                            return;
-                        }
+                      if (cart && document.querySelectorAll('.wc-block-cart-items .wc-block-cart-items__row').length > 0) {
+                          stopPolling();
+                          startObserver(cart);
+                          return;
+                      }
 
-                        if (hasClassicCart()) {
-                            stopPolling('Classic cart detected. No Blocks cart on this page.');
-                            return;
-                        }
+                      if (hasClassicCart()) {
+                          stopPolling('Classic cart detected. No Blocks cart on this page.');
+                          return;
+                      }
 
-                        if (checks >= MAX_CHECKS) {
-                            stopPolling('No Blocks cart found after limit. Bailing safely.');
-                        }
-                    }, CHECK_DELAY_MS);
-                };
+                      if (checks >= MAX_CHECKS) {
+                          stopPolling('No Blocks cart found after limit. Bailing safely.');
+                      }
+                  }, CHECK_DELAY_MS);
+              };
 
-                const init = () => {
-                    if (hasClassicCart() && !getBlocksCart()) {
-                        return;
-                    }
-                    pollUntilReady();
-                };
+              const init = () => {
+                  if (hasClassicCart() && !getBlocksCart()) {
+                      return;
+                  }
+                  pollUntilReady();
+              };
 
-                if (document.readyState === 'complete' || document.readyState === 'interactive') {
-                    init();
-                } else {
-                    window.addEventListener('DOMContentLoaded', init, { once: true });
-                }
-            })();
-        </script>
+              if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                  init();
+              } else {
+                  window.addEventListener('DOMContentLoaded', init, {once: true});
+              }
+          })();
+      </script>
         <?php
     }
 }
