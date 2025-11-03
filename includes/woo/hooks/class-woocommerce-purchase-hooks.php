@@ -52,7 +52,15 @@ class PixelFlow_WooCommerce_Purchase_Hooks
             return;
         }
 
-        if ( ! isset($_GET['key']) || ! $order->key_is_valid($_GET['key'])) {
+        // This is not a form, we just check that the key parameter is present to track the order
+        // on the Thank you page like /checkout/order-received/193/?key=wc_order_jKu7fu8uWsCAz
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $order_key = isset($_GET['key']) ? sanitize_text_field(wp_unslash($_GET['key'])) : '';
+        if ( empty($order_key)) {
+            return; // Unauthorized access
+        }
+
+        if (! $order->key_is_valid($order_key)) {
             return; // Unauthorized access
         }
 
@@ -112,8 +120,7 @@ class PixelFlow_WooCommerce_Purchase_Hooks
         // You can also use the filter 'pixelflow_debug_purchase_event' to programmatically always enable or disable this
         $shouldAlwaysSendOrder = apply_filters('pixelflow_debug_purchase_event', $debugEnabled);
 
-        $purchaseTrackingCode = <<<HTML
-<script>
+        $purchaseTrackingCode = "
 (function waitForPixelFlow(maxWait) {
     if (window.pixelFlow && pixelFlow.utils && pixelFlow.trackEvent) {
         runPixelFlowPurchase();
@@ -126,23 +133,20 @@ class PixelFlow_WooCommerce_Purchase_Hooks
 })(10000);
 
 function runPixelFlowPurchase() {
-HTML;
+";
         $purchaseTrackingCode .= "
         const data = " . $json;
 
-        $purchaseTrackingCode .= <<<HTML
-
+        $purchaseTrackingCode .= "
     const key = 'pixel_purchase_sent_' + data.orderId;
     try {
-
-HTML;
+";
         // Prevent duplicate purchase events using localStorage
         if (!$shouldAlwaysSendOrder) {
             $purchaseTrackingCode .= "if (localStorage.getItem(key)) {console.log('PixelFlow: purchase already sent for order', data.orderId);return;}";
         }
 
-        $purchaseTrackingCode .= <<<HTML
-
+        $purchaseTrackingCode .= "
         const u = pixelFlow.utils;
 
         const payload = {
@@ -168,8 +172,7 @@ HTML;
         console.error('PixelFlow tracking error', e);
     }
 }
-</script>
-HTML;
+";
 
         if ($debugEnabled) {
             $show_tracking = true;
@@ -184,7 +187,10 @@ HTML;
         $show_tracking = apply_filters('pixelflow_purchase_tracking', $show_tracking);
 
         if ($show_tracking) {
-            echo $purchaseTrackingCode;
+            $script_key = 'pixelflow-woocommerce-purchase-tracking';
+            wp_register_script( $script_key, null );
+            wp_add_inline_script($script_key, $purchaseTrackingCode, 'before');
+            wp_enqueue_script($script_key);
         }
     }
 }

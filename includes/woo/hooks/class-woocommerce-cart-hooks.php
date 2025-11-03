@@ -254,8 +254,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 $html = $htmlUpdated;
             }
         }
-
-        echo $html;
+        echo wp_kses_post($html);
     }
 
     public function add_cart_item_name_class($product_name, $cart_item, $cart_item_key)

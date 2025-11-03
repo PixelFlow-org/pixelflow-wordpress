@@ -27,12 +27,15 @@ if (isset($general_options['remove_on_uninstall']) && $general_options['remove_o
 
     // For multisite installations, delete options from all sites
     if (is_multisite()) {
-        global $wpdb;
+        // Get all site IDs using WordPress function
+        $sites = get_sites(
+            array(
+                'number' => 0, // Get all sites
+                'fields' => 'ids',
+            )
+        );
 
-        // Get all blog IDs
-        $blog_ids = $wpdb->get_col("SELECT blog_id FROM {$wpdb->blogs}");
-
-        foreach ($blog_ids as $blog_id) {
+        foreach ($sites as $blog_id) {
             switch_to_blog($blog_id);
 
             // Delete options for this site

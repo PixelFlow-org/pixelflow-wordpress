@@ -303,7 +303,7 @@ class PixelFlow_WooCommerce_Product_Hooks
             if ($contentUpdated) {
                 $content = $contentUpdated;
             }
-            echo $content;
+            echo wp_kses_post($content);
         }
     }
 

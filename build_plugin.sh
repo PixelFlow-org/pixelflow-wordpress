@@ -18,7 +18,7 @@ fi
 echo "🚀 Building PixelFlow WordPress Plugin (${BUILD_MODE} mode)..."
 
 # Get the plugin directory (script location)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
 # Build frontend assets
@@ -47,11 +47,11 @@ if [ "$BUILD_MODE" = "dev" ]; then
     echo "⚠️  Warning: .env.local not found, continuing without it"
   fi
 else
-  if [ -f "app/source/.env" ]; then
-    ENV_FILE="app/source/.env"
-    echo "📋 Including .env for prod build"
+  if [ -f "app/source/.env.production" ]; then
+    ENV_FILE="app/source/.env.production"
+    echo "📋 Including .env.production for prod build"
   else
-    echo "⚠️  Warning: .env not found, continuing without it"
+    echo "⚠️  Warning: .env.production not found, continuing without it"
   fi
 fi
 

@@ -80,9 +80,6 @@ class PixelFlow
      */
     public function init()
     {
-        // Load text domain
-        load_plugin_textdomain('pixelflow', false, dirname(PIXELFLOW_PLUGIN_BASENAME) . '/languages');
-
         // Initialize WooCommerce integration if enabled
         if (PixelFlow_WooCommerce_Integration::is_woocommerce_active()) {
             PixelFlow_WooCommerce_Integration::get_instance();
@@ -117,23 +114,25 @@ class PixelFlow
             $js_url   = PIXELFLOW_PLUGIN_URL . 'app/dist/index.js';
             $css_url  = PIXELFLOW_PLUGIN_URL . 'app/dist/style.css';
 
-            $js_version  = file_exists($js_path) ? filemtime($js_path) : false;
-            $css_version = file_exists($css_path) ? filemtime($css_path) : false;
+            $js_version  = file_exists($js_path) ? filemtime($js_path) : PIXELFLOW_VERSION;
+            $css_version = file_exists($css_path) ? filemtime($css_path) : PIXELFLOW_VERSION;
+
+            $script_key = 'pixelflow-admin';
 
             // Register and enqueue style
-            wp_register_style('pixelflow-admin', $css_url, array(), $css_version ?: null);
-            wp_enqueue_style('pixelflow-admin');
+            wp_register_style($script_key, $css_url, array(), $css_version);
+            wp_enqueue_style($script_key);
 
             // Register and enqueue script as ES module
-            wp_register_script('pixelflow-admin', $js_url, array(), $js_version ?: null, true);
+            wp_enqueue_script_module($script_key, $js_url, array(), $js_version, true);
             // Mark as module (WP >= 6.3 supports 'type' data)
-            wp_script_add_data('pixelflow-admin', 'type', 'module');
+            wp_script_add_data($script_key, 'type', 'module');
 
             // Provide settings before the script executes
+            wp_register_script($script_key, null);
             $inline = 'window.pixelflowSettings = ' . wp_json_encode($settings) . ';';
-            wp_add_inline_script('pixelflow-admin', $inline, 'before');
-
-            wp_enqueue_script('pixelflow-admin');
+            wp_add_inline_script($script_key, $inline, 'before');
+            wp_enqueue_script($script_key);
         }
     }
 
@@ -240,12 +239,49 @@ class PixelFlow
         if (isset($general_options['enabled']) && $general_options['enabled'] && ! empty($script_code)) {
             // Check if current user's role should be excluded
             if ( ! $this->should_exclude_current_user($general_options)) {
-                echo $script_code;
+                echo wp_kses($script_code, $this->get_script_allowed_attributes());
             }
         }
 
         // Inject debug styles if debug is enabled
         $this->inject_debug_styles();
+    }
+
+    /**
+     * Tracking script example:
+     * <script
+     * src="https://pixelflow.so/pfm.js"
+     * data-meta-pixel-ids='["12345"]'
+     * data-site-id="wp_1234512345"
+     * data-api-key="12345"
+     * data-currency="USD"
+     * data-api-endpoint="https://api.pixelflow.so/event"
+     * data-tracked-urls='[]'
+     * data-blocking-rules='[{"external_tracking":true}]'
+     * data-enable-meta-pixel="true"
+     * data-debug="true"
+     * async
+     * ></script>
+     *
+     * @return array[]
+     */
+    private function get_script_allowed_attributes()
+    {
+        return array(
+            'script' => array(
+                'src'                    => true,
+                'data-meta-pixel-ids'    => true,
+                'data-site-id'           => true,
+                'data-api-key'           => true,
+                'data-currency'          => true,
+                'data-api-endpoint'      => true,
+                'data-tracked-urls'      => true,
+                'data-blocking-rules'    => true,
+                'data-enable-meta-pixel' => true,
+                'data-debug'             => true,
+                'async'                  => true
+            ),
+        );
     }
 
     /**
@@ -278,7 +314,7 @@ class PixelFlow
         $current_user = wp_get_current_user();
 
         // Check if any of the user's roles are in the excluded list
-        if ( ! empty($current_user->roles)) {
+        if ($current_user && ! empty($current_user->roles)) {
             foreach ($current_user->roles as $role) {
                 if (in_array($role, $excluded_roles, true)) {
                     return true; // User has an excluded role
@@ -328,14 +364,17 @@ class PixelFlow
 
         // Only output if there are enabled styles
         if ( ! empty($enabled_styles)) {
-            echo "\n<style>\n";
+            $styles = '';
             foreach ($enabled_styles as $style) {
                 // Add .logged-in prefix to each style
-                $style = str_replace('.info-', '.logged-in .info-', $style);
-                $style = str_replace('.action-', '.logged-in .action-', $style);
-                echo $style . "\n";
+                $styles .= '.logged-in ' . $style;
             }
-            echo "</style>\n";
+            $style_key = 'pixelflow-debug';
+
+            // Register and enqueue style
+            wp_register_style($style_key, '');
+            wp_add_inline_style($style_key, $styles);
+            wp_enqueue_style($style_key);
         }
     }
 
@@ -377,8 +416,10 @@ class PixelFlow
             }
             $pixelflowUserRoles = apply_filters('pixelflow_user_roles', implode(",", $roles));
             ?>
-          <input id="pixelflow-site-id" value="<?php echo esc_html($pixelflowSiteId); ?>" type="hidden"/>
-          <input id="pixelflow-user-roles" value="<?php echo esc_html($pixelflowUserRoles); ?>" type="hidden"/>
+          <input id="pixelflow-site-id" value="<?php
+          echo esc_html($pixelflowSiteId); ?>" type="hidden"/>
+          <input id="pixelflow-user-roles" value="<?php
+          echo esc_html($pixelflowUserRoles); ?>" type="hidden"/>
         </div>
         <div id="pixelflowroot" class="pixelflow-app"></div>
           <?php
@@ -436,9 +477,24 @@ class PixelFlow
         }
 
         // Get the posted data
-        $general_options = isset($_POST['general_options']) ? $_POST['general_options'] : array();
-        $class_options   = isset($_POST['class_options']) ? $_POST['class_options'] : array();
-        $debug_options   = isset($_POST['debug_options']) ? $_POST['debug_options'] : array();
+        if (isset($_POST['general_options']) && is_array($_POST['general_options'])) {
+            $general_options = array_map('sanitize_text_field', wp_unslash($_POST['general_options']));
+        } else {
+            $general_options = array();
+        }
+
+        if (isset($_POST['class_options']) && is_array($_POST['class_options'])) {
+            $class_options = array_map('sanitize_text_field', wp_unslash($_POST['class_options']));
+        } else {
+            $class_options = array();
+        }
+
+        if (isset($_POST['debug_options']) && is_array($_POST['debug_options'])) {
+            $debug_options = array_map('sanitize_text_field', wp_unslash($_POST['debug_options']));
+        } else {
+            $debug_options = array();
+        }
+
 
         // Sanitize and save options
         $sanitized_general_options = $this->sanitize_general_options($general_options);
@@ -471,8 +527,16 @@ class PixelFlow
         }
 
         // Get the script code
-        $script_code = isset($_POST['script_code']) ? wp_unslash($_POST['script_code']) : '';
+        $script_code = '';
+        // $_POST['script_code'] is base64 encoded
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+        $raw = isset($_POST['script_code']) ? wp_unslash($_POST['script_code']) : '';
+        if ($raw && preg_match('/^[A-Za-z0-9\/+=]+$/', $raw) === 1) {
+            $script_code = $raw;
+        }
 
+        // received decoded to avoid false-positives malware detectors
+        // because it sends valid code but it's <script>...</script>
         $decoded = base64_decode($script_code, true);
         if ($decoded === false) {
             wp_send_json_error(array('message' => __('Invalid base64 payload', 'pixelflow')), 400);
