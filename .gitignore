@@ -3,6 +3,7 @@
 node_modules
 app/source/node_modules
 app/source/.vscode
+.cursor
 
 # Logs
 app/source/logs

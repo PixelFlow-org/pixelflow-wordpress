@@ -1,0 +1,65 @@
+# Translation template for PixelFlow
+# Copyright (C) 2025 PixelFlow Team
+# This file is distributed under the GPL v2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: PixelFlow 0.1.12\n"
+"Report-Msgid-Bugs-To: https://pixelflow.so/support\n"
+"POT-Creation-Date: 2025-01-27 12:00:00+00:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2025-01-27 12:00:00+00:00\n"
+"Language-Team: PixelFlow Team\n"
+"X-Generator: WordPress\n"
+"Language: en_US\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: pixelflow.php:146
+msgid "PixelFlow Settings"
+msgstr ""
+
+#: pixelflow.php:147
+msgid "PixelFlow Settings"
+msgstr ""
+
+#: pixelflow.php:343
+msgid "Settings"
+msgstr ""
+
+#: pixelflow.php:365
+msgid "Configure your PixelFlow integration and WooCommerce tracking settings"
+msgstr ""
+
+#: pixelflow.php:403
+msgid "Unauthorized access"
+msgstr ""
+
+#: pixelflow.php:430
+msgid "Unauthorized access"
+msgstr ""
+
+#: pixelflow.php:448
+msgid "Settings saved successfully"
+msgstr ""
+
+#: pixelflow.php:463
+msgid "Unauthorized access"
+msgstr ""
+
+#: pixelflow.php:480
+msgid "Invalid base64 payload"
+msgstr ""
+
+#: pixelflow.php:487
+msgid "Script code saved successfully"
+msgstr ""
+
+#: pixelflow.php:494
+msgid "Unauthorized access"
+msgstr ""
+
+#: pixelflow.php:509
+msgid "Script code removed successfully"
+msgstr ""
+

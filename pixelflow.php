@@ -377,10 +377,8 @@ class PixelFlow
             }
             $pixelflowUserRoles = apply_filters('pixelflow_user_roles', implode(",", $roles));
             ?>
-          <input id="pixelflow-site-id" value="<?php
-          echo $pixelflowSiteId; ?>" type="hidden"/>
-          <input id="pixelflow-user-roles" value="<?php
-          echo $pixelflowUserRoles; ?>" type="hidden"/>
+          <input id="pixelflow-site-id" value="<?php echo esc_html($pixelflowSiteId); ?>" type="hidden"/>
+          <input id="pixelflow-user-roles" value="<?php echo esc_html($pixelflowUserRoles); ?>" type="hidden"/>
         </div>
         <div id="pixelflowroot" class="pixelflow-app"></div>
           <?php
