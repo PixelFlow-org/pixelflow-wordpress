@@ -4,11 +4,11 @@ Tags: facebook pixel, conversions api, meta pixel, woocommerce tracking, ecommer
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.1.13
+Stable tag: 0.1.15
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Easily install Meta's Conversions API on your WordPress website with automatic WooCommerce integration and event tracking using PixelFlow service
+PixelFlow official WordPress plugin. Easily install Meta's Conversions API on your website with WooCommerce integration and event tracking
 
 == Description ==
 
@@ -149,13 +149,14 @@ Visit [PixelFlow documentation](https://docs.pixelflow.so) or [Contact Support](
 
 1. Main settings page with PixelFlow configuration
 2. WooCommerce integration settings
-3. Class assignment controls for custom tracking
-4. Debug mode visualization
-5. General settings and user role exclusion
+3. Pixels Settings
+4. Events Urls Settings
+5. Recent Events
+6. Advanced Settings
 
 == Changelog ==
 
-= 0.1.5 =
+= 0.1.15 =
 * Initial public release
 * Automatic PixelFlow tracking code insertion
 * WooCommerce integration with auto-class assignment
@@ -164,19 +165,14 @@ Visit [PixelFlow documentation](https://docs.pixelflow.so) or [Contact Support](
 * Debug mode for testing
 * Support for all major PixelFlow event classes
 
-== Upgrade Notice ==
-
-= 0.1.5 =
-Initial release. Install to start using Meta's Conversions API on your WordPress site.
-
 == Privacy Policy ==
 
-PixelFlow integrates with Meta's Conversions API to track customer actions on your website. This includes:
+PixelFlow integrates with Meta's Conversions API to track customer actions on your website (when configured). This may include:
 
 * Page views
 * Product interactions
 * Purchase events
-* Form submissions (when configured)
+* Form submissions
 
 All data is processed according to Meta's privacy policies and your local privacy regulations. Please ensure you have appropriate user consent mechanisms in place if required by law (e.g., GDPR, CCPA).
 
@@ -190,7 +186,7 @@ For more information:
 * [PixelFlow Website](https://pixelflow.so)
 * [Documentation](https://docs.pixelflow.so)
 * [Event Classes Reference](https://docs.pixelflow.so/pixelflow-classes-document)
-* [Support](https://pixelflow.so/support)
+* [Support](https://pixelflow.so/contact)
 
 **Requirements:**
 * WordPress 5.0 or higher
@@ -201,6 +197,3 @@ For more information:
 * The plugin is developer-friendly with filters and hooks
 * Custom event tracking can be implemented using PixelFlow classes
 * Compatible with custom WooCommerce themes
-
-
-

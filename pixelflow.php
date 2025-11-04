@@ -1,9 +1,8 @@
 <?php
 /**
  * Plugin Name: PixelFlow
- * Plugin URI: https://pixelflow.so/
  * Description: PixelFlow Official Plugin for WordPress. Easily Install Meta's Conversions API on Your Website
- * Version: 0.1.13
+ * Version: 0.1.15
  * Author: PixelFlow Team
  * Author URI: https://pixelflow.so/
  * License: GPL v2 or later
@@ -18,7 +17,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('PIXELFLOW_VERSION', '0.1.13');
+define('PIXELFLOW_VERSION', '0.1.15');
 define('PIXELFLOW_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('PIXELFLOW_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('PIXELFLOW_PLUGIN_BASENAME', plugin_basename(__FILE__));

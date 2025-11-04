@@ -24,7 +24,25 @@ cd "$SCRIPT_DIR"
 # Build frontend assets
 echo "📦 Building frontend assets..."
 cd app/source
-npm run build
+
+# Use env file for build (Vite will load it automatically, but we verify it exists)
+if [ "$BUILD_MODE" = "prod" ]; then
+  if [ -f ".env.production" ]; then
+    echo "📋 Using .env.production for build (will NOT be included in zip)"
+    # Vite automatically loads .env.production when running 'vite build'
+  else
+    echo "⚠️  Warning: .env.production not found - build will use default/empty env vars"
+  fi
+  npm run build
+else
+  if [ -f ".env.local" ]; then
+    echo "📋 Using .env.local for build (will NOT be included in zip)"
+  else
+    echo "⚠️  Warning: .env.local not found - build will use default/empty env vars"
+  fi
+  npm run build-dev
+fi
+
 cd "$SCRIPT_DIR"
 
 # Create build directory if it doesn't exist
@@ -34,55 +52,31 @@ mkdir -p "$BUILD_DIR"
 # Plugin name and version
 PLUGIN_NAME="pixelflow"
 ZIP_NAME="${PLUGIN_NAME}.zip"
+ZIP_PATH="$BUILD_DIR/$ZIP_NAME"
+
+# Remove previous zip file if it exists
+if [ -f "$ZIP_PATH" ]; then
+  echo "🗑️  Removing previous build: $ZIP_NAME"
+  rm -f "$ZIP_PATH"
+fi
 
 echo "📁 Creating deployment package: $ZIP_NAME"
 
-# Determine which env file to include
-ENV_FILE=""
-if [ "$BUILD_MODE" = "dev" ]; then
-  if [ -f "app/source/.env.local" ]; then
-    ENV_FILE="app/source/.env.local"
-    echo "📋 Including .env.local for dev build"
-  else
-    echo "⚠️  Warning: .env.local not found, continuing without it"
-  fi
-else
-  if [ -f "app/source/.env.production" ]; then
-    ENV_FILE="app/source/.env.production"
-    echo "📋 Including .env.production for prod build"
-  else
-    echo "⚠️  Warning: .env.production not found, continuing without it"
-  fi
-fi
-
-# Create zip with production files
-if [ -n "$ENV_FILE" ]; then
-  # Include env file in the zip
-  zip -r "$BUILD_DIR/$ZIP_NAME" \
-    app/dist/ \
-    includes/ \
-    admin/ \
-    pixelflow.php \
-    uninstall.php \
-    README.md \
-    readme.txt \
-    "$ENV_FILE" \
-    -x "*.DS_Store" \
-    -x "*__MACOSX*" \
-    -x "*.git*"
-else
-  # No env file to include
-  zip -r "$BUILD_DIR/$ZIP_NAME" \
-    app/dist/ \
-    includes/ \
-    admin/ \
-    pixelflow.php \
-    README.md \
-    readme.txt \
-    -x "*.DS_Store" \
-    -x "*__MACOSX*" \
-    -x "*.git*"
-fi
+# Create zip with production files (NO source directory, NO env files)
+zip -r "$ZIP_PATH" \
+  app/dist/ \
+  includes/ \
+  admin/ \
+  pixelflow.php \
+  uninstall.php \
+  README.md \
+  readme.txt \
+  languages/ \
+  -x "*.DS_Store" \
+  -x "*__MACOSX*" \
+  -x "*.git*" \
+  -x "app/source/*" \
+  -x "app/source/**/*"
 
 echo "✅ Build complete!"
 echo "📦 Package location: build/$ZIP_NAME"
@@ -93,14 +87,14 @@ echo "  ✅ app/dist/"
 echo "  ✅ includes/"
 echo "  ✅ admin/"
 echo "  ✅ pixelflow.php"
+echo "  ✅ uninstall.php"
 echo "  ✅ README.md"
 echo "  ✅ readme.txt"
-if [ -n "$ENV_FILE" ]; then
-  echo "  ✅ $ENV_FILE"
-fi
+echo "  ✅ languages/"
 echo ""
 echo "Files excluded:"
-echo "  ❌ app/source/"
+echo "  ❌ app/source/ (entire directory)"
+echo "  ❌ .env files (used during build only, not included)"
 echo ""
 echo "🎉 Ready for deployment!"
 
