@@ -32,6 +32,7 @@ import {
   TrackingUrlsModule,
   EventsModule,
 } from '@pixelflow-org/plugin-features';
+import { StartSetupModal } from '@pixelflow-org/plugin-features';
 
 /** Constants */
 import { wordPressNavPanelConfig } from '@/features/home/constants/index';
@@ -83,6 +84,12 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
   const [selectedCurrency, setSelectedCurrency] = useState<string>('USD');
   // Track if script generation is in progress to prevent duplicate calls
   const [isGeneratingScript, setIsGeneratingScript] = useState<boolean>(false);
+  // Track error state and type for notifications
+  const [error, setError] = useState('');
+  // Track error type for notifications
+  const [errorType, setErrorType] = useState<'warning' | 'error'>('error');
+  // Control start setup modal visibility to manage user interactions
+  const [openStartSetupModal, setOpenStartSetupModal] = useState<boolean>(false);
 
   /** Redux state */
   const [getSite] = useLazyGetSiteQuery();
@@ -257,6 +264,13 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
     }
   }, [user, siteExternalId]);
 
+  // Open start setup modal if no pixels are added
+  useEffect(() => {
+    if (pixels) {
+      setOpenStartSetupModal(pixels.length === 0);
+    }
+  }, [pixels]);
+
   /**
    * Unified modal trigger that opens appropriate configuration interfaces
    * Reduces code duplication and provides consistent user experience across tabs
@@ -281,8 +295,6 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
     }
   };
 
-  const [error, setError] = useState('');
-  const [errorType, setErrorType] = useState<'warning' | 'error'>('error');
   /**
    * Manually regenerate the tracking script
    * @description Forces regeneration of the tracking script with current configuration.
@@ -398,6 +410,17 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
     }
   };
 
+  /**
+   * Handles the open change event for the start setup modal
+   * @param open - The new open state of the modal
+   * @returns void
+   */
+  const onStartSetupOpenChange = (open: boolean): void => {
+    if (!open && pixels && pixels.length > 0) {
+      setOpenStartSetupModal(false);
+    }
+  };
+
   return (
     <div className="bg-background text-foreground min-h-full !p-[12px]">
       <nav className="flex justify-between items-center mb-6 gap-60">
@@ -458,6 +481,7 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
         <EventsModule events={events} areEventsLoading={areEventsLoading} adapter={adapter} />
       )}
       {activeTab === 'advanced' && <AdvancedSettings />}
+      <StartSetupModal open={openStartSetupModal} onOpenChange={onStartSetupOpenChange} />
     </div>
   );
 };

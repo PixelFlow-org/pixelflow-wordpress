@@ -12,8 +12,8 @@ importers:
         specifier: ^1.1.6
         version: 1.1.6(@reduxjs/toolkit@2.9.0(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0))(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)(redux@5.0.1)
       '@pixelflow-org/plugin-features':
-        specifier: ^1.1.33
-        version: 1.1.33(@pixelflow-org/plugin-core@1.1.6(@reduxjs/toolkit@2.9.0(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0))(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)(redux@5.0.1))(@pixelflow-org/plugin-ui@1.1.20(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(tailwindcss@4.1.14))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)
+        specifier: ^1.1.38
+        version: 1.1.38(@pixelflow-org/plugin-core@1.1.6(@reduxjs/toolkit@2.9.0(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0))(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)(redux@5.0.1))(@pixelflow-org/plugin-ui@1.1.20(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(tailwindcss@4.1.14))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)
       '@pixelflow-org/plugin-ui':
         specifier: ^1.1.20
         version: 1.1.20(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(tailwindcss@4.1.14)
@@ -462,8 +462,8 @@ packages:
       react: ^18 || ^19
       react-redux: ^9.2.0
 
-  '@pixelflow-org/plugin-features@1.1.33':
-    resolution: {integrity: sha512-jhpSs78syYjW1zTNRLmNHHUnZU5ytPE0wAzXL+6pKlhlGUR3cRR6PbjMSAI8KXSYx2zfvmGBq/TYsCL3OL9vsA==, tarball: https://npm.pkg.github.com/download/@pixelflow-org/plugin-features/1.1.33/1ee54b1cdc0253958651df7b8c5f8bce0d22c43c}
+  '@pixelflow-org/plugin-features@1.1.38':
+    resolution: {integrity: sha512-KVoQLa5eYYQ34VABbJKwzlyv58TFfriH2rUPaHxUM0wb09mH5S5cMc/E44Q0E8/CMYmx0xegRV86Z9koYE+dug==, tarball: https://npm.pkg.github.com/download/@pixelflow-org/plugin-features/1.1.38/f48212d37e0e8341f6dda7f193732b7a130046b9}
     peerDependencies:
       '@pixelflow-org/plugin-core': ^1.0.0
       '@pixelflow-org/plugin-ui': ^1.0.0
@@ -2949,7 +2949,7 @@ snapshots:
     transitivePeerDependencies:
       - redux
 
-  '@pixelflow-org/plugin-features@1.1.33(@pixelflow-org/plugin-core@1.1.6(@reduxjs/toolkit@2.9.0(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0))(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)(redux@5.0.1))(@pixelflow-org/plugin-ui@1.1.20(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(tailwindcss@4.1.14))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)':
+  '@pixelflow-org/plugin-features@1.1.38(@pixelflow-org/plugin-core@1.1.6(@reduxjs/toolkit@2.9.0(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0))(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)(redux@5.0.1))(@pixelflow-org/plugin-ui@1.1.20(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(tailwindcss@4.1.14))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)':
     dependencies:
       '@pixelflow-org/plugin-core': 1.1.6(@reduxjs/toolkit@2.9.0(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0))(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)(redux@5.0.1)
       '@pixelflow-org/plugin-features': 'link:'
