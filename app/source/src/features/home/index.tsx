@@ -96,7 +96,7 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
 
   /** Pixels */
   // Manage pixel tracking configurations tied to the current site
-  const { pixels, addPixel, updatePixel, deletePixel } = usePixelsData({
+  const { pixels, addPixel, updatePixel, deletePixel, arePixelsLoading } = usePixelsData({
     siteExternalId: siteExternalId ?? '',
     adapter,
   });
@@ -481,7 +481,9 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
         <EventsModule events={events} areEventsLoading={areEventsLoading} adapter={adapter} />
       )}
       {activeTab === 'advanced' && <AdvancedSettings />}
-      <StartSetupModal open={openStartSetupModal} onOpenChange={onStartSetupOpenChange} />
+      {siteId && !arePixelsLoading && (
+        <StartSetupModal open={openStartSetupModal} onOpenChange={onStartSetupOpenChange} />
+      )}
     </div>
   );
 };
