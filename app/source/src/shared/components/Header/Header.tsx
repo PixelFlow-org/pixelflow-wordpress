@@ -1,15 +1,5 @@
-import {
-  Currency,
-  NarrowButton,
-  VideoIcon,
-  FaqIcon,
-  Dropdown,
-  Button,
-  Switch,
-  Label,
-} from '@pixelflow-org/plugin-ui';
+import { Currency, NarrowButton, FaqIcon, Dropdown } from '@pixelflow-org/plugin-ui';
 import PixelflowIcon from '@/shared/icons/pixelflow.icon.tsx';
-import { debugColors } from '@/features/settings/const/classes.ts';
 
 type HeaderProps = {
   selectedCurrency: string;
