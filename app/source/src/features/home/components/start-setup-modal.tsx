@@ -68,7 +68,6 @@ const StartSetupModal = ({ open, onOpenChange }: StartSetupModalProps): ReactEle
             Start your Setup
           </span>
         </div>
-
         {/* Modal Body */}
         <div className="pf-modal__body flex !w-full flex-col items-start justify-center !px-5 !py-3">
           <p className="text-foreground text-[14px]">
