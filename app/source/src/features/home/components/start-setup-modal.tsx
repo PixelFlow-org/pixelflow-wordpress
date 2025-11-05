@@ -65,7 +65,7 @@ const StartSetupModal = ({ open, onOpenChange }: StartSetupModalProps): ReactEle
             className="!font-magnetik text-center !text-[16px] !leading-5 !font-semibold !tracking-[-0.006em] pf-modal__header-text text-foreground"
             style={{ fontFeatureSettings: '"calt" off, "liga" off' }}
           >
-            Start your Setup123
+            Start your Setup
           </span>
         </div>
 
