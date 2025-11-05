@@ -267,7 +267,6 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
 
   // Open start setup modal if no pixels are added
   useEffect(() => {
-    console.log('pixels', pixels);
     if (pixels) {
       setOpenStartSetupModal(typeof pixels !== 'undefined' && pixels.length === 0);
     }
