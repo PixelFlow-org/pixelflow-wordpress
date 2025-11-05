@@ -32,7 +32,7 @@ import {
   TrackingUrlsModule,
   EventsModule,
 } from '@pixelflow-org/plugin-features';
-import { StartSetupModal } from '@pixelflow-org/plugin-features';
+import StartSetupModal from './components/start-setup-modal';
 
 /** Constants */
 import { wordPressNavPanelConfig } from '@/features/home/constants/index';
