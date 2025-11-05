@@ -13,7 +13,7 @@ import { getCdnUrl } from '@pixelflow-org/plugin-core';
 import { useLazyGetSiteQuery } from '@pixelflow-org/plugin-core';
 
 /** UI Components */
-import { Button, Header } from '@pixelflow-org/plugin-ui';
+import { Button } from '@pixelflow-org/plugin-ui';
 
 /** Types */
 import { User } from '@pixelflow-org/plugin-core';
@@ -55,6 +55,7 @@ import {
 import { useSettings } from '@/features/settings/contexts/SettingsContext';
 import TopControls from '@/shared/components/TopControls/TopControls.tsx';
 import Notification from '@/shared/components/Notification/Notification.tsx';
+import Header from '@/shared/components/Header/Header.tsx';
 
 interface HomeProps {
   user: User;
@@ -266,8 +267,9 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
 
   // Open start setup modal if no pixels are added
   useEffect(() => {
+    console.log('pixels', pixels);
     if (pixels) {
-      setOpenStartSetupModal(pixels.length === 0);
+      setOpenStartSetupModal(typeof pixels !== 'undefined' && pixels.length === 0);
     }
   }, [pixels]);
 

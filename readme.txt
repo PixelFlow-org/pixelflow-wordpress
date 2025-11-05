@@ -80,11 +80,11 @@ Please follow this guide to set up your PixelFlow tracking code: [PixelFlow Setu
 
 = What is PixelFlow? =
 
-PixelFlow is a service that helps you implement Meta's Conversions API on your website, providing accurate tracking of customer actions for your Facebook and Instagram advertising campaigns.
+PixelFlow is a service that helps you implement Meta's Conversions API on your website, providing accurate tracking of customer actions for your Facebook/Meta and Instagram advertising campaigns.
 
 = How is this different to just using the Meta Pixel on my website? =
 
-Server-side tracking (also called the Conversion API) is better than using the standard "Facebook Pixel" implementation because it works even if visitors have ad blockers, tracking prevention, or cookie restrictions enabled meaning you get more complete, accurate data to measure results and improve your ads. It tracks events on your website before they can be blocked by a user's browser meaning you can get more data sent to Meta events manager and in turn reduce your costs because your data is better and more accurate
+Server-side tracking (also called the Conversion API) is better than using the standard "Facebook/Meta Pixel" implementation because it works even if visitors have ad blockers, tracking prevention, or cookie restrictions enabled meaning you get more complete, accurate data to measure results and improve your ads. It tracks events on your website before they can be blocked by a user's browser meaning you can get more data sent to Meta events manager and in turn reduce your costs because your data is better and more accurate
 
 = What are the benefits of PixelFlow? =
 
@@ -93,10 +93,6 @@ PixelFlow tracks all events that users take on your website and send those event
 = How much more accurate is PixelFlow vs just the Meta pixel on my website? =
 
 PixelFlow picks up 30–40% more conversions that Meta Pixel misses - especially on iOS, Safari, or when ad blockers are active. While Meta relies on browser-side data (which gets blocked), PixelFlow uses server-side tracking to ensure you see the full picture - every click, sale, and signup, even the hidden ones.
-
-= Will it slow down my website? =
-
-Absolutely not - the PixelFlow script is only 11kb in size and designed to be super lightweight so as not to affect your site speed at all
 
 = I'm not technical, can you just set it up for me? =
 

@@ -71,6 +71,14 @@
 .pf-narrow-button {
   white-space: nowrap;
 }
+
+.pf-narrow-button {
+  transition: all 0.2s ease-in-out;
+}
+.pf-narrow-button:hover {
+  opacity: 0.8;
+}
+
 /* Login */
 .flex.w-full.flex-col.gap-3 {
   width: 300px !important;
@@ -180,3 +188,4 @@
         0 0 3px #2C72FF;
   }
 }
+
