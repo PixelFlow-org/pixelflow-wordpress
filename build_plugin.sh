@@ -60,23 +60,42 @@ if [ -f "$ZIP_PATH" ]; then
   rm -f "$ZIP_PATH"
 fi
 
-echo "📁 Creating deployment package: $ZIP_NAME"
+# Create temporary staging directory
+STAGING_DIR="$BUILD_DIR/staging"
+PLUGIN_STAGING_DIR="$STAGING_DIR/$PLUGIN_NAME"
 
-# Create zip with production files (NO source directory, NO env files)
-zip -r "$ZIP_PATH" \
-  app/dist/ \
-  includes/ \
-  admin/ \
-  pixelflow.php \
-  uninstall.php \
-  README.md \
-  readme.txt \
-  languages/ \
+# Clean up any existing staging directory
+if [ -d "$STAGING_DIR" ]; then
+  rm -rf "$STAGING_DIR"
+fi
+
+# Create plugin directory in staging
+mkdir -p "$PLUGIN_STAGING_DIR"
+
+echo "📁 Creating deployment package: $ZIP_NAME"
+echo "📋 Copying files to staging directory..."
+
+# Copy production files to staging (NO source directory, NO env files)
+mkdir -p "$PLUGIN_STAGING_DIR/app"
+cp -r app/dist "$PLUGIN_STAGING_DIR/app/" 2>/dev/null || true
+cp -r includes "$PLUGIN_STAGING_DIR/" 2>/dev/null || true
+[ -d "admin" ] && cp -r admin "$PLUGIN_STAGING_DIR/" || true
+cp pixelflow.php "$PLUGIN_STAGING_DIR/"
+cp uninstall.php "$PLUGIN_STAGING_DIR/"
+[ -f "README.md" ] && cp README.md "$PLUGIN_STAGING_DIR/" || true
+cp readme.txt "$PLUGIN_STAGING_DIR/"
+[ -d "languages" ] && cp -r languages "$PLUGIN_STAGING_DIR/" || true
+
+# Create zip from staging directory
+cd "$STAGING_DIR"
+zip -r "$ZIP_PATH" "$PLUGIN_NAME" \
   -x "*.DS_Store" \
   -x "*__MACOSX*" \
-  -x "*.git*" \
-  -x "app/source/*" \
-  -x "app/source/**/*"
+  -x "*.git*"
+
+# Clean up staging directory
+cd "$SCRIPT_DIR"
+rm -rf "$STAGING_DIR"
 
 echo "✅ Build complete!"
 echo "📦 Package location: build/$ZIP_NAME"
@@ -85,12 +104,12 @@ echo ""
 echo "Files included:"
 echo "  ✅ app/dist/"
 echo "  ✅ includes/"
-echo "  ✅ admin/"
+[ -d "admin" ] && echo "  ✅ admin/" || echo "  ⚠️  admin/ (not found, skipped)"
 echo "  ✅ pixelflow.php"
 echo "  ✅ uninstall.php"
-echo "  ✅ README.md"
+[ -f "README.md" ] && echo "  ✅ README.md" || echo "  ⚠️  README.md (not found, skipped)"
 echo "  ✅ readme.txt"
-echo "  ✅ languages/"
+[ -d "languages" ] && echo "  ✅ languages/" || echo "  ⚠️  languages/ (not found, skipped)"
 echo ""
 echo "Files excluded:"
 echo "  ❌ app/source/ (entire directory)"
