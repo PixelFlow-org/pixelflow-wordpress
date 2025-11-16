@@ -120,59 +120,48 @@ class PixelFlow_WooCommerce_Purchase_Hooks
         // You can also use the filter 'pixelflow_debug_purchase_event' to programmatically always enable or disable this
         $shouldAlwaysSendOrder = apply_filters('pixelflow_debug_purchase_event', $debugEnabled);
 
-        $purchaseTrackingCode = "
-(function waitForPixelFlow(maxWait) {
-    if (window.pixelFlow && pixelFlow.utils && pixelFlow.trackEvent) {
-        runPixelFlowPurchase();
-       
-    } else if (maxWait > 0) {
-        setTimeout(function() { waitForPixelFlow(maxWait - 200); }, 200);
-    } else {
-        console.warn('PixelFlow not loaded after 10s, skipping event');
-    }
-})(10000);
-
-function runPixelFlowPurchase() {
-";
-        $purchaseTrackingCode .= "
-        const data = " . $json;
-
-        $purchaseTrackingCode .= "
-    const key = 'pixel_purchase_sent_' + data.orderId;
-    try {
-";
+        $purchase_tracking = "(function waitForPixelFlow(maxWait) {";
+        $purchase_tracking .= "if (window.pixelFlow && pixelFlow.utils && pixelFlow.trackEvent) {";
+        $purchase_tracking .= "runPixelFlowPurchase();";
+        $purchase_tracking .= "} else if (maxWait > 0) {";
+        $purchase_tracking .= "setTimeout(function() { waitForPixelFlow(maxWait - 200); }, 200);";
+        $purchase_tracking .= "} else {";
+        $purchase_tracking .= "console.warn('PixelFlow not loaded after 10s, skipping event');";
+        $purchase_tracking .= "}";
+        $purchase_tracking .= "})(10000);";
+        $purchase_tracking .= "function runPixelFlowPurchase() {";
+        $purchase_tracking .= "const data = " . $json . ";";
+        $purchase_tracking .= "const key = 'pixel_purchase_sent_' + data.orderId;";
+        $purchase_tracking .= "try {";
+        
         // Prevent duplicate purchase events using localStorage
         if ( ! $shouldAlwaysSendOrder) {
-            $purchaseTrackingCode .= "if (localStorage.getItem(key)) {console.log('PixelFlow: purchase already sent for order', data.orderId);return;}";
+            $purchase_tracking .= "if (localStorage.getItem(key)) {console.log('PixelFlow: purchase already sent for order', data.orderId);return;}";
         }
 
-        $purchaseTrackingCode .= "
-        const u = pixelFlow.utils;
-
-        const payload = {
-            currency: data.currency,
-            contentType: data.contentType,
-            numItems: data.numItems,
-            value: data.value
-        };
-        const customerData = {
-            fn: data.billing.first_name,
-            ln: data.billing.last_name,
-            em: data.billing.email,
-            ph: data.billing.phone,
-            ct: data.billing.city,
-            st: data.billing.state,
-            zp: data.billing.postcode,
-            country: data.billing.country
-        };
-        
-        pixelFlow.trackEvent('Purchase', payload, u.normalizeCustomerData(customerData));
-        localStorage.setItem(key, '1');
-    } catch (e) {
-        console.error('PixelFlow tracking error', e);
-    }
-}
-";
+        $purchase_tracking .= "const u = pixelFlow.utils;";
+        $purchase_tracking .= "const payload = {";
+        $purchase_tracking .= "currency: data.currency,";
+        $purchase_tracking .= "contentType: data.contentType,";
+        $purchase_tracking .= "numItems: data.numItems,";
+        $purchase_tracking .= "value: data.value";
+        $purchase_tracking .= "};";
+        $purchase_tracking .= "const customerData = {";
+        $purchase_tracking .= "fn: data.billing.first_name,";
+        $purchase_tracking .= "ln: data.billing.last_name,";
+        $purchase_tracking .= "em: data.billing.email,";
+        $purchase_tracking .= "ph: data.billing.phone,";
+        $purchase_tracking .= "ct: data.billing.city,";
+        $purchase_tracking .= "st: data.billing.state,";
+        $purchase_tracking .= "zp: data.billing.postcode,";
+        $purchase_tracking .= "country: data.billing.country";
+        $purchase_tracking .= "};";
+        $purchase_tracking .= "pixelFlow.trackEvent('Purchase', payload, u.normalizeCustomerData(customerData));";
+        $purchase_tracking .= "localStorage.setItem(key, '1');";
+        $purchase_tracking .= "} catch (e) {";
+        $purchase_tracking .= "console.error('PixelFlow tracking error', e);";
+        $purchase_tracking .= "}";
+        $purchase_tracking .= "}";
 
         if ($debugEnabled) {
             $show_tracking = true;
@@ -188,8 +177,16 @@ function runPixelFlowPurchase() {
 
         if ($show_tracking) {
             $script_key = 'pixelflow-woocommerce-purchase-tracking';
-            wp_register_script($script_key, null, array(), PIXELFLOW_VERSION, array('in_footer' => false));
-            wp_add_inline_script($script_key, $purchaseTrackingCode, 'before');
+            
+            // Ensure JavaScript content is safe for output
+            // $json is already properly encoded with wp_json_encode() and security flags
+            // JavaScript code structure is hardcoded, so it's safe
+            // Validate UTF-8 encoding to prevent invalid characters
+            $purchase_tracking = wp_check_invalid_utf8($purchase_tracking);
+            $purchase_tracking = preg_replace('/[\x00-\x1F\x7F]/u', '', $purchase_tracking); // Remove control characters
+            
+            wp_register_script($script_key, '', array(), PIXELFLOW_VERSION, array('in_footer' => false));
+            wp_add_inline_script($script_key, $purchase_tracking, 'before');
             wp_enqueue_script($script_key);
         }
     }

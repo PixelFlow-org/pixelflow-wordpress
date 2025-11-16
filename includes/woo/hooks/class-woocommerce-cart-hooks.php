@@ -88,7 +88,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             }
 
             // Gutenberg/Block cart support
-            add_action('wp_footer', array($this, 'pf_add_gutenberg_cart_classes'));
+            add_action('wp_enqueue_scripts', array($this, 'pf_add_gutenberg_cart_classes'), 999);
 
             /*
              *  Mini Cart support
@@ -296,6 +296,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
     public function pf_add_gutenberg_cart_classes()
     {
+        // Only run on cart page
+        if (!is_cart()) {
+            return;
+        }
+
         // Check which classes are enabled
         $enabled_classes = array();
 
@@ -323,123 +328,119 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return;
         }
 
-        ?>
-      <script>
-          (function () {
-              <?php if (isset($enabled_classes['cart'])): ?>
-              const CLASS_CART = <?php echo wp_json_encode($enabled_classes['cart']); ?>;
-              <?php endif; ?>
-              <?php if (isset($enabled_classes['item'])): ?>
-              const CLASS_ITEM = <?php echo wp_json_encode($enabled_classes['item']); ?>;
-              <?php endif; ?>
-              <?php if (isset($enabled_classes['price'])): ?>
-              const CLASS_PRICE = <?php echo wp_json_encode($enabled_classes['price']); ?>;
-              <?php endif; ?>
-              <?php if (isset($enabled_classes['qty'])): ?>
-              const CLASS_QTY = <?php echo wp_json_encode($enabled_classes['qty']); ?>;
-              <?php endif; ?>
-              <?php if (isset($enabled_classes['btn'])): ?>
-              const CLASS_BTN = <?php echo wp_json_encode($enabled_classes['btn']); ?>;
-              <?php endif; ?>
-              <?php if (isset($enabled_classes['name'])): ?>
-              const CLASS_NAME = <?php echo wp_json_encode($enabled_classes['name']); ?>;
-              <?php endif; ?>
+        // Build JavaScript code
+        $cart_tracking = "(function () {";
+        
+        // Add class constants
+        if (isset($enabled_classes['cart'])) {
+            $cart_tracking .= "const CLASS_CART = " . wp_json_encode($enabled_classes['cart']) . ";";
+        }
+        if (isset($enabled_classes['item'])) {
+            $cart_tracking .= "const CLASS_ITEM = " . wp_json_encode($enabled_classes['item']) . ";";
+        }
+        if (isset($enabled_classes['price'])) {
+            $cart_tracking .= "const CLASS_PRICE = " . wp_json_encode($enabled_classes['price']) . ";";
+        }
+        if (isset($enabled_classes['qty'])) {
+            $cart_tracking .= "const CLASS_QTY = " . wp_json_encode($enabled_classes['qty']) . ";";
+        }
+        if (isset($enabled_classes['btn'])) {
+            $cart_tracking .= "const CLASS_BTN = " . wp_json_encode($enabled_classes['btn']) . ";";
+        }
+        if (isset($enabled_classes['name'])) {
+            $cart_tracking .= "const CLASS_NAME = " . wp_json_encode($enabled_classes['name']) . ";";
+        }
 
-              const MAX_CHECKS = 200;
-              const CHECK_DELAY_MS = 50;
+        $cart_tracking .= "const MAX_CHECKS = 200;";
+        $cart_tracking .= "const CHECK_DELAY_MS = 50;";
+        $cart_tracking .= "let checks = 0;";
+        $cart_tracking .= "let observer = null;";
+        $cart_tracking .= "let timerId = null;";
+        $cart_tracking .= "const hasClassicCart = () => !!document.querySelector('.woocommerce-cart-form, form.woocommerce-cart-form');";
+        $cart_tracking .= "const getBlocksCart = () => document.querySelector('.wc-block-cart');";
+        $cart_tracking .= "const applyClasses = root => {";
+        $cart_tracking .= "if (!root) return;";
+        
+        if (isset($enabled_classes['cart'])) {
+            $cart_tracking .= "const cart = root.querySelector('.wc-block-cart');";
+            $cart_tracking .= "if (cart) cart.classList.add(CLASS_CART);";
+        }
+        if (isset($enabled_classes['item'])) {
+            $cart_tracking .= "root.querySelectorAll('.wc-block-cart-items .wc-block-cart-items__row').forEach(el => el.classList.add(CLASS_ITEM));";
+        }
+        if (isset($enabled_classes['price'])) {
+            $cart_tracking .= "root.querySelectorAll('.wc-block-cart-item__total .price .wc-block-formatted-money-amount').forEach(el => el.classList.add(CLASS_PRICE));";
+        }
+        if (isset($enabled_classes['qty'])) {
+            $cart_tracking .= "root.querySelectorAll('.wc-block-components-quantity-selector__input').forEach(el => el.classList.add(CLASS_QTY));";
+        }
+        if (isset($enabled_classes['btn'])) {
+            $cart_tracking .= "root.querySelectorAll('.wc-block-cart__submit-button, .wc-block-components-checkout-place-order-button').forEach(el => el.classList.add(CLASS_BTN));";
+        }
+        if (isset($enabled_classes['name'])) {
+            $cart_tracking .= "root.querySelectorAll('.wc-block-components-product-name, .wc-block-components-product-name a').forEach(el => el.classList.add(CLASS_NAME));";
+        }
+        
+        $cart_tracking .= "};";
+        $cart_tracking .= "const startObserver = cart => {";
+        $cart_tracking .= "if (!cart) return;";
+        $cart_tracking .= "if (observer) observer.disconnect();";
+        $cart_tracking .= "observer = new MutationObserver(() => applyClasses(document));";
+        $cart_tracking .= "observer.observe(cart, {childList: true, subtree: true});";
+        $cart_tracking .= "applyClasses(document);";
+        $cart_tracking .= "};";
+        $cart_tracking .= "const stopPolling = reason => {";
+        $cart_tracking .= "if (timerId !== null) {";
+        $cart_tracking .= "clearInterval(timerId);";
+        $cart_tracking .= "timerId = null;";
+        $cart_tracking .= "}";
+        $cart_tracking .= "if (observer) {";
+        $cart_tracking .= "observer.disconnect();";
+        $cart_tracking .= "observer = null;";
+        $cart_tracking .= "}";
+        $cart_tracking .= "};";
+        $cart_tracking .= "const pollUntilReady = () => {";
+        $cart_tracking .= "timerId = setInterval(() => {";
+        $cart_tracking .= "checks++;";
+        $cart_tracking .= "const cart = getBlocksCart();";
+        $cart_tracking .= "if (cart && document.querySelectorAll('.wc-block-cart-items .wc-block-cart-items__row').length > 0) {";
+        $cart_tracking .= "stopPolling();";
+        $cart_tracking .= "startObserver(cart);";
+        $cart_tracking .= "return;";
+        $cart_tracking .= "}";
+        $cart_tracking .= "if (hasClassicCart()) {";
+        $cart_tracking .= "stopPolling('Classic cart detected. No Blocks cart on this page.');";
+        $cart_tracking .= "return;";
+        $cart_tracking .= "}";
+        $cart_tracking .= "if (checks >= MAX_CHECKS) {";
+        $cart_tracking .= "stopPolling('No Blocks cart found after limit. Bailing safely.');";
+        $cart_tracking .= "}";
+        $cart_tracking .= "}, CHECK_DELAY_MS);";
+        $cart_tracking .= "};";
+        $cart_tracking .= "const init = () => {";
+        $cart_tracking .= "if (hasClassicCart() && !getBlocksCart()) {";
+        $cart_tracking .= "return;";
+        $cart_tracking .= "}";
+        $cart_tracking .= "pollUntilReady();";
+        $cart_tracking .= "};";
+        $cart_tracking .= "if (document.readyState === 'complete' || document.readyState === 'interactive') {";
+        $cart_tracking .= "init();";
+        $cart_tracking .= "} else {";
+        $cart_tracking .= "window.addEventListener('DOMContentLoaded', init, {once: true});";
+        $cart_tracking .= "}";
+        $cart_tracking .= "})();";
 
-              let checks = 0;
-              let observer = null;
-              let timerId = null;
+        // Ensure JavaScript content is safe for output
+        // Class names are already properly encoded with wp_json_encode()
+        // JavaScript code structure is hardcoded, so it's safe
+        // Validate UTF-8 encoding to prevent invalid characters
+        $cart_tracking = wp_check_invalid_utf8($cart_tracking);
+        $cart_tracking = preg_replace('/[\x00-\x1F\x7F]/u', '', $cart_tracking); // Remove control characters
 
-              const hasClassicCart = () => !!document.querySelector('.woocommerce-cart-form, form.woocommerce-cart-form');
-              const getBlocksCart = () => document.querySelector('.wc-block-cart');
-
-              const applyClasses = root => {
-                  if (!root) return;
-
-                  <?php if (isset($enabled_classes['cart'])): ?>
-                  const cart = root.querySelector('.wc-block-cart');
-                  if (cart) cart.classList.add(CLASS_CART);
-                  <?php endif; ?>
-
-                  <?php if (isset($enabled_classes['item'])): ?>
-                  root.querySelectorAll('.wc-block-cart-items .wc-block-cart-items__row').forEach(el => el.classList.add(CLASS_ITEM));
-                  <?php endif; ?>
-
-                  <?php if (isset($enabled_classes['price'])): ?>
-                  root.querySelectorAll('.wc-block-cart-item__total .price .wc-block-formatted-money-amount').forEach(el => el.classList.add(CLASS_PRICE));
-                  <?php endif; ?>
-
-                  <?php if (isset($enabled_classes['qty'])): ?>
-                  root.querySelectorAll('.wc-block-components-quantity-selector__input').forEach(el => el.classList.add(CLASS_QTY));
-                  <?php endif; ?>
-
-                  <?php if (isset($enabled_classes['btn'])): ?>
-                  root.querySelectorAll('.wc-block-cart__submit-button, .wc-block-components-checkout-place-order-button').forEach(el => el.classList.add(CLASS_BTN));
-                  <?php endif; ?>
-
-                  <?php if (isset($enabled_classes['name'])): ?>
-                  root.querySelectorAll('.wc-block-components-product-name, .wc-block-components-product-name a').forEach(el => el.classList.add(CLASS_NAME));
-                  <?php endif; ?>
-              };
-
-              const startObserver = cart => {
-                  if (!cart) return;
-                  if (observer) observer.disconnect();
-                  observer = new MutationObserver(() => applyClasses(document));
-                  observer.observe(cart, {childList: true, subtree: true});
-                  applyClasses(document);
-              };
-
-              const stopPolling = reason => {
-                  if (timerId !== null) {
-                      clearInterval(timerId);
-                      timerId = null;
-                  }
-                  if (observer) {
-                      observer.disconnect();
-                      observer = null;
-                  }
-              };
-
-              const pollUntilReady = () => {
-                  timerId = setInterval(() => {
-                      checks++;
-                      const cart = getBlocksCart();
-
-                      if (cart && document.querySelectorAll('.wc-block-cart-items .wc-block-cart-items__row').length > 0) {
-                          stopPolling();
-                          startObserver(cart);
-                          return;
-                      }
-
-                      if (hasClassicCart()) {
-                          stopPolling('Classic cart detected. No Blocks cart on this page.');
-                          return;
-                      }
-
-                      if (checks >= MAX_CHECKS) {
-                          stopPolling('No Blocks cart found after limit. Bailing safely.');
-                      }
-                  }, CHECK_DELAY_MS);
-              };
-
-              const init = () => {
-                  if (hasClassicCart() && !getBlocksCart()) {
-                      return;
-                  }
-                  pollUntilReady();
-              };
-
-              if (document.readyState === 'complete' || document.readyState === 'interactive') {
-                  init();
-              } else {
-                  window.addEventListener('DOMContentLoaded', init, {once: true});
-              }
-          })();
-      </script>
-        <?php
+        // Register and enqueue inline script
+        wp_register_script('pixelflow-gutenberg-cart', '', array(), PIXELFLOW_VERSION, array('in_footer' => true));
+        wp_add_inline_script('pixelflow-gutenberg-cart', $cart_tracking);
+        wp_enqueue_script('pixelflow-gutenberg-cart');
     }
 }
 

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: PixelFlow
  * Description: PixelFlow Official Plugin for WordPress. Easily Install Meta's Conversions API on Your Website
- * Version: 0.1.17
+ * Version: 0.1.18
  * Author: PixelFlow Team
  * Author URI: https://pixelflow.so/
  * License: GPL v2 or later
@@ -17,7 +17,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('PIXELFLOW_VERSION', '0.1.17');
+define('PIXELFLOW_VERSION', '0.1.18');
 define('PIXELFLOW_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('PIXELFLOW_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('PIXELFLOW_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -79,9 +79,85 @@ class PixelFlow
      */
     public function init()
     {
+        // Run migrations if needed
+        $this->maybe_run_migrations();
+
         // Initialize WooCommerce integration if enabled
         if (PixelFlow_WooCommerce_Integration::is_woocommerce_active()) {
             PixelFlow_WooCommerce_Integration::get_instance();
+        }
+    }
+
+    /**
+     * Check and run migrations if needed
+     */
+    private function maybe_run_migrations()
+    {
+        $db_version = get_option('pixelflow_db_version', '0.0.0');
+        $current_version = PIXELFLOW_VERSION;
+
+        // Only run migrations if version has changed
+        if (version_compare($db_version, $current_version, '<')) {
+            $this->run_migrations($db_version);
+            update_option('pixelflow_db_version', $current_version);
+
+            // Update db_version for all sites in multisite
+            if (is_multisite()) {
+                $sites = get_sites(
+                    array(
+                        'number' => 0,
+                        'fields' => 'ids',
+                    )
+                );
+
+                foreach ($sites as $blog_id) {
+                    switch_to_blog($blog_id);
+                    update_option('pixelflow_db_version', $current_version);
+                    restore_current_blog();
+                }
+            }
+        }
+    }
+
+    /**
+     * Run database migrations
+     *
+     * @param string $from_version Version to migrate from
+     */
+    private function run_migrations($from_version)
+    {
+        // Migration: Rename pixelflow_script_code to pixelflow_code (v0.1.17+)
+        if (version_compare($from_version, '0.1.17', '<')) {
+            // Handle main site
+            $old_option = get_option('pixelflow_script_code', false);
+            if ($old_option !== false) {
+                // Copy value to new option name
+                update_option('pixelflow_code', $old_option);
+                // Delete old option
+                delete_option('pixelflow_script_code');
+            }
+
+            // Handle multisite installations
+            if (is_multisite()) {
+                $sites = get_sites(
+                    array(
+                        'number' => 0,
+                        'fields' => 'ids',
+                    )
+                );
+
+                foreach ($sites as $blog_id) {
+                    switch_to_blog($blog_id);
+
+                    $old_option = get_option('pixelflow_script_code', false);
+                    if ($old_option !== false) {
+                        update_option('pixelflow_code', $old_option);
+                        delete_option('pixelflow_script_code');
+                    }
+
+                    restore_current_blog();
+                }
+            }
         }
     }
 
@@ -95,7 +171,7 @@ class PixelFlow
             $general_options = get_option('pixelflow_general_options', array());
             $class_options   = get_option('pixelflow_class_options', array());
             $debug_options   = get_option('pixelflow_debug_options', array());
-            $script_code     = get_option('pixelflow_script_code', '');
+            $script_code     = get_option('pixelflow_code', '');
 
             $settings = array(
                 'general_options'       => $general_options,
@@ -128,7 +204,7 @@ class PixelFlow
             wp_script_add_data($script_key, 'type', 'module');
 
             // Provide settings before the script executes
-            wp_register_script($script_key, null, array(), PIXELFLOW_VERSION, array('in_footer' => false));
+            wp_register_script($script_key, '', array(), PIXELFLOW_VERSION, array('in_footer' => false));
             $inline = 'window.pixelflowSettings = ' . wp_json_encode($settings) . ';';
             wp_add_inline_script($script_key, $inline, 'before');
             wp_enqueue_script($script_key);
@@ -232,7 +308,7 @@ class PixelFlow
     public function inject_script()
     {
         $general_options = get_option('pixelflow_general_options');
-        $script_code     = get_option('pixelflow_script_code', '');
+        $script_code     = get_option('pixelflow_code', '');
 
         // Only inject if enabled and script code exists and user role is not excluded
         if (isset($general_options['enabled']) && $general_options['enabled'] && ! empty($script_code)) {
@@ -365,9 +441,16 @@ class PixelFlow
         if ( ! empty($enabled_styles)) {
             $styles = '';
             foreach ($enabled_styles as $style) {
+                // CSS styles are hardcoded in $debug_styles array, so they're safe
                 // Add .logged-in prefix to each style
                 $styles .= '.logged-in ' . $style;
             }
+            
+            // Ensure CSS content is safe for output
+            // Styles are hardcoded, but validate UTF-8 and remove control characters
+            $styles = wp_check_invalid_utf8($styles);
+            $styles = preg_replace('/[\x00-\x1F\x7F]/u', '', $styles); // Remove control characters
+            
             $style_key = 'pixelflow-debug';
 
             // Register and enqueue style
@@ -451,7 +534,7 @@ class PixelFlow
         $general_options = get_option('pixelflow_general_options', array());
         $class_options   = get_option('pixelflow_class_options', array());
         $debug_options   = get_option('pixelflow_debug_options', array());
-        $script_code     = get_option('pixelflow_script_code', '');
+        $script_code     = get_option('pixelflow_code', '');
 
         wp_send_json_success(array(
             'general_options'       => $general_options,
@@ -542,7 +625,7 @@ class PixelFlow
         }
 
         // Save script code to separate option
-        update_option('pixelflow_script_code', $decoded);
+        update_option('pixelflow_code', $decoded);
 
         wp_send_json_success(array(
             'message'     => __('Script code saved successfully', 'pixelflow'),
@@ -564,7 +647,7 @@ class PixelFlow
         }
 
         // Clear script code from separate option
-        update_option('pixelflow_script_code', '');
+        update_option('pixelflow_code', '');
 
         wp_send_json_success(array(
             'message' => __('Script code removed successfully', 'pixelflow'),

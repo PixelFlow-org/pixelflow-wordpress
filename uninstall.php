@@ -23,7 +23,8 @@ if (isset($general_options['remove_on_uninstall']) && $general_options['remove_o
     delete_option('pixelflow_general_options');
     delete_option('pixelflow_class_options');
     delete_option('pixelflow_debug_options');
-    delete_option('pixelflow_script_code');
+    delete_option('pixelflow_code');
+    delete_option('pixelflow_db_version');
 
     // For multisite installations, delete options from all sites
     if (is_multisite()) {
@@ -42,7 +43,8 @@ if (isset($general_options['remove_on_uninstall']) && $general_options['remove_o
             delete_option('pixelflow_general_options');
             delete_option('pixelflow_class_options');
             delete_option('pixelflow_debug_options');
-            delete_option('pixelflow_script_code');
+            delete_option('pixelflow_code');
+            delete_option('pixelflow_db_version');
 
             restore_current_blog();
         }

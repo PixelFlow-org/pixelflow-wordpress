@@ -1,10 +1,10 @@
 === PixelFlow ===
-Contributors: dependencyinjection
+Contributors: pixelflow
 Tags: facebook pixel, conversions api, meta pixel, woocommerce tracking, ecommerce
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.1.17
+Stable tag: 0.1.18
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -152,6 +152,10 @@ Visit [PixelFlow documentation](https://docs.pixelflow.so) or [Contact Support](
 
 == Changelog ==
 
+= 0.1.18 =
+Main developer changed
+Option name changed from pixelflow_script_code to pixelflow_code
+
 = 0.1.17 =
 Improved pixel id form field validation to prevent invalid values from submitting
 
@@ -200,3 +204,4 @@ For more information:
 * The plugin is developer-friendly with filters and hooks
 * Custom event tracking can be implemented using PixelFlow classes
 * Compatible with custom WooCommerce themes
+* [GitHub Repository](https://github.com/PixelFlow-org/pixelflow-wordpress) - feel free to contribute or report issues
