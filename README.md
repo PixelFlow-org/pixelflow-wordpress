@@ -300,6 +300,11 @@ For more information:
 
 ## Changelog
 
+### 0.1.19
+Added button to quickly copy site ID (on the login screen)
+Fixed Woo settings global variable name
+Updated UI components
+
 ### 0.1.18
 Main developer changed
 Option name changed from pixelflow_script_code to pixelflow_code

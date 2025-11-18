@@ -45,7 +45,7 @@ export function ActivatePixelflow(props: ActivatePixelflowProps) {
   };
 
   return (
-    <div className="space-y-6 pf-layout-main pf-module-home bg-background text-foreground min-h-full !p-[12px] flex flex-wrap justify-between content-center">
+    <div className="space-y-6 pf-layout-main pf-module-home bg-background text-foreground min-h-full flex flex-wrap justify-between content-center">
       <div className="flex items-center gap-3">
         <UI.TooltipRoot>
           <UI.TooltipTrigger asChild>

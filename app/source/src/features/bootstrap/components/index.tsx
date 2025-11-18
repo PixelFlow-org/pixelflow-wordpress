@@ -13,7 +13,12 @@ import { AuthStatus } from '@pixelflow-org/plugin-core';
 import { LoadingScreen } from '@pixelflow-org/plugin-ui';
 
 /** Features */
-import { AuthScreen, useAuth, useAuthSelector } from '@pixelflow-org/plugin-features';
+import {
+  AuthScreen,
+  useAuth,
+  useAuthSelector,
+  CopySiteIdBanner,
+} from '@pixelflow-org/plugin-features';
 
 /** Components */
 import Home from '@/features/home';
@@ -78,7 +83,14 @@ const Bootstrap = () => {
 
   // Show auth screen if not authenticated
   if (authState === AuthStatus.UNAUTHENTICATED && !isAuthenticated) {
-    return <AuthScreen adapter={adapter} onAuthSuccess={handleAuthSuccess} />;
+    return (
+      <>
+        <AuthScreen adapter={adapter} onAuthSuccess={handleAuthSuccess} />
+        <div className="pf-copy-site-id">
+          <CopySiteIdBanner adapter={adapter} />
+        </div>
+      </>
+    );
   }
 
   // Show home module if authenticated

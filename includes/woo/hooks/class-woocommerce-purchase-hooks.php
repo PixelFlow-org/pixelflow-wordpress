@@ -20,15 +20,15 @@ class PixelFlow_WooCommerce_Purchase_Hooks
      * Class options
      */
     private $options;
-    private $general_options;
+    private $pixelflow_general_options;
 
     /**
      * Constructor
      */
-    public function __construct($options = array(), $general_options = array())
+    public function __construct($options = array(), $pixelflow_general_options = array())
     {
         $this->options         = $options;
-        $this->general_options = $general_options;
+        $this->pixelflow_general_options = $pixelflow_general_options;
 
         if ( ! is_admin()) {
             // Track purchase on order received page
@@ -116,7 +116,7 @@ class PixelFlow_WooCommerce_Purchase_Hooks
 
 
         // Enabled if Debug is enabled
-        $debugEnabled = isset($this->general_options["debug_enabled"]) ? $this->general_options["debug_enabled"] : false;
+        $debugEnabled = isset($this->pixelflow_general_options["debug_enabled"]) ? $this->pixelflow_general_options["debug_enabled"] : false;
         // You can also use the filter 'pixelflow_debug_purchase_event' to programmatically always enable or disable this
         $shouldAlwaysSendOrder = apply_filters('pixelflow_debug_purchase_event', $debugEnabled);
 

@@ -15,10 +15,10 @@ if (!defined('WP_UNINSTALL_PLUGIN')) {
 }
 
 // Check if user has opted to remove data on uninstall
-$general_options = get_option('pixelflow_general_options', array());
+$pixelflow_general_options = get_option('pixelflow_general_options', array());
 
 // Only proceed with cleanup if the remove_on_uninstall option is enabled
-if (isset($general_options['remove_on_uninstall']) && $general_options['remove_on_uninstall'] === 1) {
+if (isset($pixelflow_general_options['remove_on_uninstall']) && $pixelflow_general_options['remove_on_uninstall'] === 1) {
     // Delete all PixelFlow options from the database
     delete_option('pixelflow_general_options');
     delete_option('pixelflow_class_options');
@@ -29,14 +29,14 @@ if (isset($general_options['remove_on_uninstall']) && $general_options['remove_o
     // For multisite installations, delete options from all sites
     if (is_multisite()) {
         // Get all site IDs using WordPress function
-        $sites = get_sites(
+        $pixelflow_sites = get_sites(
             array(
                 'number' => 0, // Get all sites
                 'fields' => 'ids',
             )
         );
 
-        foreach ($sites as $blog_id) {
+        foreach ($pixelflow_sites as $blog_id) {
             switch_to_blog($blog_id);
 
             // Delete options for this site

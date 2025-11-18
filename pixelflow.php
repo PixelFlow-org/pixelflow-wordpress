@@ -2,7 +2,7 @@
 /**
  * Plugin Name: PixelFlow
  * Description: PixelFlow Official Plugin for WordPress. Easily Install Meta's Conversions API on Your Website
- * Version: 0.1.18
+ * Version: 0.1.19
  * Author: PixelFlow Team
  * Author URI: https://pixelflow.so/
  * License: GPL v2 or later
@@ -17,7 +17,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('PIXELFLOW_VERSION', '0.1.18');
+define('PIXELFLOW_VERSION', '0.1.19');
 define('PIXELFLOW_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('PIXELFLOW_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('PIXELFLOW_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -103,14 +103,14 @@ class PixelFlow
 
             // Update db_version for all sites in multisite
             if (is_multisite()) {
-                $sites = get_sites(
+                $pixelflow_sites = get_sites(
                     array(
                         'number' => 0,
                         'fields' => 'ids',
                     )
                 );
 
-                foreach ($sites as $blog_id) {
+                foreach ($pixelflow_sites as $blog_id) {
                     switch_to_blog($blog_id);
                     update_option('pixelflow_db_version', $current_version);
                     restore_current_blog();
@@ -139,14 +139,14 @@ class PixelFlow
 
             // Handle multisite installations
             if (is_multisite()) {
-                $sites = get_sites(
+                $pixelflow_sites = get_sites(
                     array(
                         'number' => 0,
                         'fields' => 'ids',
                     )
                 );
 
-                foreach ($sites as $blog_id) {
+                foreach ($pixelflow_sites as $blog_id) {
                     switch_to_blog($blog_id);
 
                     $old_option = get_option('pixelflow_script_code', false);
@@ -168,13 +168,13 @@ class PixelFlow
     {
         if ($hook === 'settings_page_pixelflow-settings') {
             // Prepare settings for the admin app
-            $general_options = get_option('pixelflow_general_options', array());
+            $pixelflow_general_options = get_option('pixelflow_general_options', array());
             $class_options   = get_option('pixelflow_class_options', array());
             $debug_options   = get_option('pixelflow_debug_options', array());
             $script_code     = get_option('pixelflow_code', '');
 
             $settings = array(
-                'general_options'       => $general_options,
+                'general_options'       => $pixelflow_general_options,
                 'class_options'         => $class_options,
                 'debug_options'         => $debug_options,
                 'script_code'           => $script_code,
@@ -307,13 +307,13 @@ class PixelFlow
      */
     public function inject_script()
     {
-        $general_options = get_option('pixelflow_general_options');
+        $pixelflow_general_options = get_option('pixelflow_general_options');
         $script_code     = get_option('pixelflow_code', '');
 
         // Only inject if enabled and script code exists and user role is not excluded
-        if (isset($general_options['enabled']) && $general_options['enabled'] && ! empty($script_code)) {
+        if (isset($pixelflow_general_options['enabled']) && $pixelflow_general_options['enabled'] && ! empty($script_code)) {
             // Check if current user's role should be excluded
-            if ( ! $this->should_exclude_current_user($general_options)) {
+            if ( ! $this->should_exclude_current_user($pixelflow_general_options)) {
                 echo wp_kses($script_code, $this->get_script_allowed_attributes());
             }
         }
@@ -362,11 +362,11 @@ class PixelFlow
     /**
      * Check if the current user's role is in the excluded list
      *
-     * @param array $general_options General plugin options
+     * @param array $pixelflow_general_options General plugin options
      *
      * @return bool True if user should be excluded, false otherwise
      */
-    private function should_exclude_current_user($general_options)
+    private function should_exclude_current_user($pixelflow_general_options)
     {
         // If user is not logged in, never exclude (allow script injection for guests)
         if ( ! is_user_logged_in()) {
@@ -374,10 +374,10 @@ class PixelFlow
         }
 
         // Get excluded user roles from settings
-        $excluded_roles = isset($general_options['excluded_user_roles']) && is_array(
-            $general_options['excluded_user_roles']
+        $excluded_roles = isset($pixelflow_general_options['excluded_user_roles']) && is_array(
+            $pixelflow_general_options['excluded_user_roles']
         )
-            ? $general_options['excluded_user_roles']
+            ? $pixelflow_general_options['excluded_user_roles']
             : array();
 
         // If no roles are excluded, don't exclude anyone
@@ -405,11 +405,11 @@ class PixelFlow
      */
     private function inject_debug_styles()
     {
-        $general_options = get_option('pixelflow_general_options', array());
+        $pixelflow_general_options = get_option('pixelflow_general_options', array());
         $debug_options   = get_option('pixelflow_debug_options', array());
 
         // Check if debug is enabled
-        if ( ! isset($general_options['debug_enabled']) || ! $general_options['debug_enabled']) {
+        if ( ! isset($pixelflow_general_options['debug_enabled']) || ! $pixelflow_general_options['debug_enabled']) {
             return;
         }
 
@@ -531,13 +531,13 @@ class PixelFlow
             wp_send_json_error(array('message' => __('Unauthorized access', 'pixelflow')), 403);
         }
 
-        $general_options = get_option('pixelflow_general_options', array());
+        $pixelflow_general_options = get_option('pixelflow_general_options', array());
         $class_options   = get_option('pixelflow_class_options', array());
         $debug_options   = get_option('pixelflow_debug_options', array());
         $script_code     = get_option('pixelflow_code', '');
 
         wp_send_json_success(array(
-            'general_options'       => $general_options,
+            'general_options'       => $pixelflow_general_options,
             'class_options'         => $class_options,
             'debug_options'         => $debug_options,
             'script_code'           => $script_code,
@@ -560,9 +560,9 @@ class PixelFlow
 
         // Get the posted data
         if (isset($_POST['general_options']) && is_array($_POST['general_options'])) {
-            $general_options = array_map('sanitize_text_field', wp_unslash($_POST['general_options']));
+            $pixelflow_general_options = array_map('sanitize_text_field', wp_unslash($_POST['general_options']));
         } else {
-            $general_options = array();
+            $pixelflow_general_options = array();
         }
 
         if (isset($_POST['class_options']) && is_array($_POST['class_options'])) {
@@ -579,7 +579,7 @@ class PixelFlow
 
 
         // Sanitize and save options
-        $sanitized_general_options = $this->sanitize_general_options($general_options);
+        $sanitized_general_options = $this->sanitize_general_options($pixelflow_general_options);
         $sanitized_class_options   = $this->sanitize_class_options($class_options);
         $sanitized_debug_options   = $this->sanitize_class_options($debug_options);
 

@@ -4,7 +4,7 @@ Tags: facebook pixel, conversions api, meta pixel, woocommerce tracking, ecommer
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.1.18
+Stable tag: 0.1.19
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -151,6 +151,11 @@ Visit [PixelFlow documentation](https://docs.pixelflow.so) or [Contact Support](
 6. Advanced Settings
 
 == Changelog ==
+
+= 0.1.19 =
+Added button to quickly copy site ID (on the login screen)
+Fixed Woo settings global variable name
+Updated UI components
 
 = 0.1.18 =
 Main developer changed
