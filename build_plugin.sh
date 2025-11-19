@@ -35,10 +35,12 @@ if [ "$BUILD_MODE" = "prod" ]; then
   fi
   npm run build
 else
-  if [ -f ".env.local" ]; then
+  if [ -f ".env.development" ]; then
+    echo "📋 Using .env.development for build (will NOT be included in zip)"
+  elif [ -f ".env.local" ]; then
     echo "📋 Using .env.local for build (will NOT be included in zip)"
   else
-    echo "⚠️  Warning: .env.local not found - build will use default/empty env vars"
+    echo "⚠️  Warning: .env.development or .env.local not found - build will use default/empty env vars"
   fi
   npm run build-dev
 fi
@@ -51,7 +53,11 @@ mkdir -p "$BUILD_DIR"
 
 # Plugin name and version
 PLUGIN_NAME="pixelflow"
-ZIP_NAME="${PLUGIN_NAME}.zip"
+if [ "$BUILD_MODE" = "prod" ]; then
+  ZIP_NAME="${PLUGIN_NAME}.zip"
+else
+  ZIP_NAME="${PLUGIN_NAME}_dev.zip"
+fi
 ZIP_PATH="$BUILD_DIR/$ZIP_NAME"
 
 # Remove previous zip file if it exists
