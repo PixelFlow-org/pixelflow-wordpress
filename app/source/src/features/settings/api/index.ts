@@ -18,6 +18,10 @@ import type {
   SettingsResponse,
   SaveSettingsRequest,
 } from '@/features/settings/types/settings.types.ts';
+import type {
+  BlockingRule,
+  TrackingUrlScriptData,
+} from '@pixelflow-org/plugin-core';
 
 // Extract WordPress AJAX config once at module load
 const { nonce, ajaxUrl } = getWordPressAjaxConfig();
@@ -122,19 +126,44 @@ const wordpressSettingsApi = pixelFlowApi.injectEndpoints({
     }),
 
     /**
-     * Save tracking script code
-     * @description Persists generated tracking script to WordPress database via adapter
+     * Save tracking script parameters
+     * @description Persists tracking script parameters to WordPress database via adapter
+     * PHP will generate the script from these params when needed
      */
-    saveScriptCode: builder.mutation<{ script_code: string }, string>({
-      queryFn: async (scriptCode) => {
+    saveScriptCode: builder.mutation<
+      { message: string },
+      {
+        pixelIds: string[];
+        siteExternalId: string;
+        apiKey: string;
+        currency: string;
+        trackingUrls: TrackingUrlScriptData[];
+        apiEndpoint: string;
+        cdnUrl: string;
+        enableMetaPixel: boolean;
+        blockingRules: BlockingRule[];
+      }
+    >({
+      queryFn: async (params) => {
         try {
-          await wordpressAdapter.injectScript(scriptCode);
-          return { data: { script_code: scriptCode } };
+          // Save params only - PHP generates script from params
+          await wordpressAdapter.saveParams(
+            params.pixelIds,
+            params.siteExternalId,
+            params.apiKey,
+            params.currency,
+            params.trackingUrls,
+            params.apiEndpoint,
+            params.cdnUrl,
+            params.enableMetaPixel,
+            params.blockingRules
+          );
+          return { data: { message: 'Script parameters saved successfully' } };
         } catch (error) {
           return {
             error: {
               status: 'FETCH_ERROR',
-              error: error instanceof Error ? error.message : 'Failed to save script code',
+              error: error instanceof Error ? error.message : 'Failed to save script parameters',
             } as FetchBaseQueryError,
           };
         }

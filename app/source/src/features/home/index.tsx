@@ -38,7 +38,7 @@ import StartSetupModal from './components/start-setup-modal';
 import { wordPressNavPanelConfig } from '@/features/home/constants/index';
 
 /** Utils */
-import { generateTrackingScript, useAuth } from '@pixelflow-org/plugin-features';
+import { useAuth } from '@pixelflow-org/plugin-features';
 
 /** Types */
 import { BlockingRule, TrackingUrlScriptData } from '@pixelflow-org/plugin-core';
@@ -206,21 +206,18 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
           console.warn('[PixelFlow] Could not fetch blocking rules:', error);
         }
 
-        // Generate tracking script with all validated parameters
-        const script = generateTrackingScript(
-          pixels.map((pixel) => pixel.pixelId),
+        // Save script parameters to WordPress database using RTK mutation
+        await saveScriptCode({
+          pixelIds: pixels.map((pixel) => pixel.pixelId),
           siteExternalId,
           apiKey,
-          selectedCurrency,
-          formattedTrackingUrls,
-          `${import.meta.env.VITE_API_BASE_URL || ''}/event`,
-          getCdnUrl(),
-          true, // enableMetaPixel
-          blockingRules
-        );
-
-        // Save script to WordPress database using RTK mutation
-        await saveScriptCode(script).unwrap();
+          currency: selectedCurrency,
+          trackingUrls: formattedTrackingUrls,
+          apiEndpoint: `${import.meta.env.VITE_API_BASE_URL || ''}/event`,
+          cdnUrl: getCdnUrl(),
+          enableMetaPixel: true,
+          blockingRules,
+        }).unwrap();
 
         console.log('[PixelFlow] Tracking script saved successfully. Use settings to enable.');
       } catch (error) {
@@ -362,21 +359,18 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
         console.warn(errorMsg, error);
       }
 
-      // Generate tracking script with all validated parameters
-      const script = generateTrackingScript(
-        pixels.map((pixel) => pixel.pixelId),
+      // Save script parameters to WordPress database using RTK mutation
+      await saveScriptCode({
+        pixelIds: pixels.map((pixel) => pixel.pixelId),
         siteExternalId,
         apiKey,
-        selectedCurrency,
-        formattedTrackingUrls,
-        `${import.meta.env.VITE_API_BASE_URL || ''}/event`,
-        getCdnUrl(),
-        true, // enableMetaPixel
-        blockingRules
-      );
-
-      // Save script to WordPress database using RTK mutation
-      await saveScriptCode(script).unwrap();
+        currency: selectedCurrency,
+        trackingUrls: formattedTrackingUrls,
+        apiEndpoint: `${import.meta.env.VITE_API_BASE_URL || ''}/event`,
+        cdnUrl: getCdnUrl(),
+        enableMetaPixel: true,
+        blockingRules,
+      }).unwrap();
 
       adapter.showNotification('Tracking script regenerated successfully', 'success');
       return true;

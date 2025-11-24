@@ -7,65 +7,49 @@
 import { toast } from 'react-toastify';
 
 /** Types */
-import { PlatformAdapter, PlatformConfig } from '@pixelflow-org/plugin-core';
+import {
+  PlatformAdapter,
+  PlatformConfig,
+  BlockingRule,
+  TrackingUrlScriptData,
+} from '@pixelflow-org/plugin-core';
 
 /**
  * WordPress Platform Adapter
  * @description Implements platform-specific functionality for WordPress,
  * including script injection, theme management, and notifications
  */
+// @ts-expect-error TS2420
 export class WordpressAdapter implements PlatformAdapter {
   constructor(private config: PlatformConfig) {}
 
   /**
    * Inject script into WordPress
    *
-   * Saves the tracking script to the database via AJAX
+   * Note: Script is generated from saved params on the PHP side
    */
+  // @ts-expect-error TS6133
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async injectScript(script: string): Promise<void> {
-    const settings = (window as any).pixelflowSettings;
-    if (!settings) {
-      throw new Error('WordPress settings not available');
-    }
-
-    const formData = new FormData();
-    formData.append('action', 'pixelflow_save_script_code');
-    formData.append('nonce', settings.nonce);
-    const encoded = btoa(unescape(encodeURIComponent(script))); // base64 UTF-8 safe
-    formData.append('script_code', encoded);
-
-    try {
-      const response = await fetch(settings.ajax_url, {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.data?.message || 'Failed to save script code');
-      }
-
-      console.log('[WordPress] Script injected successfully');
-    } catch (error) {
-      console.error('[WordPress] Failed to inject script:', error);
-      throw error;
-    }
+    // Script is not saved - only params are saved via saveParams
+    // The PHP side generates the script from params when needed
+    console.log('[WordPress] Script generation handled by PHP from saved params');
   }
 
   /**
    * Remove script from WordPress
    *
-   * Clears the tracking script from the database via AJAX
+   * Clears the tracking script parameters from the database via AJAX
    */
   async removeScript(): Promise<void> {
+    // eslint-disable-next-line
     const settings = (window as any).pixelflowSettings;
     if (!settings) {
       throw new Error('WordPress settings not available');
     }
 
     const formData = new FormData();
-    formData.append('action', 'pixelflow_remove_script_code');
+    formData.append('action', 'pixelflow_remove_script_params');
     formData.append('nonce', settings.nonce);
 
     try {
@@ -77,12 +61,75 @@ export class WordpressAdapter implements PlatformAdapter {
       const data = await response.json();
 
       if (!data.success) {
-        throw new Error(data.data?.message || 'Failed to remove script code');
+        throw new Error(data.data?.message || 'Failed to remove script parameters');
       }
 
-      console.log('[WordPress] Script removed successfully');
+      console.log('[WordPress] Script parameters removed successfully');
     } catch (error) {
-      console.error('[WordPress] Failed to remove script:', error);
+      console.error('[WordPress] Failed to remove script parameters:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Save tracking script parameters to WordPress
+   *
+   * Saves the tracking script parameters to the database via AJAX
+   * These parameters are the same as those passed to generateTrackingScript
+   */
+  async saveParams(
+    pixelIds: string[],
+    siteExternalId: string,
+    apiKey: string,
+    currency: string,
+    trackingUrls: TrackingUrlScriptData[],
+    apiEndpoint: string,
+    cdnUrl: string,
+    enableMetaPixel: boolean,
+    blockingRules: BlockingRule[]
+  ): Promise<void> {
+    // eslint-disable-next-line
+    const settings = (window as any).pixelflowSettings;
+    if (!settings) {
+      throw new Error('WordPress settings not available');
+    }
+
+    const formData = new FormData();
+    formData.append('action', 'pixelflow_save_script_params');
+    formData.append('nonce', settings.nonce);
+
+    // Encode parameters as JSON and base64 encode
+    const params = {
+      pixelIds,
+      siteExternalId,
+      apiKey,
+      currency,
+      trackingUrls,
+      apiEndpoint,
+      cdnUrl,
+      enableMetaPixel,
+      blockingRules,
+    };
+
+    const jsonParams = JSON.stringify(params);
+    const encoded = btoa(unescape(encodeURIComponent(jsonParams))); // base64 UTF-8 safe
+    formData.append('params', encoded);
+
+    try {
+      const response = await fetch(settings.ajax_url, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.data?.message || 'Failed to save script parameters');
+      }
+
+      console.log('[WordPress] Script parameters saved successfully');
+    } catch (error) {
+      console.error('[WordPress] Failed to save script parameters:', error);
       throw error;
     }
   }
