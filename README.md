@@ -300,6 +300,9 @@ For more information:
 
 ## Changelog
 
+### 0.1.20
+Updated the way how the script is injected
+
 ### 0.1.19
 Added button to quickly copy site ID (on the login screen)
 Fixed Woo settings global variable name
