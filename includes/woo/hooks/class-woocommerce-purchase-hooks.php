@@ -129,7 +129,7 @@ class PixelFlow_WooCommerce_Purchase_Hooks
         $purchase_tracking .= "console.warn('PixelFlow not loaded after 10s, skipping event');";
         $purchase_tracking .= "}";
         $purchase_tracking .= "})(10000);";
-        $purchase_tracking .= "function runPixelFlowPurchase() {";
+        $purchase_tracking .= "async function runPixelFlowPurchase() {";
         $purchase_tracking .= "const data = " . $json . ";";
         $purchase_tracking .= "const key = 'pixel_purchase_sent_' + data.orderId;";
         $purchase_tracking .= "try {";
@@ -156,7 +156,8 @@ class PixelFlow_WooCommerce_Purchase_Hooks
         $purchase_tracking .= "zp: data.billing.postcode,";
         $purchase_tracking .= "country: data.billing.country";
         $purchase_tracking .= "};";
-        $purchase_tracking .= "pixelFlow.trackEvent('Purchase', payload, u.normalizeCustomerData(customerData));";
+        $purchase_tracking .= "const normalizedData = await u.normalizeCustomerData(customerData);";
+        $purchase_tracking .= "pixelFlow.trackEvent('Purchase', payload, normalizedData);";
         $purchase_tracking .= "localStorage.setItem(key, '1');";
         $purchase_tracking .= "} catch (e) {";
         $purchase_tracking .= "console.error('PixelFlow tracking error', e);";

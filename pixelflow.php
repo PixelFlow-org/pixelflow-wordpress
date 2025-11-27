@@ -85,43 +85,9 @@ class PixelFlow
      */
     public function init()
     {
-        // Run migrations if needed
-        $this->maybe_run_migrations();
-
         // Initialize WooCommerce integration if enabled
         if (PixelFlow_WooCommerce_Integration::is_woocommerce_active()) {
             PixelFlow_WooCommerce_Integration::get_instance();
-        }
-    }
-
-    /**
-     * Check and run migrations if needed
-     */
-    private function maybe_run_migrations()
-    {
-        $db_version      = get_option('pixelflow_db_version', '0.0.0');
-        $current_version = PIXELFLOW_VERSION;
-
-        // Only run migrations if version has changed
-        if (version_compare($db_version, $current_version, '<')) {
-            $this->run_migrations($db_version);
-            update_option('pixelflow_db_version', $current_version);
-
-            // Update db_version for all sites in multisite
-            if (is_multisite()) {
-                $pixelflow_sites = get_sites(
-                    array(
-                        'number' => 0,
-                        'fields' => 'ids',
-                    )
-                );
-
-                foreach ($pixelflow_sites as $blog_id) {
-                    switch_to_blog($blog_id);
-                    update_option('pixelflow_db_version', $current_version);
-                    restore_current_blog();
-                }
-            }
         }
     }
 
@@ -656,6 +622,7 @@ class PixelFlow
         $required_keys = array('pixelIds', 'siteExternalId', 'apiKey', 'currency', 'trackingUrls', 'apiEndpoint', 'cdnUrl', 'enableMetaPixel', 'blockingRules');
         foreach ($required_keys as $key) {
             if ( ! isset($params[$key])) {
+                // translators: %s is the name of the missing required parameter.
                 wp_send_json_error(array('message' => sprintf(__('Missing required parameter: %s', 'pixelflow'), $key)), 400);
             }
         }
