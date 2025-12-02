@@ -79,8 +79,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             // Add action-btn-buy-004-pf class to the proceed to checkout button
             // (Add this to the proceed to checkout button)
             if ($this->is_class_enabled('woo_class_cart_checkout_button')) {
-                add_action('woocommerce_proceed_to_checkout', array($this, 'pf_proceed_btn_buffer_start'), 5);
-                add_action('woocommerce_proceed_to_checkout', array($this, 'pf_proceed_btn_buffer_end'), 99);
+                add_filter('woocommerce_proceed_to_checkout', array($this, 'add_checkout_button_class'));
             }
 
             if ($this->is_class_enabled('woo_class_cart_product_name')) {
@@ -238,30 +237,24 @@ class PixelFlow_WooCommerce_Cart_Hooks
         return $product_quantity;
     }
 
-    public function pf_proceed_btn_buffer_start()
+    public function add_checkout_button_class()
     {
-        ob_start();
-    }
+        $className = 'action-btn-buy-004-pf';
 
-    public function pf_proceed_btn_buffer_end()
-    {
-        $html = ob_get_clean();
+        $script_key = 'pixelflow-checkout-button-class';
 
-        $extra_class = 'action-btn-buy-004-pf';
+        $script = "(function() {
+            var elementToAdd = document.querySelectorAll('.checkout-button');
+            elementToAdd.forEach(function(button) {
+                if (!button.classList.contains('" . esc_js($className) . "')) {
+                    button.classList.add('" . esc_js($className) . "');
+                }
+            });
+        })();";
 
-        if (stripos($html, $extra_class) === false) {
-            // Only replace in class attribute context
-            $htmlUpdated = preg_replace(
-                '/class="([^"]*checkout-button[^"]*)"/i',
-                'class="$1 ' . esc_attr($extra_class) . '"',
-                $html,
-                1
-            );
-            if ($htmlUpdated) {
-                $html = $htmlUpdated;
-            }
-        }
-        echo wp_kses_post($html);
+        wp_register_script($script_key, '', array(), PIXELFLOW_VERSION, array('in_footer' => true));
+        wp_add_inline_script($script_key, $script, 'before');
+        wp_enqueue_script($script_key);
     }
 
     public function add_cart_item_name_class($product_name, $cart_item, $cart_item_key)

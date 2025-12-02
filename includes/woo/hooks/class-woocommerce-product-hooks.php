@@ -65,10 +65,9 @@ class PixelFlow_WooCommerce_Product_Hooks
                 // (Add this to the product name)
                 add_action(
                     'woocommerce_single_product_summary',
-                    array($this, 'add_product_name_class_single_start'),
-                    4
+                    array($this, 'add_product_name_class_single'),
+                    5
                 );
-                add_action('woocommerce_single_product_summary', array($this, 'add_product_name_class_single_end'), 6);
             }
 
             // Add info-itm-prc-pf class to product price
@@ -90,12 +89,7 @@ class PixelFlow_WooCommerce_Product_Hooks
 
                 // Add action-btn-cart-005-pf class to single product add to cart button
                 // (Add this to the add to cart button)
-                add_action('woocommerce_before_add_to_cart_button', array($this, 'start_single_add_to_cart_buffer'), 0);
-                add_action(
-                    'woocommerce_after_add_to_cart_button',
-                    array($this, 'end_single_add_to_cart_buffer'),
-                    PHP_INT_MAX
-                );
+                add_action('woocommerce_before_add_to_cart_button', array($this, 'add_single_add_to_cart_button_class'), 10);
             }
         }
     }
@@ -273,38 +267,24 @@ class PixelFlow_WooCommerce_Product_Hooks
 
     // Add info-itm-name-pf class to product name on single product page
     // (Add this to the product name)
-    public function add_product_name_class_single_start()
+    public function add_product_name_class_single()
     {
-        if (is_product()) {
-            ob_start();
-        }
-    }
+        $className = 'info-itm-name-pf';
 
-    public function add_product_name_class_single_end()
-    {
-        if (is_product() && ob_get_level() > 0) {
-            $content = ob_get_clean();
+        $script_key = 'pixelflow-product-name-class';
 
-            // Add our class to any <h1 ... class="..."> inside the product title
-            $contentUpdated = preg_replace_callback(
-                '/<h1\s+class="([^"]+)"/i',
-                function ($matches) {
-                    $classes = $matches[1];
+        $script = "(function() {
+            var elementToAdd = document.querySelectorAll('.product_title');
+            elementToAdd.forEach(function(button) {
+                if (!button.classList.contains('" . esc_js($className) . "')) {
+                    button.classList.add('" . esc_js($className) . "');
+                }
+            });
+        })();";
 
-                    // Add class only if not already present
-                    if (strpos($classes, 'info-itm-name-pf') === false) {
-                        $classes .= ' info-itm-name-pf';
-                    }
-
-                    return '<h1 class="' . esc_attr(trim($classes)) . '"';
-                },
-                $content
-            );
-            if ($contentUpdated) {
-                $content = $contentUpdated;
-            }
-            echo wp_kses_post($content);
-        }
+        wp_register_script($script_key, '', array(), PIXELFLOW_VERSION, array('in_footer' => true));
+        wp_add_inline_script($script_key, $script, 'before');
+        wp_enqueue_script($script_key);
     }
 
     // Add info-itm-qnty-pf class to quantity input 
@@ -347,35 +327,24 @@ class PixelFlow_WooCommerce_Product_Hooks
 
     // Add action-btn-cart-005-pf class to single product add to cart button 
     // (Add this to the add to cart button)
-    public function start_single_add_to_cart_buffer()
-    {
-        if (is_product()) {
-            ob_start(array($this, 'filter_single_add_to_cart_button'));
-        }
-    }
-
-    public function filter_single_add_to_cart_button($content)
+    public function add_single_add_to_cart_button_class()
     {
         $className = 'action-btn-cart-005-pf';
 
-        $contentUpdated = preg_replace(
-            '/class="([^"]*\badd_to_cart_button\b[^"]*|[^"]*\bsingle_add_to_cart_button\b[^"]*)"/i',
-            'class="$1 ' . esc_attr($className) . '"',
-            $content,
-            1
-        );
-        if ($contentUpdated) {
-            $content = $contentUpdated;
-        }
+        $script_key = 'pixelflow-single-button-class';
 
-        return $content;
-    }
+        $script = "(function() {
+            var elementToAdd = document.querySelectorAll('.single_add_to_cart_button');
+            elementToAdd.forEach(function(button) {
+                if (!button.classList.contains('" . esc_js($className) . "')) {
+                    button.classList.add('" . esc_js($className) . "');
+                }
+            });
+        })();";
 
-    public function end_single_add_to_cart_buffer()
-    {
-        if (is_product()) {
-            ob_end_flush();
-        }
+        wp_register_script($script_key, '', array(), PIXELFLOW_VERSION, array('in_footer' => true));
+        wp_add_inline_script($script_key, $script, 'before');
+        wp_enqueue_script($script_key);
     }
 }
 

@@ -300,6 +300,9 @@ For more information:
 
 ## Changelog
 
+### 0.1.21
+Replaced ob_ usage with javascript to add classes
+
 ### 0.1.20
 Updated the way how the script is injected
 
