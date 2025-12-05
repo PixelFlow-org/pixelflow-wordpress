@@ -36,3 +36,6 @@ app/source/*.sw?
 app/source/.env.production
 app/source/.env.local
 app/source/.env.*.local
+
+#Plugin publish
+svn/

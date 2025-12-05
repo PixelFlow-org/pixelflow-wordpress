@@ -129,7 +129,7 @@ class PixelFlow
             wp_enqueue_style($script_key);
 
             // Register and enqueue script as ES module
-            wp_enqueue_script_module($script_key, $js_url, array(), $js_version, true);
+            wp_enqueue_script_module($script_key, $js_url, array(), $js_version);
             // Mark as module (WP >= 6.3 supports 'type' data)
             wp_script_add_data($script_key, 'type', 'module');
 

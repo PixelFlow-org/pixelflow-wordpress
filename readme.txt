@@ -143,12 +143,13 @@ Visit [PixelFlow documentation](https://docs.pixelflow.so) or [Contact Support](
 
 == Screenshots ==
 
-1. Main settings page with PixelFlow configuration
-2. WooCommerce integration settings
+1. WooCommerce integration settings
+2. Analytics received in the Pixelflow dashboard
 3. Pixels Settings
 4. Events Urls Settings
 5. Recent Events
 6. Advanced Settings
+7. Events in the Pixelflow dashboard
 
 == Changelog ==
 

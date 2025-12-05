@@ -81,7 +81,7 @@ mkdir -p "$PLUGIN_STAGING_DIR"
 echo "📁 Creating deployment package: $ZIP_NAME"
 echo "📋 Copying files to staging directory..."
 
-# Copy production files to staging (NO source directory, NO env files)
+# Copy production files to staging (NO source directory, NO env files, NO publish script)
 mkdir -p "$PLUGIN_STAGING_DIR/app"
 cp -r app/dist "$PLUGIN_STAGING_DIR/app/" 2>/dev/null || true
 cp -r includes "$PLUGIN_STAGING_DIR/" 2>/dev/null || true
@@ -97,7 +97,10 @@ cd "$STAGING_DIR"
 zip -r "$ZIP_PATH" "$PLUGIN_NAME" \
   -x "*.DS_Store" \
   -x "*__MACOSX*" \
-  -x "*.git*"
+  -x "*.git*" \
+  -x "*build_plugin.sh" \
+  -x "*publish_plugin.sh" \
+  -x "*/svn/*"
 
 # Clean up staging directory
 cd "$SCRIPT_DIR"
@@ -120,6 +123,9 @@ echo ""
 echo "Files excluded:"
 echo "  ❌ app/source/ (entire directory)"
 echo "  ❌ .env files (used during build only, not included)"
+echo "  ❌ build_plugin.sh (build script)"
+echo "  ❌ publish_plugin.sh (publish script)"
+echo "  ❌ svn/ (SVN directory)"
 echo ""
 echo "🎉 Ready for deployment!"
 
