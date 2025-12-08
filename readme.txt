@@ -2,9 +2,9 @@
 Contributors: pixelflow
 Tags: facebook pixel, conversions api, meta pixel, woocommerce tracking, ecommerce
 Requires at least: 5.0
-Tested up to: 6.8
+Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 0.1.21
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -152,6 +152,9 @@ Visit [PixelFlow documentation](https://docs.pixelflow.so) or [Contact Support](
 7. Events in the Pixelflow dashboard
 
 == Changelog ==
+
+= 1.1.0 =
+Simplified the analytics script, excluded dynamically loaded parameters, WordPress support up to 6.9
 
 = 0.1.21 =
 Replaced ob_ usage with javascript to add classes

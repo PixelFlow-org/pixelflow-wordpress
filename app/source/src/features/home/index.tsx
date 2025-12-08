@@ -9,9 +9,6 @@ import { useEffect, useState, useMemo, ReactElement } from 'react';
 /** Store */
 import { getCdnUrl } from '@pixelflow-org/plugin-core';
 
-/** API */
-import { useLazyGetSiteQuery } from '@pixelflow-org/plugin-core';
-
 /** UI Components */
 import { Button } from '@pixelflow-org/plugin-ui';
 
@@ -41,7 +38,6 @@ import { wordPressNavPanelConfig } from '@/features/home/constants/index';
 import { useAuth } from '@pixelflow-org/plugin-features';
 
 /** Types */
-import { BlockingRule, TrackingUrlScriptData } from '@pixelflow-org/plugin-core';
 import { WordPressNavPanelTab } from '@/features/home/types/index';
 
 /* Wordpress settings page */
@@ -91,9 +87,6 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
   const [errorType, setErrorType] = useState<'warning' | 'error'>('error');
   // Control start setup modal visibility to manage user interactions
   const [openStartSetupModal, setOpenStartSetupModal] = useState<boolean>(false);
-
-  /** Redux state */
-  const [getSite] = useLazyGetSiteQuery();
 
   /** Pixels */
   // Manage pixel tracking configurations tied to the current site
@@ -189,34 +182,12 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
           return;
         }
 
-        // Transform tracking URLs to script format
-        const formattedTrackingUrls: TrackingUrlScriptData[] = trackingUrls.map((url) => ({
-          url: url.url,
-          event: url.event,
-        }));
-
-        // Get site events blocking rules
-        let blockingRules: BlockingRule[] = [];
-        try {
-          const site = await getSite(siteId).unwrap();
-          if (site.events_blocking_rules) {
-            blockingRules = site.events_blocking_rules;
-          }
-        } catch (error) {
-          console.warn('[PixelFlow] Could not fetch blocking rules:', error);
-        }
-
         // Save script parameters to WordPress database using RTK mutation
         await saveScriptCode({
-          pixelIds: pixels.map((pixel) => pixel.pixelId),
           siteExternalId,
           apiKey,
-          currency: selectedCurrency,
-          trackingUrls: formattedTrackingUrls,
           apiEndpoint: `${import.meta.env.VITE_API_BASE_URL || ''}/event`,
           cdnUrl: getCdnUrl(),
-          enableMetaPixel: true,
-          blockingRules,
         }).unwrap();
 
         console.log('[PixelFlow] Tracking script saved successfully. Use settings to enable.');
@@ -336,40 +307,12 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
         return false;
       }
 
-      // Transform tracking URLs to script format
-      const formattedTrackingUrls: TrackingUrlScriptData[] = trackingUrls.map((url) => ({
-        url: url.url,
-        event: url.event,
-      }));
-
-      // Get site events blocking rules
-      let blockingRules: BlockingRule[] = [];
-      try {
-        if (siteId) {
-          const site = await getSite(siteId).unwrap();
-          if (site.events_blocking_rules) {
-            blockingRules = site.events_blocking_rules;
-          }
-        }
-      } catch (error) {
-        const errorMsg = '[PixelFlow] Could not fetch blocking rules:';
-        adapter.showNotification(errorMsg, 'warning');
-        setError(errorMsg);
-        setErrorType('warning');
-        console.warn(errorMsg, error);
-      }
-
       // Save script parameters to WordPress database using RTK mutation
       await saveScriptCode({
-        pixelIds: pixels.map((pixel) => pixel.pixelId),
         siteExternalId,
         apiKey,
-        currency: selectedCurrency,
-        trackingUrls: formattedTrackingUrls,
         apiEndpoint: `${import.meta.env.VITE_API_BASE_URL || ''}/event`,
         cdnUrl: getCdnUrl(),
-        enableMetaPixel: true,
-        blockingRules,
       }).unwrap();
 
       adapter.showNotification('Tracking script regenerated successfully', 'success');

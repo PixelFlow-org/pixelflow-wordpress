@@ -300,6 +300,9 @@ For more information:
 
 ## Changelog
 
+### 1.1.0
+Simplified the analytics script, excluded dynamically loaded parameters, WordPress support up to 6.9
+
 ### 0.1.21
 Replaced ob_ usage with javascript to add classes
 

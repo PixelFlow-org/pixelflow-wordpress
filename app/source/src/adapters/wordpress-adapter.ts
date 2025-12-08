@@ -7,12 +7,7 @@
 import { toast } from 'react-toastify';
 
 /** Types */
-import {
-  PlatformAdapter,
-  PlatformConfig,
-  BlockingRule,
-  TrackingUrlScriptData,
-} from '@pixelflow-org/plugin-core';
+import { PlatformAdapter, PlatformConfig } from '@pixelflow-org/plugin-core';
 
 /**
  * WordPress Platform Adapter
@@ -78,15 +73,10 @@ export class WordpressAdapter implements PlatformAdapter {
    * These parameters are the same as those passed to generateTrackingScript
    */
   async saveParams(
-    pixelIds: string[],
     siteExternalId: string,
     apiKey: string,
-    currency: string,
-    trackingUrls: TrackingUrlScriptData[],
     apiEndpoint: string,
-    cdnUrl: string,
-    enableMetaPixel: boolean,
-    blockingRules: BlockingRule[]
+    cdnUrl: string
   ): Promise<void> {
     // eslint-disable-next-line
     const settings = (window as any).pixelflowSettings;
@@ -100,15 +90,10 @@ export class WordpressAdapter implements PlatformAdapter {
 
     // Encode parameters as JSON and base64 encode
     const params = {
-      pixelIds,
       siteExternalId,
       apiKey,
-      currency,
-      trackingUrls,
       apiEndpoint,
       cdnUrl,
-      enableMetaPixel,
-      blockingRules,
     };
 
     const jsonParams = JSON.stringify(params);

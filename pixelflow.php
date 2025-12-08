@@ -2,7 +2,7 @@
 /**
  * Plugin Name: PixelFlow
  * Description: PixelFlow Official Plugin for WordPress. Easily Install Meta's Conversions API on Your Website
- * Version: 0.1.21
+ * Version: 1.1.0
  * Author: PixelFlow Team
  * Author URI: https://pixelflow.so/
  * License: GPL v2 or later
@@ -17,7 +17,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('PIXELFLOW_VERSION', '0.1.21');
+define('PIXELFLOW_VERSION', '1.1.0');
 define('PIXELFLOW_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('PIXELFLOW_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('PIXELFLOW_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -101,13 +101,13 @@ class PixelFlow
             $pixelflow_general_options = get_option('pixelflow_general_options', array());
             $class_options             = get_option('pixelflow_class_options', array());
             $debug_options             = get_option('pixelflow_debug_options', array());
-            $script_params               = get_option('pixelflow_script_params', '');
+            $script_params             = get_option('pixelflow_script_params', '');
 
             $settings = array(
                 'general_options'       => $pixelflow_general_options,
                 'class_options'         => $class_options,
                 'debug_options'         => $debug_options,
-                'script_params'           => $script_params,
+                'script_params'         => $script_params,
                 'nonce'                 => wp_create_nonce('pixelflow_settings_nonce'),
                 'ajax_url'              => admin_url('admin-ajax.php'),
                 'is_woocommerce_active' => PixelFlow_WooCommerce_Integration::is_woocommerce_active(),
@@ -237,6 +237,9 @@ class PixelFlow
      */
     public function inject_script()
     {
+        if (is_admin()) {
+            return;
+        }
         $pixelflow_general_options = get_option('pixelflow_general_options');
 
         // Only inject if enabled and user role is not excluded
@@ -249,27 +252,28 @@ class PixelFlow
                 // Only enqueue if params exist
                 if ( ! empty($params)) {
                     // Extract parameters
-                    $pixel_ids        = isset($params['pixelIds']) ? $params['pixelIds'] : array();
                     $site_external_id = isset($params['siteExternalId']) ? $params['siteExternalId'] : '';
                     $api_key          = isset($params['apiKey']) ? $params['apiKey'] : '';
-                    $cdn_url          = isset($params['cdnUrl']) ? $params['cdnUrl'] : '';
 
                     // Check if required params exist
-                    if ( ! empty($pixel_ids) && ! empty($site_external_id) && ! empty($api_key) && ! empty($cdn_url)) {
-                        // Enqueue the script
-                        wp_enqueue_script(
+                    if ( ! empty($site_external_id) && ! empty($api_key)) {
+                        $script = "!(function(p,i,x,f,l,o,w){p[\"PixelFlowObject\"]=f;p[f]=p[f]||function(){(p[f].q=p[f].q||[]).push(arguments);};p[f].l=1*new Date();o=i.createElement(x);w=i.getElementsByTagName(x)[0];o.src=l;o.async=1;p[f].apiKey=\"" . esc_js(
+                                $api_key
+                            ) . "\";p[f].siteId=\"" . esc_js(
+                                      $site_external_id
+                                  ) . "\";p[f].apiEndpoint=\"https://api.pixelflow.so/event\";w.parentNode.insertBefore(o,w);})(window,document,\"script\",\"pixelFlow\",\"https://slrgkgulru.pixelflow.so/pfm.js\");";
+
+                        $script = apply_filters('pixelflow_analytics_code', $script);
+
+                        wp_register_script(
                             $this->tracking_script_handle,
-                            esc_url($cdn_url),
+                            '',
                             array(),
                             PIXELFLOW_VERSION,
                             array('in_footer' => false)
                         );
-
-                        // Add async attribute
-                        add_filter('script_loader_tag', array($this, 'add_async_attribute'), 10, 2);
-
-                        // Add data attributes via filter
-                        add_filter('script_loader_tag', array($this, 'add_tracking_data_attributes'), 10, 2);
+                        wp_add_inline_script($this->tracking_script_handle, $script, 'before');
+                        wp_enqueue_script($this->tracking_script_handle);
                     }
                 }
             }
@@ -277,75 +281,6 @@ class PixelFlow
 
         // Inject debug styles if debug is enabled
         $this->inject_debug_styles();
-    }
-
-    /**
-     * Add async attribute to pixelflow tracking script
-     *
-     * @param string $tag    Script tag HTML
-     * @param string $handle Script handle
-     *
-     * @return string Modified script tag
-     */
-    public function add_async_attribute($tag, $handle)
-    {
-        if ($this->tracking_script_handle === $handle) {
-            return str_replace(' src=', ' async src=', $tag);
-        }
-        return $tag;
-    }
-
-    /**
-     * Add tracking data attributes to pixelflow script tag
-     *
-     * @param string $tag    Script tag HTML
-     * @param string $handle Script handle
-     *
-     * @return string Modified script tag with data attributes
-     */
-    public function add_tracking_data_attributes($tag, $handle)
-    {
-        if ($this->tracking_script_handle !== $handle) {
-            return $tag;
-        }
-
-        // Get saved parameters
-        $params = get_option('pixelflow_script_params', array());
-
-        if (empty($params)) {
-            return $tag;
-        }
-
-        // Extract parameters with defaults
-        $pixel_ids        = isset($params['pixelIds']) ? $params['pixelIds'] : array();
-        $site_external_id = isset($params['siteExternalId']) ? $params['siteExternalId'] : '';
-        $api_key          = isset($params['apiKey']) ? $params['apiKey'] : '';
-        $currency         = isset($params['currency']) ? $params['currency'] : 'USD';
-        $tracking_urls    = isset($params['trackingUrls']) ? $params['trackingUrls'] : array();
-        $api_endpoint     = isset($params['apiEndpoint']) ? $params['apiEndpoint'] : '';
-        $enable_meta_pixel = isset($params['enableMetaPixel']) ? $params['enableMetaPixel'] : true;
-        $blocking_rules   = isset($params['blockingRules']) ? $params['blockingRules'] : array();
-
-        // Build data attributes
-        $data_attrs  = ' data-meta-pixel-ids=\'' . wp_json_encode($pixel_ids, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . '\'';
-        $data_attrs .= ' data-site-id="' . esc_attr($site_external_id) . '"';
-        $data_attrs .= ' data-api-key="' . esc_attr($api_key) . '"';
-        $data_attrs .= ' data-currency="' . esc_attr($currency) . '"';
-        $data_attrs .= ' data-api-endpoint="' . esc_url($api_endpoint) . '"';
-        $data_attrs .= ' data-tracked-urls=\'' . wp_json_encode($tracking_urls, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . '\'';
-        $data_attrs .= ' data-blocking-rules=\'' . wp_json_encode($blocking_rules, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . '\'';
-        $data_attrs .= ' data-enable-meta-pixel="' . ($enable_meta_pixel ? 'true' : 'false') . '"';
-
-        // Add debug attribute if debug is enabled
-        $pixelflow_general_options = get_option('pixelflow_general_options', array());
-        if (isset($pixelflow_general_options['debug_enabled']) && $pixelflow_general_options['debug_enabled']) {
-            $data_attrs .= ' data-debug="true"';
-        }
-
-        // Insert data attributes before the closing >
-        $tag = str_replace(' src=', $data_attrs . ' src=', $tag);
-
-        return $tag;
     }
 
 
@@ -524,13 +459,13 @@ class PixelFlow
         $pixelflow_general_options = get_option('pixelflow_general_options', array());
         $class_options             = get_option('pixelflow_class_options', array());
         $debug_options             = get_option('pixelflow_debug_options', array());
-        $script_params               = get_option('pixelflow_script_params', '');
+        $script_params             = get_option('pixelflow_script_params', '');
 
         wp_send_json_success(array(
             'general_options'       => $pixelflow_general_options,
             'class_options'         => $class_options,
             'debug_options'         => $debug_options,
-            'script_params'           => $script_params,
+            'script_params'         => $script_params,
             'is_woocommerce_active' => PixelFlow_WooCommerce_Integration::is_woocommerce_active(),
         ));
     }
@@ -619,25 +554,21 @@ class PixelFlow
         }
 
         // Validate required parameters
-        $required_keys = array('pixelIds', 'siteExternalId', 'apiKey', 'currency', 'trackingUrls', 'apiEndpoint', 'cdnUrl', 'enableMetaPixel', 'blockingRules');
+        $required_keys = array('siteExternalId', 'apiKey', 'apiEndpoint', 'cdnUrl');
         foreach ($required_keys as $key) {
             if ( ! isset($params[$key])) {
                 // translators: %s is the name of the missing required parameter.
-                wp_send_json_error(array('message' => sprintf(__('Missing required parameter: %s', 'pixelflow'), $key)), 400);
+                wp_send_json_error(array('message' => sprintf(__('Missing required parameter: %s', 'pixelflow'), $key)),
+                    400);
             }
         }
 
         // Sanitize and validate parameters
         $sanitized_params = array(
-            'pixelIds'        => array_map('sanitize_text_field', (array) $params['pixelIds']),
-            'siteExternalId'   => sanitize_text_field($params['siteExternalId']),
-            'apiKey'           => sanitize_text_field($params['apiKey']),
-            'currency'         => sanitize_text_field($params['currency']),
-            'trackingUrls'     => $this->sanitize_tracking_urls((array) $params['trackingUrls']),
-            'apiEndpoint'      => esc_url_raw($params['apiEndpoint']),
-            'cdnUrl'           => esc_url_raw($params['cdnUrl']),
-            'enableMetaPixel'  => (bool) $params['enableMetaPixel'],
-            'blockingRules'    => $this->sanitize_blocking_rules((array) $params['blockingRules']),
+            'siteExternalId' => sanitize_text_field($params['siteExternalId']),
+            'apiKey'         => sanitize_text_field($params['apiKey']),
+            'apiEndpoint'    => esc_url_raw($params['apiEndpoint']),
+            'cdnUrl'         => esc_url_raw($params['cdnUrl']),
         );
 
         // Save parameters to database option
@@ -674,6 +605,7 @@ class PixelFlow
      * Sanitize tracking URLs array
      *
      * @param array $tracking_urls Raw tracking URLs data
+     *
      * @return array Sanitized tracking URLs
      */
     private function sanitize_tracking_urls(array $tracking_urls): array
@@ -688,6 +620,7 @@ class PixelFlow
                 'event' => sanitize_text_field($url_data['event'] ?? ''),
             );
         }
+
         return $sanitized;
     }
 
@@ -695,6 +628,7 @@ class PixelFlow
      * Sanitize blocking rules array
      *
      * @param array $blocking_rules Raw blocking rules data
+     *
      * @return array Sanitized blocking rules
      */
     private function sanitize_blocking_rules(array $blocking_rules): array
@@ -706,11 +640,12 @@ class PixelFlow
             }
             $sanitized_rule = array();
             foreach ($rule as $key => $value) {
-                $sanitized_key                = sanitize_key($key);
+                $sanitized_key                  = sanitize_key($key);
                 $sanitized_rule[$sanitized_key] = is_bool($value) ? $value : sanitize_text_field($value);
             }
             $sanitized[] = $sanitized_rule;
         }
+
         return $sanitized;
     }
 }
