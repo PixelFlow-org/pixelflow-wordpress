@@ -13,8 +13,11 @@ import { Button } from '@pixelflow-org/plugin-ui';
 /** Hooks */
 import { useSettings } from '@/features/settings/contexts/SettingsContext.tsx';
 
+import { User } from '@pixelflow-org/plugin-core';
+
 interface ActivatePixelflowProps {
   onRegenerateScript: () => void;
+  user: User | null;
 }
 
 /**
@@ -25,7 +28,7 @@ interface ActivatePixelflowProps {
  * @returns ActivatePixelflow component
  */
 export function ActivatePixelflow(props: ActivatePixelflowProps) {
-  const { onRegenerateScript } = props;
+  const { onRegenerateScript, user } = props;
   const { generalOptions, updateGeneralOption, saveSettings, isSaving, scriptCode } = useSettings();
 
   const isScriptInserted = Boolean(scriptCode);
@@ -65,21 +68,23 @@ export function ActivatePixelflow(props: ActivatePixelflowProps) {
           variant={'green'}
         ></UI.Switch.Root>
       </div>
-      <div>
-        <Button.Root
-          size="xsmall"
-          onClick={onRegenerateScriptHandle}
-          disabled={regenerateScriptLoading}
-        >
-          {regenerateScriptLoading
-            ? isScriptInserted
-              ? 'Saving Changes & Updating...'
-              : 'Saving Changes & Inserting...'
-            : isScriptInserted
-              ? 'Save Changes & Update Script'
-              : 'Save Changes & Insert Script'}
-        </Button.Root>
-      </div>
+      {user && (
+        <div>
+          <Button.Root
+            size="xsmall"
+            onClick={onRegenerateScriptHandle}
+            disabled={regenerateScriptLoading}
+          >
+            {regenerateScriptLoading
+              ? isScriptInserted
+                ? 'Saving Changes & Updating...'
+                : 'Saving Changes & Inserting...'
+              : isScriptInserted
+                ? 'Save Changes & Update Script'
+                : 'Save Changes & Insert Script'}
+          </Button.Root>
+        </div>
+      )}
     </div>
   );
 }

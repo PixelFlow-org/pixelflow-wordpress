@@ -1,12 +1,14 @@
 import { Currency, NarrowButton, FaqIcon, Dropdown } from '@pixelflow-org/plugin-ui';
+import { User } from '@pixelflow-org/plugin-core';
 import PixelflowIcon from '@/shared/icons/pixelflow.icon.tsx';
 
 type HeaderProps = {
   selectedCurrency: string;
   updateCurrency: (currency: string) => void;
+  user: User | null;
 };
 
-const Header = ({ selectedCurrency, updateCurrency }: HeaderProps) => {
+const Header = ({ selectedCurrency, updateCurrency, user }: HeaderProps) => {
   return (
     <nav className="pf-header flex flex-row justify-between">
       <div className="pf-header__nav flex flex-row gap-2">
@@ -62,9 +64,11 @@ const Header = ({ selectedCurrency, updateCurrency }: HeaderProps) => {
           </Dropdown.Content>
         </Dropdown.Root>
       </div>
-      <div className="pf-header__actions flex flex-row gap-2">
-        <Currency selectedCurrency={selectedCurrency} updateCurrency={updateCurrency} />
-      </div>
+      {user && (
+        <div className="pf-header__actions flex flex-row gap-2">
+          <Currency selectedCurrency={selectedCurrency} updateCurrency={updateCurrency} />
+        </div>
+      )}
     </nav>
   );
 };

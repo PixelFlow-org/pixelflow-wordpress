@@ -37,6 +37,16 @@ const Bootstrap = () => {
   const [isInitializing, setIsInitializing] = useState(true);
   const { adapter } = usePlatform();
 
+  const [isConfigured, setIsConfigured] = useState(false);
+
+  useEffect(() => {
+    const isConfiguredEl = document.getElementById('pixelflow-configured');
+    if (isConfiguredEl) {
+      const isConfigured = isConfiguredEl.getAttribute('value');
+      setIsConfigured(isConfigured === '1');
+    }
+  }, []);
+
   // Auth state from Redux
   const { isAuthenticated } = useAuthSelector();
 
@@ -82,7 +92,7 @@ const Bootstrap = () => {
   }
 
   // Show auth screen if not authenticated
-  if (authState === AuthStatus.UNAUTHENTICATED && !isAuthenticated) {
+  if (authState === AuthStatus.UNAUTHENTICATED && !isAuthenticated && !isConfigured) {
     return (
       <>
         <AuthScreen adapter={adapter} onAuthSuccess={handleAuthSuccess} />
@@ -94,7 +104,7 @@ const Bootstrap = () => {
   }
 
   // Show home module if authenticated
-  if (authState === AuthStatus.AUTHENTICATED && isAuthenticated && user) {
+  if (isConfigured) {
     return (
       <SettingsProvider>
         <Home adapter={adapter} user={user} />

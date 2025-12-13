@@ -54,7 +54,7 @@ import Notification from '@/shared/components/Notification/Notification.tsx';
 import Header from '@/shared/components/Header/Header.tsx';
 
 interface HomeProps {
-  user: User;
+  user: User | null;
   adapter: PlatformAdapter;
 }
 
@@ -165,6 +165,9 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
    * and can be enabled/disabled via the settings toggle.
    */
   useEffect(() => {
+    if (!user) {
+      return;
+    }
     const generateAndSaveScript = async () => {
       // Skip if already generating or if any required dependency is missing
       if (isGeneratingScript || !siteExternalId || !pixels || pixels.length === 0 || !siteId) {
@@ -201,10 +204,13 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
     generateAndSaveScript();
     // Note: getHashedApiKey and getSite are intentionally NOT in dependencies
     // to avoid infinite loops - they're stable functions from hooks
-  }, [siteExternalId, pixels, siteId, selectedCurrency, trackingUrls]);
+  }, [siteExternalId, pixels, siteId, selectedCurrency, trackingUrls, user]);
 
   // Automatically associate tracking data with the current site on component mount
   useEffect(() => {
+    if (!user) {
+      return;
+    }
     /**
      * Retrieves site identifier to ensure tracking data isolation between sites
      * Prevents configuration leakage between different user sites
@@ -218,7 +224,7 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
       }
     };
     fetchSiteExternalId();
-  }, [adapter]);
+  }, [adapter, user]);
 
   useEffect(() => {
     if (!user) return;
@@ -362,11 +368,11 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
   return (
     <div className="bg-background text-foreground min-h-full !p-[12px]">
       <nav className="flex justify-between items-center mb-6 gap-60">
-        <Header selectedCurrency={selectedCurrency} updateCurrency={onCurrencyChange} />
-        <TopControls handleLogout={logoutHandler} />
+        <Header selectedCurrency={selectedCurrency} updateCurrency={onCurrencyChange} user={user} />
+        <TopControls handleLogout={logoutHandler} user={user} />
       </nav>
       {error && <Notification message={error} type={errorType} />}
-      <ActivatePixelflow onRegenerateScript={onRegenerateScript} />
+      <ActivatePixelflow onRegenerateScript={onRegenerateScript} user={user} />
       <NavPanel
         activeTab={activeTab}
         setActiveTab={setActiveTab}
