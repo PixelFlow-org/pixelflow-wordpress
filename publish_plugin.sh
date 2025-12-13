@@ -12,7 +12,9 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
 # Extract version from pixelflow.php if not provided
-if [ -z "$1" ] || [[ "$1" =~ ^[a-zA-Z] ]]; then
+# Check if first arg is empty or looks like a username (not a version number)
+case "$1" in
+  ''|[a-zA-Z]*)
   # First arg is empty or looks like a username, extract version from file
   if [ -f "pixelflow.php" ]; then
     VERSION=$(grep "^ \* Version:" pixelflow.php | head -1 | awk '{print $3}' | tr -d '\r')
@@ -27,11 +29,13 @@ if [ -z "$1" ] || [[ "$1" =~ ^[a-zA-Z] ]]; then
     echo "Usage: ./publish_plugin.sh [version] [svn-username]"
     exit 1
   fi
-else
+  ;;
+*)
   # First arg is the version
   VERSION="$1"
   SVN_USERNAME="${2:-}"
-fi
+  ;;
+esac
 
 # Plugin details
 PLUGIN_NAME="pixelflow"
