@@ -11,13 +11,15 @@ import SunIcon from '@/shared/icons/sun.icon.tsx';
 import MoonIcon from '@/shared/icons/moon.icon.tsx';
 import LogoutIcon from '@/shared/icons/logout.icon.tsx';
 
+import { User } from '@pixelflow-org/plugin-core';
+
 /**
  * TopControls component
  * @description Renders theme toggle and logout button at top right of the interface
  * @param handleLogout - Async function to handle user logout
  * @returns TopControls component
  */
-const TopControls = ({ handleLogout }: { handleLogout: () => Promise<void> }) => {
+const TopControls = ({ handleLogout, user }: { handleLogout: () => void; user: User | null }) => {
   const { resolvedTheme, setTheme } = useTheme();
 
   const toggleTheme = () => {
@@ -45,10 +47,12 @@ const TopControls = ({ handleLogout }: { handleLogout: () => Promise<void> }) =>
         {resolvedTheme === 'dark' ? <SunIcon /> : <MoonIcon />}
         <span className="text-xs">{resolvedTheme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
       </NarrowButton>
-      <NarrowButton onClick={handleLogout} width="!w-[85px]" className="justify-center">
-        <LogoutIcon />
-        <span className="text-xs">Log Out</span>
-      </NarrowButton>
+      {user && (
+        <NarrowButton onClick={handleLogout} width="!w-[85px]" className="justify-center">
+          <LogoutIcon />
+          <span className="text-xs">Log Out</span>
+        </NarrowButton>
+      )}
     </div>
   );
 };

@@ -36,6 +36,7 @@ export interface UseSettingsReturn {
   scriptCode: string;
   availableRoles: UserRole[];
   isWooCommerceActive: boolean;
+  isConfigured: boolean;
   isLoading: boolean;
   isSaving: boolean;
   error: string | null;
@@ -93,6 +94,7 @@ export function useSettings(): UseSettingsReturn {
   const [scriptCode, setScriptCode] = useState<string>('');
   const [availableRoles, setAvailableRoles] = useState<UserRole[]>([]);
   const [isWooCommerceActive, setIsWooCommerceActive] = useState(false);
+  const [isConfigured, setIsConfigured] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Prevent concurrent saves to avoid race conditions
@@ -121,6 +123,14 @@ export function useSettings(): UseSettingsReturn {
       setError('Failed to load settings');
       toast('Failed to load settings', { type: 'error' });
       setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const isConfiguredEl = document.getElementById('pixelflow-configured');
+    if (isConfiguredEl) {
+      const isConfigured = isConfiguredEl.getAttribute('value');
+      setIsConfigured(isConfigured === '1');
     }
   }, []);
 
@@ -247,6 +257,7 @@ export function useSettings(): UseSettingsReturn {
     scriptCode,
     availableRoles,
     isWooCommerceActive,
+    isConfigured,
     isLoading,
     isSaving,
     error,

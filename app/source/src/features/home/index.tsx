@@ -13,11 +13,10 @@ import { getCdnUrl } from '@pixelflow-org/plugin-core';
 import { Button } from '@pixelflow-org/plugin-ui';
 
 /** Types */
-import { User } from '@pixelflow-org/plugin-core';
 import { PlatformAdapter } from '@pixelflow-org/plugin-core';
 
 /** Hooks */
-import { usePixelsData } from '@pixelflow-org/plugin-features';
+import { AuthScreen, usePixelsData } from '@pixelflow-org/plugin-features';
 import { useTrackingUrlsData } from '@pixelflow-org/plugin-features';
 import { useEventsData } from '@pixelflow-org/plugin-features';
 import { useUsersData } from '@pixelflow-org/plugin-features';
@@ -32,7 +31,10 @@ import {
 import StartSetupModal from './components/start-setup-modal';
 
 /** Constants */
-import { wordPressNavPanelConfig } from '@/features/home/constants/index';
+import {
+  wordPressNavPanelConfigAuth,
+  wordPressNavPanelConfigNotAuth,
+} from '@/features/home/constants/index';
 
 /** Utils */
 import { useAuth } from '@pixelflow-org/plugin-features';
@@ -54,18 +56,16 @@ import Notification from '@/shared/components/Notification/Notification.tsx';
 import Header from '@/shared/components/Header/Header.tsx';
 
 interface HomeProps {
-  user: User;
   adapter: PlatformAdapter;
 }
 
 /**
  * Main dashboard module that orchestrates pixel tracking management
  * Handles the complete workflow from authentication verification to script injection
- * @param user - Current authenticated user data
  * @param adapter - Platform adapter for platform-specific operations
  * @returns ReactElement - Complete home dashboard interface
  */
-const Home = ({ user, adapter }: HomeProps): ReactElement => {
+const Home = ({ adapter }: HomeProps): ReactElement => {
   /** Local state */
   // Track which settings panel is currently visible to users
   const [activeTab, setActiveTab] = useState<WordPressNavPanelTab>('woocommerce');
@@ -87,6 +87,13 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
   const [errorType, setErrorType] = useState<'warning' | 'error'>('error');
   // Control start setup modal visibility to manage user interactions
   const [openStartSetupModal, setOpenStartSetupModal] = useState<boolean>(false);
+
+  /**
+   * Auth things
+   */
+  const { user, handleAuthSuccess, handleLogout, checkExistingAuth } = useAuth({
+    adapter,
+  });
 
   /** Pixels */
   // Manage pixel tracking configurations tied to the current site
@@ -114,28 +121,30 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
     adapter,
   });
 
-  const { handleLogout } = useAuth({ adapter });
-
   // Get settings save function to disable integration on logout
   const { saveSettings, isWooCommerceActive } = useSettings();
 
   useEffect(() => {
-    if (!isWooCommerceActive) {
-      setActiveTab('pixel');
+    if (user) {
+      if (!isWooCommerceActive) {
+        setActiveTab('pixel');
+      } else {
+        setActiveTab('woocommerce');
+      }
     } else {
-      setActiveTab('woocommerce');
+      setActiveTab('account');
     }
-  }, [isWooCommerceActive]);
+  }, [isWooCommerceActive, user]);
 
   // Create dynamic nav config based on WooCommerce availability
   const navConfig = useMemo(
     () => ({
-      ...wordPressNavPanelConfig,
-      tabs: wordPressNavPanelConfig.tabs.map((tab) =>
+      ...(user ? wordPressNavPanelConfigAuth : wordPressNavPanelConfigNotAuth),
+      tabs: (user ? wordPressNavPanelConfigAuth : wordPressNavPanelConfigNotAuth).tabs.map((tab) =>
         tab.id === 'woocommerce' ? { ...tab, visible: isWooCommerceActive } : tab
       ),
     }),
-    [isWooCommerceActive]
+    [isWooCommerceActive, user]
   );
 
   // RTK mutations for script management
@@ -146,14 +155,18 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
     try {
       // Disable PixelFlow integration before logout
       // Use override to ensure the value is set immediately without waiting for state update
-      await saveSettings({ generalOptionsOverride: { enabled: 0 } });
+      await saveSettings();
 
       console.log('[PixelFlow] Integration disabled on logout');
     } catch (error) {
       console.error('[PixelFlow] Failed to disable integration:', error);
     } finally {
       // Proceed with logout regardless of settings update result
-      handleLogout();
+      handleLogout().then(() => {
+        checkExistingAuth().then(() => {
+          console.log('user logged out', user);
+        });
+      });
     }
   };
 
@@ -165,6 +178,9 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
    * and can be enabled/disabled via the settings toggle.
    */
   useEffect(() => {
+    if (!user) {
+      return;
+    }
     const generateAndSaveScript = async () => {
       // Skip if already generating or if any required dependency is missing
       if (isGeneratingScript || !siteExternalId || !pixels || pixels.length === 0 || !siteId) {
@@ -201,10 +217,13 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
     generateAndSaveScript();
     // Note: getHashedApiKey and getSite are intentionally NOT in dependencies
     // to avoid infinite loops - they're stable functions from hooks
-  }, [siteExternalId, pixels, siteId, selectedCurrency, trackingUrls]);
+  }, [siteExternalId, pixels, siteId, selectedCurrency, trackingUrls, user]);
 
   // Automatically associate tracking data with the current site on component mount
   useEffect(() => {
+    if (!user) {
+      return;
+    }
     /**
      * Retrieves site identifier to ensure tracking data isolation between sites
      * Prevents configuration leakage between different user sites
@@ -218,7 +237,7 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
       }
     };
     fetchSiteExternalId();
-  }, [adapter]);
+  }, [adapter, user]);
 
   useEffect(() => {
     if (!user) return;
@@ -362,11 +381,11 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
   return (
     <div className="bg-background text-foreground min-h-full !p-[12px]">
       <nav className="flex justify-between items-center mb-6 gap-60">
-        <Header selectedCurrency={selectedCurrency} updateCurrency={onCurrencyChange} />
-        <TopControls handleLogout={logoutHandler} />
+        <Header selectedCurrency={selectedCurrency} updateCurrency={onCurrencyChange} user={user} />
+        <TopControls handleLogout={logoutHandler} user={user} />
       </nav>
       {error && <Notification message={error} type={errorType} />}
-      <ActivatePixelflow onRegenerateScript={onRegenerateScript} />
+      <ActivatePixelflow onRegenerateScript={onRegenerateScript} user={user} />
       <NavPanel
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -374,52 +393,64 @@ const Home = ({ user, adapter }: HomeProps): ReactElement => {
         config={navConfig}
       />
       {activeTab === 'woocommerce' && <WooCommerceSettings />}
-      {activeTab === 'pixel' && (
-        <>
-          <PixelsModule
-            pixels={pixels ?? []}
-            siteExternalId={siteExternalId}
-            addPixel={addPixel}
-            updatePixel={updatePixel}
-            deletePixel={deletePixel}
-            open={openAddPixelModal}
-            setOpen={setOpenAddPixelModal}
-            adapter={adapter}
-          />
-          <Button.Root
-            size="xsmall"
-            className={`${pixels?.length ? '' : 'pf-add-pixel-button'} my-4 mx-auto`}
-            onClick={() => setOpenAddPixelModal(true)}
-          >
-            Add pixel
-          </Button.Root>
-        </>
+      {activeTab === 'account' && (
+        <AuthScreen adapter={adapter} onAuthSuccess={handleAuthSuccess} />
       )}
-      {activeTab === 'url' && (
-        <>
-          <TrackingUrlsModule
-            trackingUrls={trackingUrls ?? []}
-            trackingUrlsEvents={trackingUrlsEvents ?? []}
-            addTrackingUrl={addTrackingUrl}
-            deleteTrackingUrl={deleteTrackingUrl}
-            open={openAddUrlModal}
-            setOpen={setOpenAddUrlModal}
-            adapter={adapter}
-          />
-          <Button.Root
-            size="xsmall"
-            className="my-4 mx-auto"
-            onClick={() => setOpenAddUrlModal(true)}
-          >
-            Add Url
-          </Button.Root>
-        </>
-      )}
-      {activeTab === 'events' && (
-        <EventsModule events={events} areEventsLoading={areEventsLoading} adapter={adapter} />
-      )}
+      {activeTab === 'pixel' &&
+        (user ? (
+          <>
+            <PixelsModule
+              pixels={pixels ?? []}
+              siteExternalId={siteExternalId}
+              addPixel={addPixel}
+              updatePixel={updatePixel}
+              deletePixel={deletePixel}
+              open={openAddPixelModal}
+              setOpen={setOpenAddPixelModal}
+              adapter={adapter}
+            />
+            <Button.Root
+              size="xsmall"
+              className={`${pixels?.length ? '' : 'pf-add-pixel-button'} my-4 mx-auto`}
+              onClick={() => setOpenAddPixelModal(true)}
+            >
+              Add pixel
+            </Button.Root>
+          </>
+        ) : (
+          <AuthScreen adapter={adapter} onAuthSuccess={handleAuthSuccess} />
+        ))}
+      {activeTab === 'url' &&
+        (user ? (
+          <>
+            <TrackingUrlsModule
+              trackingUrls={trackingUrls ?? []}
+              trackingUrlsEvents={trackingUrlsEvents ?? []}
+              addTrackingUrl={addTrackingUrl}
+              deleteTrackingUrl={deleteTrackingUrl}
+              open={openAddUrlModal}
+              setOpen={setOpenAddUrlModal}
+              adapter={adapter}
+            />
+            <Button.Root
+              size="xsmall"
+              className="my-4 mx-auto"
+              onClick={() => setOpenAddUrlModal(true)}
+            >
+              Add Url
+            </Button.Root>
+          </>
+        ) : (
+          <AuthScreen adapter={adapter} onAuthSuccess={handleAuthSuccess} />
+        ))}
+      {activeTab === 'events' &&
+        (user ? (
+          <EventsModule events={events} areEventsLoading={areEventsLoading} adapter={adapter} />
+        ) : (
+          <AuthScreen adapter={adapter} onAuthSuccess={handleAuthSuccess} />
+        ))}
       {activeTab === 'advanced' && <AdvancedSettings />}
-      {siteId && !arePixelsLoading && (
+      {siteId && user && !arePixelsLoading && (
         <StartSetupModal open={openStartSetupModal} onOpenChange={onStartSetupOpenChange} />
       )}
     </div>

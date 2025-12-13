@@ -300,6 +300,9 @@ For more information:
 
 ## Changelog
 
+### 1.1.1
+Made the main plugin options available after setup even if not auth in PixelFlow
+
 ### 1.1.0
 Simplified the analytics script, excluded dynamically loaded parameters, WordPress support up to 6.9
 
