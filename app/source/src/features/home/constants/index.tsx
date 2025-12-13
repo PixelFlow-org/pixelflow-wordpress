@@ -2,10 +2,10 @@ import { DEFAULT_NAV_PANEL_CONFIG, NavPanelConfig } from '@pixelflow-org/plugin-
 import { SettingsIcon } from '@/shared/icons/settings.icon';
 import { StoreIcon } from '@/shared/icons/store.icon';
 
-import { WordPressNavPanelTab } from '@/features/home/types/index';
+import { WordPressNavPanelTab } from '@/features/home/types';
 
 /** Extended NavPanel configuration for WordPress with custom tabs */
-export const wordPressNavPanelConfig: NavPanelConfig<WordPressNavPanelTab> = {
+export const wordPressNavPanelConfigAuth: NavPanelConfig<WordPressNavPanelTab> = {
   tabs: [
     {
       id: 'woocommerce',
@@ -47,4 +47,28 @@ export const wordPressNavPanelConfig: NavPanelConfig<WordPressNavPanelTab> = {
         return null;
     }
   },
+};
+
+/** Extended NavPanel configuration for WordPress with custom tabs */
+export const wordPressNavPanelConfigNotAuth: NavPanelConfig<WordPressNavPanelTab> = {
+  tabs: [
+    {
+      id: 'account',
+      label: 'Pixels / Events Settings',
+      width: '!w-[140px]',
+      visible: true,
+    },
+    {
+      id: 'woocommerce',
+      label: 'WooCommerce Settings',
+      width: '!w-[140px]',
+      visible: true,
+    },
+    {
+      id: 'advanced',
+      label: 'Advanced Settings',
+      width: '!w-[140px]',
+      visible: true,
+    },
+  ],
 };

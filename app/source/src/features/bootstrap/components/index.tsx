@@ -51,7 +51,7 @@ const Bootstrap = () => {
   const { isAuthenticated } = useAuthSelector();
 
   // Auth operations (pass adapter for platform-specific operations)
-  const { authState, user, checkExistingAuth, handleAuthSuccess, handleLogout } = useAuth({
+  const { authState, checkExistingAuth, handleAuthSuccess, handleLogout } = useAuth({
     adapter,
   });
 
@@ -107,7 +107,7 @@ const Bootstrap = () => {
   if (isConfigured) {
     return (
       <SettingsProvider>
-        <Home adapter={adapter} user={user} />
+        <Home adapter={adapter} />
       </SettingsProvider>
     );
   }

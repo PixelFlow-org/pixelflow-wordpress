@@ -2,7 +2,7 @@
 /**
  * Plugin Name: PixelFlow
  * Description: PixelFlow Official Plugin for WordPress. Easily Install Meta's Conversions API on Your Website
- * Version: 1.1.0
+ * Version: 1.1.1
  * Author: PixelFlow Team
  * Author URI: https://pixelflow.so/
  * License: GPL v2 or later
@@ -17,7 +17,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('PIXELFLOW_VERSION', '1.1.0');
+define('PIXELFLOW_VERSION', '1.1.1');
 define('PIXELFLOW_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('PIXELFLOW_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('PIXELFLOW_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -427,18 +427,16 @@ class PixelFlow
           echo esc_html($pixelflowSiteId); ?>" type="hidden"/>
           <input id="pixelflow-user-roles" value="<?php
           echo esc_html($pixelflowUserRoles); ?>" type="hidden"/>
+          <input id="pixelflow-configured" value="<?php
+            $pixelflow_general_options = get_option('pixelflow_general_options', array());
+            if(!empty($pixelflow_general_options)) {
+              echo "1";
+            } else {
+              echo "0";
+            }
+            ?>" type="hidden"/>
         </div>
         <div id="pixelflowroot" class="pixelflow-app"></div>
-          <?php
-          /* <div class="pixelflow-settings-section">
-                         <form method="post" action="options.php">
-                             <?php
-                             settings_fields('pixelflow_settings');
-                             do_settings_sections('pixelflow_settings');
-                             submit_button();
-                             ?>
-                         </form>
-                     </div>*/ ?>
       </div>
         <?php
     }

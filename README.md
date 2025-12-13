@@ -300,6 +300,8 @@ For more information:
 
 ## Changelog
 
+### 1.1.1
+
 ### 1.1.0
 Simplified the analytics script, excluded dynamically loaded parameters, WordPress support up to 6.9
 
