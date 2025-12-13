@@ -19,13 +19,7 @@ import { User } from '@pixelflow-org/plugin-core';
  * @param handleLogout - Async function to handle user logout
  * @returns TopControls component
  */
-const TopControls = ({
-  handleLogout,
-  user,
-}: {
-  handleLogout: () => Promise<void>;
-  user: User | null;
-}) => {
+const TopControls = ({ handleLogout, user }: { handleLogout: () => void; user: User | null }) => {
   const { resolvedTheme, setTheme } = useTheme();
 
   const toggleTheme = () => {

@@ -91,7 +91,7 @@ const Home = ({ adapter }: HomeProps): ReactElement => {
   /**
    * Auth things
    */
-  const { user, handleAuthSuccess } = useAuth({
+  const { user, handleAuthSuccess, handleLogout, checkExistingAuth } = useAuth({
     adapter,
   });
 
@@ -120,8 +120,6 @@ const Home = ({ adapter }: HomeProps): ReactElement => {
     siteId,
     adapter,
   });
-
-  const { handleLogout } = useAuth({ adapter });
 
   // Get settings save function to disable integration on logout
   const { saveSettings, isWooCommerceActive } = useSettings();
@@ -157,14 +155,18 @@ const Home = ({ adapter }: HomeProps): ReactElement => {
     try {
       // Disable PixelFlow integration before logout
       // Use override to ensure the value is set immediately without waiting for state update
-      await saveSettings({ generalOptionsOverride: { enabled: 0 } });
+      await saveSettings();
 
       console.log('[PixelFlow] Integration disabled on logout');
     } catch (error) {
       console.error('[PixelFlow] Failed to disable integration:', error);
     } finally {
       // Proceed with logout regardless of settings update result
-      handleLogout();
+      handleLogout().then(() => {
+        checkExistingAuth().then(() => {
+          console.log('user logged out', user);
+        });
+      });
     }
   };
 
