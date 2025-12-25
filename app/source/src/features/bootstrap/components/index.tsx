@@ -104,16 +104,11 @@ const Bootstrap = () => {
   }
 
   // Show home module if authenticated
-  if (isConfigured) {
-    return (
-      <SettingsProvider>
-        <Home adapter={adapter} />
-      </SettingsProvider>
-    );
-  }
-
-  // Fallback loading screen
-  return <LoadingScreen />;
+  return (
+    <SettingsProvider>
+      <Home adapter={adapter} />
+    </SettingsProvider>
+  );
 };
 
 export default Bootstrap;

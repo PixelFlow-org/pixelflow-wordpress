@@ -164,10 +164,10 @@ cd "$SVN_DIR"
 svn status
 
 # Check if there are any changes
-if [ -z "$(svn status)" ]; then
-  echo "⚠️  No changes detected. Nothing to commit."
-  exit 0
-fi
+#if [ -z "$(svn status)" ]; then
+#  echo "⚠️  No changes detected. Nothing to commit."
+#  exit 0
+#fi
 
 echo ""
 
