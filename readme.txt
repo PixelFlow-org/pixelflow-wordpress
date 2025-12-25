@@ -4,7 +4,7 @@ Tags: facebook pixel, conversions api, meta pixel, woocommerce tracking, ecommer
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -152,6 +152,9 @@ Visit [PixelFlow documentation](https://docs.pixelflow.so) or [Contact Support](
 7. Events in the Pixelflow dashboard
 
 == Changelog ==
+
+= 1.1.2 =
+Making e-mail field optional for register
 
 = 1.1.1 =
 Made the main plugin options available after setup even if not auth in PixelFlow

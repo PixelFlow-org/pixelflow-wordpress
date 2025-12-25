@@ -300,6 +300,9 @@ For more information:
 
 ## Changelog
 
+### 1.1.2
+Making e-mail field optional for register
+
 ### 1.1.1
 Made the main plugin options available after setup even if not auth in PixelFlow
 
