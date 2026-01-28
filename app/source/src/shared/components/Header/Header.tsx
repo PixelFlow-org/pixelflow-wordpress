@@ -47,7 +47,7 @@ const Header = ({ selectedCurrency, updateCurrency, user }: HeaderProps) => {
                 WordPress setup guide
               </a>
               <a
-                href="https://docs.pixelflow.so/common-pixelflow-questions"
+                href="https://docs.pixelflow.so/collections/troubleshooting-faqs-35k27"
                 target="_blank"
                 className="s !text-foreground flex gap-1"
               >

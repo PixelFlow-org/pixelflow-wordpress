@@ -4,7 +4,7 @@
  */
 
 /** API */
-import pixelFlowApi from '@pixelflow-org/plugin-core/dist/api';
+import { authApi } from '@pixelflow-org/plugin-core/dist';
 
 /** Adapters */
 import { wordpressAdapter } from '@/adapters';
@@ -26,7 +26,7 @@ const { nonce, ajaxUrl } = getWordPressAjaxConfig();
  * WordPress settings API endpoints
  * @description Injects settings-related endpoints into the base PixelFlow API
  */
-const wordpressSettingsApi = pixelFlowApi.injectEndpoints({
+const wordpressSettingsApi = authApi.injectEndpoints({
   endpoints: (builder) => ({
     /**
      * Get all plugin settings

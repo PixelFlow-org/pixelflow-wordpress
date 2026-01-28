@@ -300,6 +300,9 @@ For more information:
 
 ## Changelog
 
+### 1.1.3
+Error handling and auth handling improved
+
 ### 1.1.2
 Making e-mail field optional for register
 
