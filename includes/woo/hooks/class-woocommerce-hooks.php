@@ -22,20 +22,37 @@ class PixelFlow_WooCommerce_Cart_Hooks
     private string $api_url;
     private string $api_key;
     private string $site_external_id;
-    private $blocking = false;
-    private $timeout = 5;
+    private $options;
+
+    private const DEFAULT_TIMEOUT = 5;
+    private int $timeout;
 
     /**
      * Constructor
      */
-    public function __construct(string $api_url, string $api_key, string $site_external_id)
+    public function __construct(string $api_url, string $api_key, string $site_external_id, $options)
     {
         $this->api_url          = rtrim($api_url, '/');
         $this->api_key          = $api_key;
         $this->site_external_id = $site_external_id;
+        $this->options          = $options;
+        $this->timeout = $this->get_timeout();
+
 
         $this->init_hooks();
     }
+
+    private function get_timeout(): int
+    {
+        $timeout = (int) apply_filters(
+            'pixelflow_request_timeout',
+            self::DEFAULT_TIMEOUT,
+            $this->site_external_id,
+        );
+
+        return $timeout > 0 ? $timeout : self::DEFAULT_TIMEOUT;
+    }
+
 
 
     /**
@@ -46,20 +63,28 @@ class PixelFlow_WooCommerce_Cart_Hooks
         if (is_admin()) {
             return;
         }
-        // Real add-to-cart hook (works for classic + AJAX add to cart)
-        add_action('woocommerce_add_to_cart', [$this, 'pf_add_to_cart_hook'], 10, 6);
 
-        // InitiateCheckout: when user enters checkout flow (best server-side signal)
-        add_action('woocommerce_before_checkout_form', [$this, 'pf_initiate_checkout_hook'], 10);
+        if(!isset($this->options['woo_disable_add_to_cart_freebies']) || $this->options['woo_disable_add_to_cart_freebies'] === 0) {
+            // Real add-to-cart hook (works for classic + AJAX add to cart)
+            add_action('woocommerce_add_to_cart', [$this, 'pf_add_to_cart_hook'], 10, 6);
+        }
 
-        // InitiateCheckout: fallback for setups where before_checkout_form is skipped / different rendering
-        add_action('wp', [$this, 'pf_initiate_checkout_fallback'], 20);
+        if(!isset($this->options['woo_disable_initiate_checkout_freebies']) || $this->options['woo_disable_initiate_checkout_freebies'] === 0) {
+            // InitiateCheckout: when user enters checkout flow (best server-side signal)
+            add_action('woocommerce_before_checkout_form', [$this, 'pf_initiate_checkout_hook'], 10);
 
-        // Reset checkout guard when cart is emptied
-        add_action('woocommerce_cart_emptied', [$this, 'pf_reset_checkout_guard'], 10);
+            // InitiateCheckout: fallback for setups where before_checkout_form is skipped / different rendering
+            add_action('wp', [$this, 'pf_initiate_checkout_fallback'], 20);
 
-        // Purchase: when user lands on thank you page
-        add_action('woocommerce_thankyou', [$this, 'pf_purchase_hook'], 10, 1);
+            // Reset checkout guard when cart is emptied
+            add_action('woocommerce_cart_emptied', [$this, 'pf_reset_checkout_guard'], 10);
+        }
+
+        if(!isset($this->options['woo_disable_purchase_freebies']) || $this->options['woo_disable_purchase_freebies'] === 0) {
+            // Purchase: when user lands on thank you page
+            add_action('woocommerce_thankyou', [$this, 'pf_purchase_hook'], 10, 1);
+        }
+
     }
 
     /**
@@ -87,11 +112,6 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return;
         }
 
-        $this->send_add_to_cart_event($product_id, $variation_id, $quantity);
-    }
-
-    private function send_add_to_cart_event(int $product_id, int $variation_id, int $quantity): void
-    {
         if ( ! function_exists('wc_get_product')) {
             return;
         }
@@ -123,6 +143,41 @@ class PixelFlow_WooCommerce_Cart_Hooks
     }
 
     /**
+     * Existing (AddToCart) additional data builder
+     */
+    private function build_additional_data(WC_Product $product, int $quantity): array
+    {
+        $price = (float)wc_get_price_to_display($product);
+
+        $name = (string)$product->get_name();
+        if ($product instanceof WC_Product_Variation) {
+            $parent = wc_get_product((int)$product->get_parent_id());
+            if ($parent) {
+                $name  = (string)$parent->get_name();
+                $attrs = wc_get_formatted_variation($product, true, false, true);
+                if (is_string($attrs) && $attrs !== '') {
+                    $name .= ' — ' . $attrs;
+                }
+            }
+        }
+
+        $id = (int)$product->get_id();
+
+        $currency = function_exists('get_woocommerce_currency') ? (string)get_woocommerce_currency() : 'USD';
+        $qty      = (int)max(1, $quantity);
+
+        return [
+            'content_ids'  => ['product_' . $id],
+            'contentName'  => $name,
+            'content_name' => $name,
+            'currency'     => $currency,
+            'value'        => $price * $qty,
+            'contentType'  => 'product',
+            'content_type' => 'product',
+        ];
+    }
+
+    /**
      * InitiateCheckout (server-side best approximation):
      * fires when checkout page is entered, guarded to avoid multiple sends.
      */
@@ -147,6 +202,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $this->maybe_send_initiate_checkout('wp_fallback');
     }
 
+    private function get_initiate_checkout_guard_key(): string
+    {
+        return 'pf_initiate_checkout_' . WC()->cart->get_cart_hash();
+    }
+
     private function maybe_send_initiate_checkout(string $source): void
     {
         if ( ! function_exists('WC') || ! WC()->cart) {
@@ -165,7 +225,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $additionalData = $this->build_checkout_additional_data_from_cart($cart);
         $utm_params = pixelflow_get_utm_params_from_cookie();
 
-        $guard_key = 'pf_initiate_checkout_' . WC()->cart->get_cart_hash();
+        $guard_key = $this->get_initiate_checkout_guard_key();
 
         $already   = WC()->session->get($guard_key);
 
@@ -202,7 +262,8 @@ class PixelFlow_WooCommerce_Cart_Hooks
     public function pf_reset_checkout_guard(): void
     {
         if (function_exists('WC') && WC()->session) {
-            WC()->session->set('pf_initiate_checkout_sent', 0);
+            $guard_key = $this->get_initiate_checkout_guard_key();
+            WC()->session->set($guard_key, 0);
         }
     }
 
@@ -299,42 +360,6 @@ class PixelFlow_WooCommerce_Cart_Hooks
         return true;
     }
 
-    /**
-     * Existing (AddToCart) additional data builder
-     */
-    private function build_additional_data(WC_Product $product, int $quantity): array
-    {
-        $price = (float)wc_get_price_to_display($product);
-
-        $name = (string)$product->get_name();
-        if ($product instanceof WC_Product_Variation) {
-            $parent = wc_get_product((int)$product->get_parent_id());
-            if ($parent) {
-                $name  = (string)$parent->get_name();
-                $attrs = wc_get_formatted_variation($product, true, false, true);
-                if (is_string($attrs) && $attrs !== '') {
-                    $name .= ' — ' . $attrs;
-                }
-            }
-        }
-
-        $id = (int)$product->get_id();
-
-        $currency = function_exists('get_woocommerce_currency') ? (string)get_woocommerce_currency() : 'USD';
-        $qty      = (int)max(1, $quantity);
-
-        return [
-            'content_ids'  => ['product_' . $id],
-            'contentName'  => $name,
-            'content_name' => $name,
-            'currency'     => $currency,
-            'value'        => $price * $qty,
-            'contentType'  => 'product',
-            'content_type' => 'product',
-            'numItems'     => $qty,
-            'num_items'    => $qty,
-        ];
-    }
 
     private function build_customer_data_from_order(WC_Order $order): array
     {
@@ -494,7 +519,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $args = [
             'method'      => 'POST',
             'timeout'     => $this->timeout,
-            'blocking'    => $this->blocking,
+            'blocking'    => false,
             'sslverify'   => true,
             'redirection' => 0,
             'headers'     => [

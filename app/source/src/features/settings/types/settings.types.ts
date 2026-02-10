@@ -2,6 +2,9 @@
 export interface PixelFlowGeneralOptions {
   enabled: number;
   woo_enabled: number;
+  woo_disable_add_to_cart_freebies: number; // Disable Add to Cart event tracking for free products
+  woo_disable_initiate_checkout_freebies: number; // Disable Initiate Checkout event tracking for free products
+  woo_disable_purchase_freebies: number; // Disable Purchase event tracking for free products
   excluded_user_roles: string[]; // Array of role keys to exclude from script injection
   remove_on_uninstall: number; // Remove all plugin settings when plugin is uninstalled
 }

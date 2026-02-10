@@ -182,6 +182,9 @@ class PixelFlow
             'woo_purchase_tracking',
             'debug_enabled',
             'remove_on_uninstall',
+            'woo_disable_add_to_cart_freebies',
+            'woo_disable_initiate_checkout_freebies',
+            'woo_disable_purchase_freebies',
         );
 
         // Set all checkboxes: 1 if checked, 0 if not

@@ -8,6 +8,7 @@ import * as UI from '@pixelflow-org/plugin-ui';
 
 /** Hooks */
 import { useSettings } from '@/features/settings/contexts/SettingsContext.tsx';
+import { PixelFlowGeneralOptions } from '@/features/settings';
 
 /**
  * WooCommerceSettings component
@@ -28,13 +29,14 @@ export function WooCommerceSettings() {
   if (!isWooCommerceActive) {
     return null;
   }
+  console.log('WooCommerceSettings', generalOptions);
 
-  const handleToggle = async (checked: boolean) => {
-    const newValue = checked ? 1 : 0;
-    updateGeneralOption('woo_enabled', newValue);
+  const handleToggleOption = async (option: keyof PixelFlowGeneralOptions) => {
+    const newValue = generalOptions[option] === 1 ? 0 : 1;
+    updateGeneralOption(option, newValue);
 
     // Save immediately
-    await saveSettings({ generalOptionsOverride: { woo_enabled: newValue } });
+    await saveSettings({ generalOptionsOverride: { [option]: newValue } });
   };
 
   return (
@@ -48,7 +50,7 @@ export function WooCommerceSettings() {
         <div className="flex items-center gap-3">
           <UI.Switch.Root
             checked={generalOptions.woo_enabled === 1}
-            onCheckedChange={handleToggle}
+            onCheckedChange={() => handleToggleOption('woo_enabled')}
             id="enableWoo"
             variant={'green'}
             disabled={isSaving}
@@ -71,6 +73,92 @@ export function WooCommerceSettings() {
             associated metadata where available
           </p>
         </div>
+        {generalOptions.woo_enabled === 1 && (
+          <div className="space-y-6 mt-6">
+            <div className="flex gap-3 [@media(max-width:1100px)]:flex-wrap flex-col">
+              <h4 className="font-semibold !mb-0 !text-foreground !text-lg">Additional options</h4>
+              <div className="flex items-center gap-3">
+                <UI.Switch.Root
+                  checked={generalOptions.woo_disable_add_to_cart_freebies === 0}
+                  onCheckedChange={() => handleToggleOption('woo_disable_add_to_cart_freebies')}
+                  id="woo_disable_add_to_cart_freebies"
+                  variant={'green'}
+                  disabled={isSaving}
+                ></UI.Switch.Root>
+                <UI.TooltipRoot>
+                  <UI.TooltipTrigger asChild>
+                    <UI.Label.Root
+                      className="cursor-pointer"
+                      htmlFor="woo_disable_add_to_cart_freebies"
+                    >
+                      <span>
+                        Enable <b>Add to Cart</b> event for <b>free products</b>
+                      </span>
+                    </UI.Label.Root>
+                  </UI.TooltipTrigger>
+                  <UI.TooltipContent>
+                    When this option is disabled, products with a price of zero will not trigger Add
+                    to Cart events.
+                  </UI.TooltipContent>
+                </UI.TooltipRoot>
+              </div>
+              <div className="flex items-center gap-3">
+                <UI.Switch.Root
+                  checked={generalOptions.woo_disable_initiate_checkout_freebies === 0}
+                  onCheckedChange={() =>
+                    handleToggleOption('woo_disable_initiate_checkout_freebies')
+                  }
+                  id="woo_disable_initiate_checkout_freebies"
+                  variant={'green'}
+                  disabled={isSaving}
+                ></UI.Switch.Root>
+                <UI.TooltipRoot>
+                  <UI.TooltipTrigger asChild>
+                    <UI.Label.Root
+                      className="cursor-pointer"
+                      htmlFor="woo_disable_initiate_checkout_freebies"
+                    >
+                      <span>
+                        Enable <b>Initiate Checkout</b> event for <b>free products</b>
+                      </span>
+                    </UI.Label.Root>
+                  </UI.TooltipTrigger>
+                  <UI.TooltipContent>
+                    When this option is disabled, if current cart contains only free products, the
+                    Initiate Checkout event will not be triggered. It does not interfere the
+                    Checkout process itself
+                  </UI.TooltipContent>
+                </UI.TooltipRoot>
+              </div>
+              <div className="flex items-center gap-3">
+                <UI.Switch.Root
+                  checked={generalOptions.woo_disable_purchase_freebies === 0}
+                  onCheckedChange={() => handleToggleOption('woo_disable_purchase_freebies')}
+                  id="woo_disable_purchase_freebies"
+                  variant={'green'}
+                  disabled={isSaving}
+                ></UI.Switch.Root>
+                <UI.TooltipRoot>
+                  <UI.TooltipTrigger asChild>
+                    <UI.Label.Root
+                      className="cursor-pointer"
+                      htmlFor="woo_disable_purchase_freebies"
+                    >
+                      <span>
+                        Enable <b>Purchase</b> event for <b>free products</b>
+                      </span>
+                    </UI.Label.Root>
+                  </UI.TooltipTrigger>
+                  <UI.TooltipContent>
+                    When this option is disabled, if current cart contains only free products, the
+                    Purchase event will not be triggered. It does not interfere the Purchase process
+                    itself
+                  </UI.TooltipContent>
+                </UI.TooltipRoot>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
