@@ -186,7 +186,7 @@ function pixelflow_get_client_user_agent(): string
         return '';
     }
 
-    $ua = $_SERVER['HTTP_USER_AGENT'];
+    $ua = sanitize_text_field(wp_unslash($_SERVER['HTTP_USER_AGENT']));
 
     if ( ! is_string($ua)) {
         return '';
@@ -206,18 +206,19 @@ function pixelflow_get_client_ip_address(): string
     $candidates = [];
 
     if (isset($_SERVER['HTTP_CF_CONNECTING_IP']) && is_string($_SERVER['HTTP_CF_CONNECTING_IP'])) {
-        $candidates[] = $_SERVER['HTTP_CF_CONNECTING_IP'];
+        $candidates[] = sanitize_text_field(wp_unslash($_SERVER['HTTP_CF_CONNECTING_IP']));
     }
 
     if (isset($_SERVER['HTTP_X_FORWARDED_FOR']) && is_string($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-        $parts = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+        $xff = sanitize_text_field(wp_unslash($_SERVER['HTTP_X_FORWARDED_FOR']));
+        $parts = explode(',', $xff);
         if (isset($parts[0]) && is_string($parts[0])) {
             $candidates[] = trim($parts[0]);
         }
     }
 
     if (isset($_SERVER['REMOTE_ADDR']) && is_string($_SERVER['REMOTE_ADDR'])) {
-        $candidates[] = $_SERVER['REMOTE_ADDR'];
+        $candidates[] = sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR']));
     }
 
     foreach ($candidates as $ip) {
@@ -240,7 +241,7 @@ function pixelflow_get_utm_params_from_cookie(): array
         return [];
     }
 
-    $raw = wp_unslash($_COOKIE['_pf_utm']);
+    $raw = sanitize_text_field(wp_unslash($_COOKIE['_pf_utm']));
 
     if ($raw === '') {
         return [];
@@ -265,7 +266,7 @@ function pixelflow_get_utm_params_from_cookie(): array
 
     foreach ($allowed as $key) {
         if (isset($parsed[$key]) && is_scalar($parsed[$key])) {
-            $out[$key] = (string)$parsed[$key];
+            $out[$key] = sanitize_text_field((string)$parsed[$key]);
         }
     }
 
@@ -297,12 +298,12 @@ function pixelflow_append_cookie_params(
             continue;
         }
 
-        $val = $_COOKIE[$cookieName];
+        $val = sanitize_text_field(wp_unslash($_COOKIE[$cookieName]));
 
         if ( ! is_string($val) || $val === '') {
             continue;
         }
 
-        $payload['eventData'][$param] = wp_unslash($val);
+        $payload['eventData'][$param] = $val;
     }
 }

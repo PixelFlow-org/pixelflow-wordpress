@@ -4,7 +4,7 @@ Tags: facebook pixel, conversions api, meta pixel, woocommerce tracking, ecommer
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.3
+Stable tag: 1.1.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -152,6 +152,9 @@ Visit [PixelFlow documentation](https://docs.pixelflow.so) or [Contact Support](
 7. Events in the Pixelflow dashboard
 
 == Changelog ==
+
+= 1.1.4 =
+Track WooCommerce events, such as Add to Cart, Initiate Checkout, Purchase, using Woo hooks, so this is now working out of the box
 
 = 1.1.3 =
 Error handling and auth handling improved

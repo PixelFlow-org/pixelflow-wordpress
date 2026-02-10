@@ -162,8 +162,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
         if ( ! WC()->session) {
             return;
         }
+        $additionalData = $this->build_checkout_additional_data_from_cart($cart);
+        $utm_params = pixelflow_get_utm_params_from_cookie();
 
-        $guard_key = 'pf_initiate_checkout_sent';
+        $guard_key = 'pf_initiate_checkout_' . WC()->cart->get_cart_hash();
+
         $already   = WC()->session->get($guard_key);
 
         if ($already) {
@@ -187,8 +190,8 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 'eventTime'      => $event_time,
                 'actionSource'   => 'website',
                 'siteURL'        => home_url('/'),
-                'additionalData' => $this->build_checkout_additional_data_from_cart($cart),
-                'utm_params'     => pixelflow_get_utm_params_from_cookie(),
+                'additionalData' => $additionalData,
+                'utm_params'     => $utm_params,
             ],
         ];
         pixelflow_append_cookie_params($payload);

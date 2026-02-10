@@ -300,6 +300,9 @@ For more information:
 
 ## Changelog
 
+### 1.1.4
+Track WooCommerce events, such as Add to Cart, Initiate Checkout, Purchase, using Woo hooks, so this is now working out of the box
+
 ### 1.1.3
 Error handling and auth handling improved
 
