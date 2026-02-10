@@ -71,7 +71,7 @@ const wordpressSettingsApi = authApi.injectEndpoints({
      * @description Persists settings changes to WordPress database with server-side validation
      */
     saveSettings: builder.mutation<SettingsResponse, SaveSettingsRequest>({
-      queryFn: async ({ generalOptions, classOptions, debugOptions }) => {
+      queryFn: async ({ generalOptions }) => {
         try {
           const formData = new FormData();
           formData.append('action', 'pixelflow_save_settings');
@@ -84,14 +84,6 @@ const wordpressSettingsApi = authApi.injectEndpoints({
             } else {
               formData.append(`general_options[${key}]`, String(value));
             }
-          });
-
-          Object.entries(classOptions).forEach(([key, value]) => {
-            formData.append(`class_options[${key}]`, String(value));
-          });
-
-          Object.entries(debugOptions).forEach(([key, value]) => {
-            formData.append(`debug_options[${key}]`, String(value));
           });
 
           const response = await fetch(ajaxUrl, {
@@ -179,9 +171,5 @@ const wordpressSettingsApi = authApi.injectEndpoints({
   overrideExisting: false,
 });
 
-export const {
-  useGetSettingsQuery,
-  useSaveSettingsMutation,
-  useSaveScriptCodeMutation,
-  useRemoveScriptCodeMutation,
-} = wordpressSettingsApi;
+export const { useSaveSettingsMutation, useSaveScriptCodeMutation, useRemoveScriptCodeMutation } =
+  wordpressSettingsApi;
