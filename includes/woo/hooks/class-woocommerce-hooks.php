@@ -114,10 +114,10 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 'actionSource'   => 'website',
                 'siteURL'        => home_url('/'),
                 'additionalData' => $this->build_additional_data($product, $quantity),
-                'utm_params'     => $this->get_utm_params_from_cookie(),
+                'utm_params'     => pixelflow_get_utm_params_from_cookie(),
             ],
         ];
-        $this->append_cookie_params($payload);
+        pixelflow_append_cookie_params($payload);
 
         $this->post_event($payload);
     }
@@ -188,10 +188,10 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 'actionSource'   => 'website',
                 'siteURL'        => home_url('/'),
                 'additionalData' => $this->build_checkout_additional_data_from_cart($cart),
-                'utm_params'     => $this->get_utm_params_from_cookie(),
+                'utm_params'     => pixelflow_get_utm_params_from_cookie(),
             ],
         ];
-        $this->append_cookie_params($payload);
+        pixelflow_append_cookie_params($payload);
 
         $this->post_event($payload);
     }
@@ -253,10 +253,10 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 'siteURL'        => home_url('/'),
                 'customerData'   => $customer,
                 'additionalData' => $additional,
-                'utm_params'     => $this->get_utm_params_from_cookie(),
+                'utm_params'     => pixelflow_get_utm_params_from_cookie(),
             ],
         ];
-        $this->append_cookie_params($payload);
+        pixelflow_append_cookie_params($payload);
 
         $this->post_event($payload);
     }
@@ -347,22 +347,22 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $customer_id  = (int)$order->get_customer_id();
         $external_raw = $customer_id > 0 ? (string)$customer_id : ($email !== '' ? $email : (string)$order->get_id());
 
-        $ip = $this->get_client_ip_address();
-        $ua = $this->get_client_user_agent();
+        $ip = pixelflow_get_client_ip_address();
+        $ua = pixelflow_get_client_user_agent();
 
         $out = [];
 
-        $out['ln'] = $this->sha256_if_not_empty($this->normalize_name($ln));
-        $out['fn'] = $this->sha256_if_not_empty($this->normalize_name($fn));
-        $out['em'] = $this->sha256_if_not_empty($this->normalize_email($email));
-        $out['ph'] = $this->sha256_if_not_empty($this->normalize_phone($phone));
+        $out['ln'] = pixelflow_sha256_if_not_empty(pixelflow_normalize_name($ln));
+        $out['fn'] = pixelflow_sha256_if_not_empty(pixelflow_normalize_name($fn));
+        $out['em'] = pixelflow_sha256_if_not_empty(pixelflow_normalize_email($email));
+        $out['ph'] = pixelflow_sha256_if_not_empty(pixelflow_normalize_phone($phone));
 
-        $out['st']      = $this->sha256_if_not_empty($this->normalize_state($state));
-        $out['zp']      = $this->sha256_if_not_empty($this->normalize_zip($zip));
-        $out['ct']      = $this->sha256_if_not_empty($this->normalize_city($city));
-        $out['country'] = $this->sha256_if_not_empty($this->normalize_country($country));
+        $out['st']      = pixelflow_sha256_if_not_empty(pixelflow_normalize_state($state));
+        $out['zp']      = pixelflow_sha256_if_not_empty(pixelflow_normalize_zip($zip));
+        $out['ct']      = pixelflow_sha256_if_not_empty(pixelflow_normalize_city($city));
+        $out['country'] = pixelflow_sha256_if_not_empty(pixelflow_normalize_country($country));
 
-        $out['external_id'] = $this->sha256_if_not_empty($this->normalize_external_id($external_raw));
+        $out['external_id'] = pixelflow_sha256_if_not_empty(pixelflow_normalize_external_id($external_raw));
 
         if ($ip !== '') {
             $out['client_ip_address'] = $ip;
@@ -381,160 +381,6 @@ class PixelFlow_WooCommerce_Cart_Hooks
         return $out;
     }
 
-    private function sha256_if_not_empty(string $value): string
-    {
-        if ($value === '') {
-            return '';
-        }
-
-        return hash('sha256', $value);
-    }
-
-    private function normalize_email(string $email): string
-    {
-        $email = trim($email);
-        $email = mb_strtolower($email, 'UTF-8');
-
-        return $email;
-    }
-
-    private function normalize_phone(string $phone): string
-    {
-        $phone = trim($phone);
-
-        // remove everything except digits
-        $phone = preg_replace('/\D+/', '', $phone);
-        if ( ! is_string($phone)) {
-            return '';
-        }
-
-        // remove leading zeros (Meta requirement mentions leading zeros)
-        $phone = ltrim($phone, '0');
-
-        return $phone;
-    }
-
-    private function normalize_name(string $name): string
-    {
-        $name = trim($name);
-        $name = mb_strtolower($name, 'UTF-8');
-
-        // keep letters only (unicode), remove punctuation/spaces
-        $name = preg_replace('/[^\p{L}]+/u', '', $name);
-        if ( ! is_string($name)) {
-            return '';
-        }
-
-        return $name;
-    }
-
-    private function normalize_city(string $city): string
-    {
-        $city = trim($city);
-        $city = mb_strtolower($city, 'UTF-8');
-
-        // Meta: lowercase, no punctuation, no spaces. Keep unicode letters/numbers.
-        $city = preg_replace('/[^\p{L}\p{N}]+/u', '', $city);
-        if ( ! is_string($city)) {
-            return '';
-        }
-
-        return $city;
-    }
-
-    private function normalize_state(string $state): string
-    {
-        $state = trim($state);
-        $state = mb_strtolower($state, 'UTF-8');
-
-        // Meta: for US use 2-char abbreviation; we keep only letters/numbers.
-        $state = preg_replace('/[^\p{L}\p{N}]+/u', '', $state);
-        if ( ! is_string($state)) {
-            return '';
-        }
-
-        return $state;
-    }
-
-    private function normalize_zip(string $zip): string
-    {
-        $zip = trim($zip);
-        $zip = mb_strtolower($zip, 'UTF-8');
-
-        // Meta: no spaces, no dash (we remove all non-alnum)
-        $zip = preg_replace('/[^\p{L}\p{N}]+/u', '', $zip);
-        if ( ! is_string($zip)) {
-            return '';
-        }
-
-        return $zip;
-    }
-
-    private function normalize_country(string $country): string
-    {
-        $country = trim($country);
-        $country = mb_strtolower($country, 'UTF-8');
-
-        // Woo stores ISO alpha-2 already; keep only letters
-        $country = preg_replace('/[^\p{L}]+/u', '', $country);
-        if ( ! is_string($country)) {
-            return '';
-        }
-
-        return $country;
-    }
-
-    private function normalize_external_id(string $external_id): string
-    {
-        $external_id = trim($external_id);
-        $external_id = mb_strtolower($external_id, 'UTF-8');
-
-        return $external_id;
-    }
-
-    private function get_client_user_agent(): string
-    {
-        if ( ! isset($_SERVER['HTTP_USER_AGENT'])) {
-            return '';
-        }
-
-        $ua = $_SERVER['HTTP_USER_AGENT'];
-
-        if ( ! is_string($ua)) {
-            return '';
-        }
-
-        return trim($ua);
-    }
-
-    private function get_client_ip_address(): string
-    {
-        // Prefer CF if available, then XFF, then REMOTE_ADDR
-        $candidates = [];
-
-        if (isset($_SERVER['HTTP_CF_CONNECTING_IP']) && is_string($_SERVER['HTTP_CF_CONNECTING_IP'])) {
-            $candidates[] = $_SERVER['HTTP_CF_CONNECTING_IP'];
-        }
-
-        if (isset($_SERVER['HTTP_X_FORWARDED_FOR']) && is_string($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            $parts = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-            if (isset($parts[0]) && is_string($parts[0])) {
-                $candidates[] = trim($parts[0]);
-            }
-        }
-
-        if (isset($_SERVER['REMOTE_ADDR']) && is_string($_SERVER['REMOTE_ADDR'])) {
-            $candidates[] = $_SERVER['REMOTE_ADDR'];
-        }
-
-        foreach ($candidates as $ip) {
-            if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP)) {
-                return $ip;
-            }
-        }
-
-        return '';
-    }
 
 
     /**
@@ -636,43 +482,6 @@ class PixelFlow_WooCommerce_Cart_Hooks
         ];
     }
 
-    private function get_utm_params_from_cookie(): array
-    {
-        if ( ! isset($_COOKIE['_pf_utm']) || ! is_string($_COOKIE['_pf_utm'])) {
-            return [];
-        }
-
-        $raw = wp_unslash($_COOKIE['_pf_utm']);
-
-        if ($raw === '') {
-            return [];
-        }
-
-        parse_str($raw, $parsed);
-
-        if ( ! is_array($parsed) || empty($parsed)) {
-            return [];
-        }
-
-        $allowed = [
-            'utm_source',
-            'utm_medium',
-            'utm_campaign',
-            'utm_term',
-            'utm_content',
-            'utm_id',
-        ];
-
-        $out = [];
-
-        foreach ($allowed as $key) {
-            if (isset($parsed[$key]) && is_scalar($parsed[$key])) {
-                $out[$key] = (string)$parsed[$key];
-            }
-        }
-
-        return $out;
-    }
 
 
     private function post_event(array $payload): void
@@ -710,32 +519,5 @@ class PixelFlow_WooCommerce_Cart_Hooks
         return $args;
     }
 
-    private function append_cookie_params(
-        array &$payload,
-        array $map = [
-            'clkId'    => 'pf_clkid',
-            'fbc'      => 'pf_fbc',
-            'fbp'      => '_fbp',
-            'fbpValue' => '_fbp',
-        ]
-    ): void {
-        if ( ! isset($payload['eventData']) || ! is_array($payload['eventData'])) {
-            return;
-        }
-
-        foreach ($map as $param => $cookieName) {
-            if ( ! isset($_COOKIE[$cookieName])) {
-                continue;
-            }
-
-            $val = $_COOKIE[$cookieName];
-
-            if ( ! is_string($val) || $val === '') {
-                continue;
-            }
-
-            $payload['eventData'][$param] = wp_unslash($val);
-        }
-    }
 }
 
