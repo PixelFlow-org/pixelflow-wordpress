@@ -36,7 +36,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $this->api_key          = $api_key;
         $this->site_external_id = $site_external_id;
         $this->options          = $options;
-        $this->timeout = $this->get_timeout();
+        $this->timeout          = $this->get_timeout();
 
 
         $this->init_hooks();
@@ -44,7 +44,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
     private function get_timeout(): int
     {
-        $timeout = (int) apply_filters(
+        $timeout = (int)apply_filters(
             'pixelflow_request_timeout',
             self::DEFAULT_TIMEOUT,
             $this->site_external_id,
@@ -52,7 +52,6 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
         return $timeout > 0 ? $timeout : self::DEFAULT_TIMEOUT;
     }
-
 
 
     /**
@@ -64,27 +63,13 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return;
         }
 
-        if(!isset($this->options['woo_disable_add_to_cart_freebies']) || $this->options['woo_disable_add_to_cart_freebies'] === 0) {
-            // Real add-to-cart hook (works for classic + AJAX add to cart)
-            add_action('woocommerce_add_to_cart', [$this, 'pf_add_to_cart_hook'], 10, 6);
-        }
+        add_action('woocommerce_add_to_cart', [$this, 'pf_add_to_cart_hook'], 10, 6);
 
-        if(!isset($this->options['woo_disable_initiate_checkout_freebies']) || $this->options['woo_disable_initiate_checkout_freebies'] === 0) {
-            // InitiateCheckout: when user enters checkout flow (best server-side signal)
-            add_action('woocommerce_before_checkout_form', [$this, 'pf_initiate_checkout_hook'], 10);
+        add_action('woocommerce_before_checkout_form', [$this, 'pf_initiate_checkout_hook'], 10);
+        add_action('wp', [$this, 'pf_initiate_checkout_fallback'], 20);
+        add_action('woocommerce_cart_emptied', [$this, 'pf_reset_checkout_guard'], 10);
 
-            // InitiateCheckout: fallback for setups where before_checkout_form is skipped / different rendering
-            add_action('wp', [$this, 'pf_initiate_checkout_fallback'], 20);
-
-            // Reset checkout guard when cart is emptied
-            add_action('woocommerce_cart_emptied', [$this, 'pf_reset_checkout_guard'], 10);
-        }
-
-        if(!isset($this->options['woo_disable_purchase_freebies']) || $this->options['woo_disable_purchase_freebies'] === 0) {
-            // Purchase: when user lands on thank you page
-            add_action('woocommerce_thankyou', [$this, 'pf_purchase_hook'], 10, 1);
-        }
-
+        add_action('woocommerce_thankyou', [$this, 'pf_purchase_hook'], 10, 1);
     }
 
     /**
@@ -123,6 +108,13 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return;
         }
 
+        // When option is set to 1: do not send AddToCart for free products (price 0)
+        if ( ! empty($this->options['woo_disable_add_to_cart_freebies']) && $this->options['woo_disable_add_to_cart_freebies'] === 1) {
+            if ((float)wc_get_price_to_display($product) <= 0) {
+                return;
+            }
+        }
+
         $event_time = time();
 
         $payload = [
@@ -132,7 +124,10 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 'eventName'      => 'AddToCart',
                 'eventTime'      => $event_time,
                 'actionSource'   => 'website',
-                'siteURL'        => home_url('/'),
+                // siteURL is the page URL where event happened
+                'siteURL'        => isset($_SERVER['HTTP_REFERER']) ? esc_url_raw(
+                    wp_unslash($_SERVER['HTTP_REFERER'])
+                ) : home_url('/'),
                 'additionalData' => $this->build_additional_data($product, $quantity),
                 'utm_params'     => pixelflow_get_utm_params_from_cookie(),
             ],
@@ -167,13 +162,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $qty      = (int)max(1, $quantity);
 
         return [
-            'content_ids'  => ['product_' . $id],
-            'contentName'  => $name,
-            'content_name' => $name,
-            'currency'     => $currency,
-            'value'        => $price * $qty,
-            'contentType'  => 'product',
-            'content_type' => 'product',
+            'content_ids' => ['product_' . $id],
+            'contentName' => $name,
+            'currency'    => $currency,
+            'value'       => $price * $qty,
+            'contentType' => 'product',
         ];
     }
 
@@ -207,6 +200,45 @@ class PixelFlow_WooCommerce_Cart_Hooks
         return 'pf_initiate_checkout_' . WC()->cart->get_cart_hash();
     }
 
+    /**
+     * Whether the cart has at least one item with price > 0.
+     */
+    private function cart_has_paid_items($cart): bool
+    {
+        foreach ($cart->get_cart() as $cart_item) {
+            $pid           = isset($cart_item['product_id']) ? (int)$cart_item['product_id'] : 0;
+            $vid           = isset($cart_item['variation_id']) ? (int)$cart_item['variation_id'] : 0;
+            $wc_product_id = $vid > 0 ? $vid : $pid;
+            if ($wc_product_id <= 0) {
+                continue;
+            }
+            $product = wc_get_product($wc_product_id);
+            if ($product && (float)wc_get_price_to_display($product) > 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Whether the order has at least one line item with price > 0.
+     */
+    private function order_has_paid_items(WC_Order $order): bool
+    {
+        foreach ($order->get_items('line_item') as $item) {
+            if ( ! ($item instanceof WC_Order_Item_Product)) {
+                continue;
+            }
+            $product = $item->get_product();
+            if ($product && (float)wc_get_price_to_display($product) > 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function maybe_send_initiate_checkout(string $source): void
     {
         if ( ! function_exists('WC') || ! WC()->cart) {
@@ -219,15 +251,22 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return;
         }
 
+        // When option is set to 1: do not send InitiateCheckout if cart has only free products
+        if ( ! empty($this->options['woo_disable_initiate_checkout_freebies']) && $this->options['woo_disable_initiate_checkout_freebies'] === 1) {
+            if ( ! $this->cart_has_paid_items($cart)) {
+                return;
+            }
+        }
+
         if ( ! WC()->session) {
             return;
         }
         $additionalData = $this->build_checkout_additional_data_from_cart($cart);
-        $utm_params = pixelflow_get_utm_params_from_cookie();
+        $utm_params     = pixelflow_get_utm_params_from_cookie();
 
         $guard_key = $this->get_initiate_checkout_guard_key();
 
-        $already   = WC()->session->get($guard_key);
+        $already = WC()->session->get($guard_key);
 
         if ($already) {
             return;
@@ -286,6 +325,13 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
         if ( ! $order) {
             return;
+        }
+
+        // When option is set to 1: do not send Purchase if order has only free products
+        if ( ! empty($this->options['woo_disable_purchase_freebies']) && $this->options['woo_disable_purchase_freebies'] === 1) {
+            if ( ! $this->order_has_paid_items($order)) {
+                return;
+            }
         }
 
         // Avoid duplicate sends for page refreshes
@@ -375,9 +421,6 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $customer_id  = (int)$order->get_customer_id();
         $external_raw = $customer_id > 0 ? (string)$customer_id : ($email !== '' ? $email : (string)$order->get_id());
 
-        $ip = pixelflow_get_client_ip_address();
-        $ua = pixelflow_get_client_user_agent();
-
         $out = [];
 
         $out['ln'] = pixelflow_sha256_if_not_empty(pixelflow_normalize_name($ln));
@@ -410,7 +453,6 @@ class PixelFlow_WooCommerce_Cart_Hooks
     }
 
 
-
     /**
      * InitiateCheckout additionalData requirements:
      * content_ids, contents, currency, num_items, value
@@ -438,10 +480,30 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 continue;
             }
 
+            // Unit price (after discounts), excluding tax
+            $line_total = isset($cart_item['line_total']) ? (float)$cart_item['line_total'] : 0.0;
+            $price      = $line_total / $qty;
+
+            // Fallbacks (if some theme/plugin messed with line_total)
+            if ($price <= 0) {
+                $line_subtotal = isset($cart_item['line_subtotal']) ? (float)$cart_item['line_subtotal'] : 0.0;
+                $price         = $line_subtotal / $qty;
+            }
+
+            if ($price <= 0 && isset($cart_item['data']) && $cart_item['data'] instanceof WC_Product) {
+                $product = $cart_item['data'];
+
+                $raw   = $product->get_price(); // string or ''
+                $price = $raw !== '' ? (float)wc_format_decimal($raw, wc_get_price_decimals()) : 0.0;
+            }
+
+            $price = (float)wc_format_decimal($price, wc_get_price_decimals());
+
             $content_ids[] = 'product_' . $tracked_id;
             $contents[]    = [
-                'id'       => 'product_' . $tracked_id,
-                'quantity' => $qty,
+                'id'         => 'product_' . $tracked_id,
+                'quantity'   => $qty,
+                'item_price' => $price,
             ];
 
             $num_items += $qty;
@@ -460,7 +522,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
     /**
      * Purchase additionalData requirements:
-     * content_ids, content_type, contents, currency, num_items, value
+     * content_ids, contentType, contents, currency, num_items, value
      */
     private function build_purchase_additional_data_from_order(WC_Order $order): array
     {
@@ -489,10 +551,32 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 continue;
             }
 
+            // Unit price after discounts, excluding tax (recommended)
+            $line_total = (float)$item->get_total();
+            $price      = $line_total / $qty;
+
+            // Fallback: if total is 0 but subtotal exists (rare, but happens)
+            if ($price <= 0) {
+                $line_subtotal = (float)$item->get_subtotal();
+                $price         = $line_subtotal / $qty;
+            }
+
+            // Final fallback: product price
+            if ($price <= 0) {
+                $product = $item->get_product();
+                if ($product instanceof WC_Product) {
+                    $raw   = $product->get_price();
+                    $price = $raw !== '' ? (float)wc_format_decimal($raw, wc_get_price_decimals()) : 0.0;
+                }
+            }
+
+            $price = (float)wc_format_decimal($price, wc_get_price_decimals());
+
             $content_ids[] = 'product_' . $tracked_id;
             $contents[]    = [
-                'id'       => 'product_' . $tracked_id,
-                'quantity' => $qty,
+                'id'         => 'product_' . $tracked_id,
+                'quantity'   => $qty,
+                'item_price' => $price
             ];
 
             $num_items += $qty;
@@ -501,20 +585,57 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $value = (float)$order->get_total();
 
         return [
-            'content_ids'  => array_values(array_unique($content_ids)),
-            'content_type' => 'product',
-            'contents'     => $contents,
-            'currency'     => $currency,
-            'num_items'    => (int)$num_items,
-            'value'        => $value,
+            'content_ids' => array_values(array_unique($content_ids)),
+            'contentType' => 'product',
+            'contents'    => $contents,
+            'currency'    => $currency,
+            'num_items'   => (int)$num_items,
+            'value'       => $value,
         ];
     }
-
 
 
     private function post_event(array $payload): void
     {
         $url = $this->api_url . '/event';
+
+        // add loc from cookies
+        $cookie_pf_loc = filter_input(INPUT_COOKIE, 'pf_loc', FILTER_UNSAFE_RAW);
+
+        if (is_string($cookie_pf_loc) && $cookie_pf_loc !== '') {
+            if ( ! isset($payload['eventData']['customerData']) || ! is_array($payload['eventData']['customerData'])) {
+                $payload['eventData']['customerData'] = [];
+            }
+            $cd = &$payload['eventData']['customerData'];
+
+            $raw = wp_unslash($cookie_pf_loc);
+
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                $cd['st']      = isset($decoded['st']) ? sanitize_text_field($decoded['st']) : '';
+                $cd['zp']      = isset($decoded['zp']) ? sanitize_text_field($decoded['zp']) : '';
+                $cd['ct']      = isset($decoded['ct']) ? sanitize_text_field($decoded['ct']) : '';
+                $cd['country'] = isset($decoded['country']) ? sanitize_text_field($decoded['country']) : '';
+            }
+        }
+
+        // add ua and ip
+        if ( ! isset($payload['eventData']['customerData']) || ! is_array($payload['eventData']['customerData'])) {
+            $payload['eventData']['customerData'] = [];
+        }
+        $cd = &$payload['eventData']['customerData'];
+        if ( ! isset($cd['client_user_agent'])) {
+            $ua = pixelflow_get_client_user_agent();
+            if (is_string($ua) && $ua !== '') {
+                $cd['client_user_agent'] = $ua;
+            }
+        }
+        if ( ! isset($cd['client_ip_address'])) {
+            $ip = pixelflow_get_client_ip_address();
+            if (is_string($ip) && $ip !== '') {
+                $cd['client_ip_address'] = $ip;
+            }
+        }
 
         $args = [
             'method'      => 'POST',
@@ -546,6 +667,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
         return $args;
     }
+
 
 }
 

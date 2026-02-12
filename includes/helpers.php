@@ -286,7 +286,6 @@ function pixelflow_append_cookie_params(
         'clkId'    => 'pf_clkid',
         'fbc'      => 'pf_fbc',
         'fbp'      => '_fbp',
-        'fbpValue' => '_fbp',
     ]
 ): void {
     if ( ! isset($payload['eventData']) || ! is_array($payload['eventData'])) {
@@ -305,5 +304,14 @@ function pixelflow_append_cookie_params(
         }
 
         $payload['eventData'][$param] = $val;
+    }
+
+    // fallback for _fbc cookie
+    if( ! isset($payload['eventData']['fbc']) && isset($_COOKIE['_fbc']) && is_string($_COOKIE['_fbc'])) {
+        $val = sanitize_text_field(wp_unslash($_COOKIE['_fbc']));
+
+        if (is_string($val) && $val !== '') {
+            $payload['eventData']['fbc'] = $val;
+        }
     }
 }
