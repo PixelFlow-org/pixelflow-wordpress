@@ -29,6 +29,7 @@ export interface UseSettingsReturn {
   isLoading: boolean;
   isSaving: boolean;
   error: string | null;
+  wooDebugLogUrl: string;
   updateGeneralOption: <K extends keyof PixelFlowGeneralOptions>(
     key: K,
     value: PixelFlowGeneralOptions[K]
@@ -45,6 +46,7 @@ const defaultGeneralOptions: PixelFlowGeneralOptions = {
   woo_disable_add_to_cart_freebies: 0,
   woo_disable_initiate_checkout_freebies: 0,
   woo_disable_purchase_freebies: 0,
+  woo_debug_enabled: 0,
 };
 
 /**
@@ -70,6 +72,7 @@ export function useSettings(): UseSettingsReturn {
   const [error, setError] = useState<string | null>(null);
   // Prevent concurrent saves to avoid race conditions
   const [isSaving, setIsSaving] = useState(false);
+  const [wooDebugLogUrl] = useState<string>(wordpressSettings?.woo_debug_log_url || '');
 
   /** Effects */
   /**
@@ -194,6 +197,7 @@ export function useSettings(): UseSettingsReturn {
     isLoading,
     isSaving,
     error,
+    wooDebugLogUrl,
     updateGeneralOption,
     toggleExcludedRole,
     saveSettings,

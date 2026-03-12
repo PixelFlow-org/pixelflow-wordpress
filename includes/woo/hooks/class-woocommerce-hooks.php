@@ -595,6 +595,66 @@ class PixelFlow_WooCommerce_Cart_Hooks
     }
 
 
+    /**
+     * Write a debug log entry when woo_debug_enabled option is set.
+     * Logs: hook name, full payload sent (including customerData, UA, IP), response, selected cookies and server vars.
+     *
+     * @param string     $hook_name  WooCommerce hook that triggered the event.
+     * @param array      $payload    Full payload passed to wp_remote_post.
+     * @param mixed|null $response   Return value of wp_remote_post (WP_Error or array; non-blocking so body is empty).
+     */
+    private function debug_log(string $hook_name, array $payload, $response = null): void
+    {
+        if (empty($this->options['woo_debug_enabled']) || (int) $this->options['woo_debug_enabled'] !== 1) {
+            return;
+        }
+
+        $log_key = get_option('pixelflow_debug_log_key', '');
+        if (empty($log_key)) {
+            return;
+        }
+
+        $log_file = WP_CONTENT_DIR . '/pixelflow_debug_' . $log_key . '.log';
+
+        $response_summary = null;
+        if (is_wp_error($response)) {
+            $response_summary = ['wp_error' => $response->get_error_message()];
+        } elseif (is_array($response)) {
+            $response_summary = [
+                'code'    => wp_remote_retrieve_response_code($response),
+                'message' => wp_remote_retrieve_response_message($response),
+            ];
+        }
+
+        $cookie_keys = ['_pf_utm', 'pf_clkid', 'pf_fbc', '_fbp', '_fbc', 'pf_loc'];
+        $cookies     = array_intersect_key($_COOKIE, array_flip($cookie_keys));
+
+        $server_keys = ['REQUEST_URI', 'HTTP_ORIGIN', 'HTTP_REFERER', 'SERVER_NAME', 'SERVER_ADDR', 'QUERY_STRING', 'REQUEST_TIME'];
+        $server      = array_intersect_key($_SERVER, array_flip($server_keys));
+
+        $raw_ip     = pixelflow_get_client_ip_address();
+        $client_ip  = $raw_ip !== '' ? substr($raw_ip, 0, -4) . '****' : '';
+
+        // Mask client_ip_address inside the payload copy before logging
+        if (isset($payload['eventData']['customerData']['client_ip_address'])) {
+            $ip = (string) $payload['eventData']['customerData']['client_ip_address'];
+            $payload['eventData']['customerData']['client_ip_address'] = $ip !== '' ? substr($ip, 0, -4) . '****' : '';
+        }
+
+        $entry = [
+            'time'      => gmdate('Y-m-d H:i:s'),
+            'hook'      => $hook_name,
+            'client_ip' => $client_ip,
+            'payload'   => $payload,
+            'response'  => $response_summary,
+            'cookies'   => $cookies,
+            'server'    => $server,
+        ];
+
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+        file_put_contents($log_file, print_r($entry, true) . "\n---\n", FILE_APPEND | LOCK_EX);
+    }
+
     private function post_event(array $payload): void
     {
         $url = $this->api_url . '/event';
@@ -654,9 +714,12 @@ class PixelFlow_WooCommerce_Cart_Hooks
         // Make connect stage fast, so it truly doesn’t slow the user down much
         add_filter('http_request_args', [$this, 'tune_connect_timeout_for_pixelflow'], 10, 2);
 
-        wp_remote_post($url, $args);
+        $response = wp_remote_post($url, $args);
 
         remove_filter('http_request_args', [$this, 'tune_connect_timeout_for_pixelflow'], 10);
+
+        $event_name = isset($payload['eventData']['eventName']) ? (string) $payload['eventData']['eventName'] : 'unknown';
+        $this->debug_log($event_name, $payload, $response);
     }
 
     public function tune_connect_timeout_for_pixelflow(array $args, string $url): array

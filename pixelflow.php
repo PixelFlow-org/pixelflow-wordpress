@@ -2,7 +2,7 @@
 /**
  * Plugin Name: PixelFlow
  * Description: PixelFlow Official Plugin for WordPress. Easily Install Meta's Conversions API on Your Website
- * Version: 1.1.4
+ * Version: 1.1.5
  * Author: PixelFlow Team
  * Author URI: https://pixelflow.so/
  * License: GPL v2 or later
@@ -17,7 +17,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('PIXELFLOW_VERSION', '1.1.4');
+define('PIXELFLOW_VERSION', '1.1.5');
 define('PIXELFLOW_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('PIXELFLOW_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('PIXELFLOW_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -111,6 +111,7 @@ class PixelFlow
                 'nonce'                 => wp_create_nonce('pixelflow_settings_nonce'),
                 'ajax_url'              => admin_url('admin-ajax.php'),
                 'is_woocommerce_active' => PixelFlow_WooCommerce_Integration::is_woocommerce_active(),
+                'woo_debug_log_url'     => $this->get_debug_log_url(),
             );
 
             // Paths and versions
@@ -185,6 +186,7 @@ class PixelFlow
             'woo_disable_add_to_cart_freebies',
             'woo_disable_initiate_checkout_freebies',
             'woo_disable_purchase_freebies',
+            'woo_debug_enabled',
         );
 
         // Set all checkboxes: 1 if checked, 0 if not
@@ -386,6 +388,21 @@ class PixelFlow
             wp_add_inline_style($style_key, $styles);
             wp_enqueue_style($style_key);
         }
+    }
+
+    /**
+     * Get the URL to the WooCommerce debug log file.
+     * Generates a random key once and persists it as an option.
+     */
+    private function get_debug_log_url(): string
+    {
+        $key = get_option('pixelflow_debug_log_key', '');
+        if (empty($key)) {
+            $key = wp_generate_password(12, false);
+            update_option('pixelflow_debug_log_key', $key);
+        }
+
+        return content_url('/pixelflow_debug_' . $key . '.log');
     }
 
     /**
