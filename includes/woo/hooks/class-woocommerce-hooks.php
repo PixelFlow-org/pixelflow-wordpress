@@ -609,12 +609,10 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return;
         }
 
-        $log_key = get_option('pixelflow_debug_log_key', '');
-        if (empty($log_key)) {
+        $log_file = pixelflow_get_debug_log_path();
+        if (empty($log_file)) {
             return;
         }
-
-        $log_file = WP_CONTENT_DIR . '/pixelflow_debug_' . $log_key . '.log';
 
         $response_summary = null;
         if (is_wp_error($response)) {
@@ -652,7 +650,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
         ];
 
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-        file_put_contents($log_file, print_r($entry, true) . "\n---\n", FILE_APPEND | LOCK_EX);
+        file_put_contents($log_file, wp_json_encode($entry, JSON_PRETTY_PRINT) . "\n---\n", FILE_APPEND | LOCK_EX);
     }
 
     private function post_event(array $payload): void

@@ -274,6 +274,38 @@ function pixelflow_get_utm_params_from_cookie(): array
 }
 
 /**
+ * Get the absolute filesystem path to the WooCommerce debug log file.
+ *
+ * Strips all non-alphanumeric characters from the stored key and verifies
+ * the resulting path stays inside WP_CONTENT_DIR (defense-in-depth against
+ * a malicious stored value such as '../wp-config.php').
+ *
+ * Returns '' when the key is absent or the path escapes the content directory.
+ *
+ * @return string Absolute path or empty string on failure
+ */
+function pixelflow_get_debug_log_path(): string
+{
+    $key = preg_replace('/[^a-zA-Z0-9]/', '', (string) get_option('pixelflow_debug_log_key', ''));
+
+    if (empty($key)) {
+        return '';
+    }
+
+    $path         = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'pixelflow_debug_' . $key . '.log';
+    $real_content = realpath(WP_CONTENT_DIR);
+
+    // For a file that doesn't exist yet, realpath() returns false — use the constructed path directly.
+    $real_path = file_exists($path) ? realpath($path) : $path;
+
+    if ($real_content !== false && strpos($real_path, $real_content . DIRECTORY_SEPARATOR) !== 0) {
+        return '';
+    }
+
+    return $path;
+}
+
+/**
  * Append cookie parameters to payload
  *
  * @param array &$payload Payload array (passed by reference)

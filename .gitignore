@@ -4,6 +4,8 @@ node_modules
 app/source/node_modules
 app/source/.vscode
 .cursor
+.claude
+CLAUDE.md
 
 # Logs
 app/source/logs
@@ -39,5 +41,3 @@ app/source/.env.*.local
 
 #Plugin publish
 svn/
-
-CLAUDE.md
