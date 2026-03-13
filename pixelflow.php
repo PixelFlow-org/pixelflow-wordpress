@@ -72,6 +72,7 @@ class PixelFlow
         add_action('wp_ajax_pixelflow_save_script_params', array($this, 'ajax_save_script_params'));
         add_action('wp_ajax_pixelflow_remove_script_params', array($this, 'ajax_remove_script_params'));
         add_action('wp_ajax_pixelflow_clear_debug_log', array($this, 'ajax_clear_debug_log'));
+        add_action('wp_ajax_pixelflow_get_debug_log', array($this, 'ajax_get_debug_log'));
     }
 
     /**
@@ -442,6 +443,38 @@ class PixelFlow
         } else {
             wp_send_json_error(array('message' => __('Could not delete log file.', 'pixelflow')), 500);
         }
+    }
+
+    /**
+     * AJAX handler to read and return the WooCommerce debug log file contents.
+     */
+    public function ajax_get_debug_log(): void
+    {
+        check_ajax_referer('pixelflow_settings_nonce', 'nonce');
+
+        if ( ! current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Unauthorized access', 'pixelflow')), 403);
+        }
+
+        $path = pixelflow_get_debug_log_path();
+
+        if (empty($path)) {
+            wp_send_json_error(array('message' => __('Log file path could not be resolved.', 'pixelflow')), 400);
+        }
+
+        if ( ! file_exists($path)) {
+            wp_send_json_success(array('content' => '', 'message' => __('Log file does not exist yet.', 'pixelflow')));
+            return;
+        }
+
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+        $content = file_get_contents($path, false, null, 0, PIXELFLOW_DEBUG_LOG_MAX_SIZE);
+
+        if ($content === false) {
+            wp_send_json_error(array('message' => __('Could not read log file.', 'pixelflow')), 500);
+        }
+
+        wp_send_json_success(array('content' => $content));
     }
 
     /**

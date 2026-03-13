@@ -201,6 +201,36 @@ const wordpressSettingsApi = authApi.injectEndpoints({
         }
       },
     }),
+
+    getDebugLog: builder.query<{ content: string; message?: string }, void>({
+      queryFn: async () => {
+        try {
+          const formData = new FormData();
+          formData.append('action', 'pixelflow_get_debug_log');
+          formData.append('nonce', nonce);
+
+          const response = await fetch(ajaxUrl, { method: 'POST', body: formData });
+          const data = await response.json();
+
+          if (data.success) {
+            return { data: data.data as { content: string; message?: string } };
+          }
+          return {
+            error: {
+              status: 'CUSTOM_ERROR',
+              error: data.data?.message || 'Failed to fetch log file',
+            } as FetchBaseQueryError,
+          };
+        } catch (error) {
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: error instanceof Error ? error.message : 'Network error while fetching log file',
+            } as FetchBaseQueryError,
+          };
+        }
+      },
+    }),
   }),
   overrideExisting: false,
 });
@@ -210,4 +240,5 @@ export const {
   useSaveScriptCodeMutation,
   useRemoveScriptCodeMutation,
   useClearDebugLogMutation,
+  useLazyGetDebugLogQuery,
 } = wordpressSettingsApi;

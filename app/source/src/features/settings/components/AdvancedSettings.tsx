@@ -14,7 +14,10 @@ import * as UI from '@pixelflow-org/plugin-ui';
 import { useSettings } from '@/features/settings/contexts/SettingsContext.tsx';
 
 /** API */
-import { useClearDebugLogMutation } from '@/features/settings/api';
+import { useClearDebugLogMutation, useLazyGetDebugLogQuery } from '@/features/settings/api';
+
+/** Components */
+import LogViewerModal from '@/features/settings/components/LogViewerModal';
 
 /**
  * AdvancedSettings component
@@ -65,6 +68,31 @@ export function AdvancedSettings() {
   const [clearDebugLogMutation] = useClearDebugLogMutation();
   const [isClearing, setIsClearing] = useState(false);
 
+  const [triggerGetDebugLog] = useLazyGetDebugLogQuery();
+  const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+  const [logContent, setLogContent] = useState('');
+  const [isFetchingLog, setIsFetchingLog] = useState(false);
+  const [logFetchError, setLogFetchError] = useState<string | undefined>(undefined);
+
+  const handleSeeLogs = async () => {
+    setIsLogModalOpen(true);
+    setIsFetchingLog(true);
+    setLogFetchError(undefined);
+    setLogContent('');
+    try {
+      const result = await triggerGetDebugLog(undefined, false).unwrap();
+      setLogContent(result.content);
+    } catch (err: unknown) {
+      const message =
+        err && typeof err === 'object' && 'error' in err
+          ? String((err as { error: string }).error)
+          : 'Failed to load log file';
+      setLogFetchError(message);
+    } finally {
+      setIsFetchingLog(false);
+    }
+  };
+
   const handleClearLog = async () => {
     if (!window.confirm('Are you sure you want to delete the log file? This cannot be undone.')) {
       return;
@@ -81,6 +109,7 @@ export function AdvancedSettings() {
   };
 
   return (
+    <>
     <div className="max-w-6xl py-3">
       <div className=" rounded-lg shadow-sm border border-gray-200 p-6">
         {/* User Role Exclusion */}
@@ -183,12 +212,15 @@ export function AdvancedSettings() {
                   <UI.NarrowButton className="justify-center">
                     <a
                       href={wooDebugLogUrl}
-                      target="_blank"
+                      download
                       rel="noreferrer"
                       className="text-xs !text-foreground flex gap-1"
                     >
-                      Open log file &#x2197;
+                      Download log file &#x2193;
                     </a>
+                  </UI.NarrowButton>
+                  <UI.NarrowButton className="justify-center" onClick={handleSeeLogs}>
+                    <span className="text-xs !text-foreground flex gap-1">See logs 📋</span>
                   </UI.NarrowButton>
                   <UI.NarrowButton
                     className="justify-center"
@@ -220,5 +252,13 @@ export function AdvancedSettings() {
         )}
       </div>
     </div>
+    <LogViewerModal
+      open={isLogModalOpen}
+      onOpenChange={setIsLogModalOpen}
+      content={logContent}
+      isLoading={isFetchingLog}
+      error={logFetchError}
+    />
+    </>
   );
 }
