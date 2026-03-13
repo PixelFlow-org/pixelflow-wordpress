@@ -80,6 +80,7 @@ class PixelFlow
     private function load_dependencies()
     {
         // Load WooCommerce integration
+        require_once PIXELFLOW_PLUGIN_PATH . 'includes/helpers.php';
         require_once PIXELFLOW_PLUGIN_PATH . 'includes/woo/class-woocommerce-integration.php';
     }
 

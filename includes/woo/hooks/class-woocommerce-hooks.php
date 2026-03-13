@@ -649,8 +649,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             'server'    => $server,
         ];
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-        file_put_contents($log_file, wp_json_encode($entry, JSON_PRETTY_PRINT) . "\n---\n", FILE_APPEND | LOCK_EX);
+        pixelflow_write_debug_log_entry($log_file, wp_json_encode($entry, JSON_PRETTY_PRINT) . "\n---\n");
     }
 
     private function post_event(array $payload): void

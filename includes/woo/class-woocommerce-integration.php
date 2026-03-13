@@ -56,7 +56,6 @@ class PixelFlow_WooCommerce_Integration
         $site_external_id = isset($params['siteExternalId']) ? $params['siteExternalId'] : '';
         $api_key          = isset($params['apiKey']) ? $params['apiKey'] : '';
         $pixelflow_general_options = get_option('pixelflow_general_options');
-        require_once PIXELFLOW_PLUGIN_PATH . 'includes/helpers.php';
         require_once PIXELFLOW_PLUGIN_PATH . 'includes/woo/hooks/class-woocommerce-hooks.php';
         new PixelFlow_WooCommerce_Cart_Hooks($api_url, $api_key, $site_external_id, $pixelflow_general_options);
     }
