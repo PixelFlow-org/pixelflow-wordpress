@@ -1,23 +1,55 @@
 # PixelFlow WordPress Plugin
 
-PixelFlow official WordPress plugin. Easily install Meta's Conversions API on your website with WooCommerce integration and event tracking.
+Facebook Conversions API for WooCommerce. One-click setup. Auto track WooCommerce events to Meta with 100% accuracy. Bypass iOS restrictions & ad blockers.
 
-PixelFlow is the official WordPress plugin for [PixelFlow](https://pixelflow.so) - a powerful solution for implementing Meta's Conversions API on your website.
+Stop losing 30-50% of your WooCommerce conversions to iOS restrictions and ad blockers. [PixelFlow](https://pixelflow.so) is the no-code solution for implementing Meta's Conversions API on WooCommerce - so your ads finally get the data they need to optimize.
+
+- No more missing sales or conversions in Facebook ads manager
+- See every single event and where it came from down to the campaign, adset and ad
+- No for developers, Google Tags Manager or expensive solution
 
 ## Why PixelFlow?
 
-Meta's Conversions API helps you track customer actions beyond the limitations of browser-based tracking, ensuring accurate data collection for your advertising campaigns. PixelFlow makes it simple to set up and manage without technical expertise.
+Most server-side tracking solutions are built for developers or enterprise teams. They require complex setups, expensive consultants, or per-event pricing that spirals out of control.
 
-## Features
+## PixelFlow is different:
 
-- 🚀 **Easy Installation** - Add your PixelFlow tracking code with just a few clicks
-- 🛒 **WooCommerce Integration** - Automatic event tracking for your online store
-- 📊 **Complete Event Tracking** - Track purchases, add to cart, checkout, and more
-- ⚙️ **Flexible Configuration** - Control which events and elements to track
-- 🎨 **Theme Compatible** - Works with most of WordPress themes
-- 🔒 **User Role Exclusion** - Exclude admins or specific user roles from tracking
-- 🐛 **Debug Mode** - Visual debugging tools for testing and validation
-- 🎯 **Custom Class Assignment** - Automatically adds tracking classes to WooCommerce elements
+- **No developer needed** — install plugin, click enable and you're DONE.
+- **Unlimited event tracking** — flat monthly pricing, no per-event fees or surprise charges
+- **Set up in minutes** — not days or weeks
+
+## What You Get
+
+- **Recover lost conversions** that browser-based tracking misses
+- **Improve Event Match Quality scores** for better ad targeting and lower CPAs
+- **Track WooCommerce events automatically** — Add to Cart, Checkout, Purchase
+- **Real-time event monitoring** — see exactly what's being sent to Meta
+- **Works alongside your existing Pixel** — CAPI supplements browser tracking, it doesn't replace it. PixelFlow automatically loads both your pixel & CAPI for you for perfect event. deduplication and more coverage.
+
+## Why Server-Side Tracking Matters
+
+Since iOS 14, Meta's browser-based Pixel misses up to half your conversions. Ad blockers make it worse. When Meta doesn't receive your conversion data, it can't optimize your campaigns — so you pay more for worse results.
+PixelFlow sends events directly from your server to Meta, bypassing ad blockers and privacy restrictions entirely. Your ads get complete data. Your ROAS improves.
+
+## Built for WooCommerce
+
+When WooCommerce is active, PixelFlow automatically tracks:
+
+- **Add to Cart** — with product name, price, and quantity
+- **Initiate Checkout** — captures cart totals
+- **Purchase** — full order data including revenue
+
+No manual setup. No custom code. Works instantly.
+
+## Additional options:
+
+- Exclude free products from tracking
+- Exclude admins and specific user roles
+- Control which events fire and when
+
+**Not Using WooCommerce? We've Got You Covered.**
+
+Running a WordPress site without an online store? PixelFlow works for you too without the need for a plugin. Learn more at [PixelFlow](https://pixelflow.so) .
 
 ## Installation
 
@@ -45,10 +77,10 @@ Please follow this guide to set up your PixelFlow tracking code: [PixelFlow Setu
 
 When WooCommerce integration is active, PixelFlow automatically:
 
-* Tracks purchase events with complete order details
-* Adds event tracking classes to product, cart, and checkout pages
-* Captures product names, prices, quantities, and totals
-* Works with most WooCommerce themes out of the box
+* Tracks Add To Cart, Initiate Checkout, Purchase events
+* Captures product names, prices, quantities, totals and the other required information
+* Works with almost any WooCommerce theme out of the box
+* Free products could be optionally excluded from tracking
 
 **Tracked Events Include:**
 
@@ -200,66 +232,47 @@ For form tracking (Lead, Subscribe, Contact events), class names should be added
 
 ### What is PixelFlow?
 
-PixelFlow is a service that helps you implement Meta's Conversions API on your website, providing accurate tracking of customer actions for your Facebook/Meta and Instagram advertising campaigns.
+PixelFlow is a WooCommerce plugin that implements Meta's Conversions API (CAPI) on your store without any coding. It sends your conversion data directly from your server to Meta, bypassing the iOS restrictions and ad blockers that cause the standard Meta Pixel to miss 30-50% of your sales.
 
-### How is this different to just using the Meta Pixel on my website?
+### How is PixelFlow different from the standard Meta Pixel?
 
-Server-side tracking (also called the Conversion API) is better than using the standard "Facebook/Meta Pixel" implementation because it works even if visitors have ad blockers, tracking prevention, or cookie restrictions enabled meaning you get more complete, accurate data to measure results and improve your ads. It tracks events on your website before they can be blocked by a user's browser meaning you can get more data sent to Meta events manager and in turn reduce your costs because your data is better and more accurate.
+The Meta Pixel runs in your visitor's browser, which means it gets blocked by iOS privacy settings, ad blockers, and cookie restrictions. PixelFlow sends data server-to-server, so Meta receives your conversion data regardless of what's happening in the browser. You get more accurate tracking and better ad performance.
 
-### What are the benefits of PixelFlow?
+### How is PixelFlow different from competitors?
 
-PixelFlow tracks all events that users take on your website and send those events to Meta before the tracking can be blocked by the browser, adblocker, iPhone etc. This means you get far more accurate reporting data in your Meta events manager leading to reduced costs and increased conversions. Essentially you'll spend less on Meta ads and get a better return as you'll have more accurate data.
+Other implementations are either too complex or have "proprietary" systems to make up for their higher pricing. PixelFlow just simplifies all of this - we offer perfect server side tracking for WooCommerce at an affordable price for our users. We're a small team and always available for support and video calls!
 
-### How much more accurate is PixelFlow vs just the Meta pixel on my website?
+### How long does setup take?
 
-PixelFlow picks up 30–40% more conversions that Meta Pixel misses - especially on iOS, Safari, or when ad blockers are active. While Meta relies on browser-side data (which gets blocked), PixelFlow uses server-side tracking to ensure you see the full picture - every click, sale, and signup, even the hidden ones.
+About 2 minutes. Install the plugin, connect your Meta account, and click enable. PixelFlow handles everything else automatically.
 
-### I'm not technical, can you just set it up for me?
+### Will PixelFlow slow down my website?
 
-We've actually designed PixelFlow as an alternative to the more complex platforms because we totally understand these things can seem complicated. With this in mind, the setup is super simple - you just follow the video and steps and you're all done. However, if you need any help we're happy to jump on a video call with you and get it all setup!
+No. PixelFlow sends data from your server after the page has loaded, so it has zero impact on your storefront speed or customer experience.
 
-### How is GDPR handled?
+### Do I need to remove my existing Meta Pixel?
 
-For EU customers, you can ensure the PixelFlow script only loads after they have accepted whatever consent banner you choose to implement.
+No. PixelFlow works alongside your existing Pixel and automatically handles deduplication so Meta doesn't count events twice. Running both gives you maximum coverage.
 
-### Do I need a PixelFlow account?
+### Can I try PixelFlow for free?
 
-Yes, you need to sign up for a PixelFlow account at [pixelflow.so](https://pixelflow.so) to get your tracking code. We offer a free trial to get started.
+Yes. PixelFlow offers a 7-day free trial with no credit card required. You can test everything and see events flowing before you commit.
 
-### Does this work without WooCommerce?
+### How do I know if events are tracking correctly?
 
-Yes! The plugin works on any WordPress site. WooCommerce integration is an optional feature that provides automatic e-commerce event tracking.
+PixelFlow includes a real-time event log in your dashboard. You can see every event sent to Meta, including the data payload, delivery status, and any errors. You can also verify in Meta Events Manager.
 
-### Will this slow down my website?
+### What if I'm not using WooCommerce?
 
-No. The PixelFlow tracking code is lightweight and loads asynchronously, so it won't affect your website's performance.
+PixelFlow also works on regular WordPress sites and other platforms like Webflow, Framer, and Squarespace using a simple tracking script. Visit [pixelflow.so](https://pixelflow.so) to learn more.
 
-### Can I exclude certain users from tracking?
+### Is PixelFlow GDPR compliant?
 
-Yes. You can exclude specific user roles (like administrators) from being tracked in the plugin settings.
+PixelFlow is a data processor that sends conversion data to Meta on your behalf. You are responsible for obtaining appropriate user consent where required by law (GDPR, CCPA, etc.). PixelFlow works with popular consent plugins and can be configured to only fire events after consent is given.
 
-### Is this compatible with my theme?
+### What support is available if I need help?
 
-The plugin works with any WordPress themes. The WooCommerce integration works with most themes, but you can manually adjust class assignments if needed.
-
-### How do I test if events are tracking correctly?
-
-1. Enable Debug Mode in the plugin settings
-2. Visit your site while logged in
-3. You'll see visual indicators on tracked elements
-4. Check Meta Events Manager for event data
-
-### Can I track custom events?
-
-Yes! You can manually add PixelFlow class names to any element on your site to track custom events. See the [PixelFlow documentation](https://docs.pixelflow.so) for details.
-
-### Is my data secure?
-
-Yes. PixelFlow follows industry best practices for data security and privacy. Your tracking data is sent directly to Meta's servers.
-
-### What if I need help?
-
-Visit [PixelFlow documentation](https://docs.pixelflow.so) or [Contact Support](https://pixelflow.so/contact).
+We offer documentation, video tutorials, and email support on all plans. Most users complete setup without any assistance, but we're here if you get stuck. You can [ask your questions right here](https://wordpress.org/support/plugin/pixelflow/) or visit [PixelFlow documentation](https://docs.pixelflow.so) or [Contact Support](https://pixelflow.so/contact).
 
 ## Troubleshooting
 
@@ -299,6 +312,9 @@ For more information:
 * [Meta Business Tools](https://www.facebook.com/business/tools)
 
 ## Changelog
+
+### 1.1.5
+Added debug section to debug WooCommerce events
 
 ### 1.1.4
 Track WooCommerce events, such as Add to Cart, Initiate Checkout, Purchase, using Woo hooks, so this is now working out of the box

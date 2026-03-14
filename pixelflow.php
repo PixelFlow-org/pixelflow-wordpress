@@ -2,7 +2,7 @@
 /**
  * Plugin Name: PixelFlow
  * Description: PixelFlow Official Plugin for WordPress. Easily Install Meta's Conversions API on Your Website
- * Version: 1.1.4
+ * Version: 1.1.5
  * Author: PixelFlow Team
  * Author URI: https://pixelflow.so/
  * License: GPL v2 or later
@@ -17,7 +17,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('PIXELFLOW_VERSION', '1.1.4');
+define('PIXELFLOW_VERSION', '1.1.5');
 define('PIXELFLOW_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('PIXELFLOW_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('PIXELFLOW_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -60,6 +60,8 @@ class PixelFlow
         add_action('init', array($this, 'init'));
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'register_settings'));
+        add_action('admin_init', array($this, 'handle_disable_debug_action'));
+        add_action('admin_notices', array($this, 'display_debug_notice'));
         add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
         add_action('wp_print_scripts', array($this, 'inject_script'));
         add_filter('plugin_action_links_' . PIXELFLOW_PLUGIN_BASENAME, array($this, 'add_plugin_action_links'));
@@ -69,6 +71,8 @@ class PixelFlow
         add_action('wp_ajax_pixelflow_get_settings', array($this, 'ajax_get_settings'));
         add_action('wp_ajax_pixelflow_save_script_params', array($this, 'ajax_save_script_params'));
         add_action('wp_ajax_pixelflow_remove_script_params', array($this, 'ajax_remove_script_params'));
+        add_action('wp_ajax_pixelflow_clear_debug_log', array($this, 'ajax_clear_debug_log'));
+        add_action('wp_ajax_pixelflow_get_debug_log', array($this, 'ajax_get_debug_log'));
     }
 
     /**
@@ -77,6 +81,7 @@ class PixelFlow
     private function load_dependencies()
     {
         // Load WooCommerce integration
+        require_once PIXELFLOW_PLUGIN_PATH . 'includes/helpers.php';
         require_once PIXELFLOW_PLUGIN_PATH . 'includes/woo/class-woocommerce-integration.php';
     }
 
@@ -111,6 +116,7 @@ class PixelFlow
                 'nonce'                 => wp_create_nonce('pixelflow_settings_nonce'),
                 'ajax_url'              => admin_url('admin-ajax.php'),
                 'is_woocommerce_active' => PixelFlow_WooCommerce_Integration::is_woocommerce_active(),
+                'woo_debug_log_url'     => $this->get_debug_log_url(),
             );
 
             // Paths and versions
@@ -185,6 +191,7 @@ class PixelFlow
             'woo_disable_add_to_cart_freebies',
             'woo_disable_initiate_checkout_freebies',
             'woo_disable_purchase_freebies',
+            'woo_debug_enabled',
         );
 
         // Set all checkboxes: 1 if checked, 0 if not
@@ -386,6 +393,151 @@ class PixelFlow
             wp_add_inline_style($style_key, $styles);
             wp_enqueue_style($style_key);
         }
+    }
+
+    /**
+     * Get the URL to the WooCommerce debug log file.
+     * Generates a random key once and persists it as an option.
+     */
+    private function get_debug_log_url(): string
+    {
+        $key = get_option('pixelflow_debug_log_key', '');
+        if (empty($key)) {
+            $key = wp_generate_password(12, false);
+            update_option('pixelflow_debug_log_key', $key);
+        }
+
+        $path = pixelflow_get_debug_log_path();
+        if (empty($path)) {
+            return '';
+        }
+
+        return content_url('/pixelflow_debug_' . preg_replace('/[^a-zA-Z0-9]/', '', $key) . '.log');
+    }
+
+    /**
+     * AJAX handler to clear (delete) the WooCommerce debug log file.
+     * Accepts no user-supplied parameters — the file path is derived server-side only.
+     */
+    public function ajax_clear_debug_log(): void
+    {
+        check_ajax_referer('pixelflow_settings_nonce', 'nonce');
+
+        if ( ! current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Unauthorized access', 'pixelflow')), 403);
+        }
+
+        $path = pixelflow_get_debug_log_path();
+
+        if (empty($path)) {
+            wp_send_json_error(array('message' => __('Log file path could not be resolved.', 'pixelflow')), 400);
+        }
+
+        if ( ! file_exists($path)) {
+            wp_send_json_success(array('message' => __('Log file does not exist.', 'pixelflow')));
+        }
+
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+        if (unlink($path)) {
+            wp_send_json_success(array('message' => __('Log file cleared.', 'pixelflow')));
+        } else {
+            wp_send_json_error(array('message' => __('Could not delete log file.', 'pixelflow')), 500);
+        }
+    }
+
+    /**
+     * AJAX handler to read and return the WooCommerce debug log file contents.
+     */
+    public function ajax_get_debug_log(): void
+    {
+        check_ajax_referer('pixelflow_settings_nonce', 'nonce');
+
+        if ( ! current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Unauthorized access', 'pixelflow')), 403);
+        }
+
+        $path = pixelflow_get_debug_log_path();
+
+        if (empty($path)) {
+            wp_send_json_error(array('message' => __('Log file path could not be resolved.', 'pixelflow')), 400);
+        }
+
+        if ( ! file_exists($path)) {
+            wp_send_json_success(array('content' => '', 'message' => __('Log file does not exist yet.', 'pixelflow')));
+            return;
+        }
+
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+        $content = file_get_contents($path, false, null, 0, PIXELFLOW_DEBUG_LOG_MAX_SIZE);
+
+        if ($content === false) {
+            wp_send_json_error(array('message' => __('Could not read log file.', 'pixelflow')), 500);
+        }
+
+        wp_send_json_success(array('content' => $content));
+    }
+
+    /**
+     * Disable Woo debug logging via a one-click admin URL action.
+     */
+    public function handle_disable_debug_action(): void
+    {
+        if ( ! isset($_GET['pixelflow_disable_debug'])) {
+            return;
+        }
+        check_admin_referer('pixelflow_disable_debug');
+        if ( ! current_user_can('manage_options')) {
+            return;
+        }
+        $options                      = get_option('pixelflow_general_options', array());
+        $options['woo_debug_enabled'] = 0;
+        update_option('pixelflow_general_options', $options);
+        wp_safe_redirect(remove_query_arg(array('pixelflow_disable_debug', '_wpnonce')));
+        exit;
+    }
+
+    /**
+     * Show an admin notice when Woo debug logging is enabled.
+     */
+    public function display_debug_notice(): void
+    {
+        if ( ! current_user_can('manage_options')) {
+            return;
+        }
+
+        $options = get_option('pixelflow_general_options', array());
+        if (empty($options['woo_debug_enabled'])) {
+            return;
+        }
+
+        if ( ! PixelFlow_WooCommerce_Integration::is_woocommerce_active()) {
+            return;
+        }
+
+        $log_path  = pixelflow_get_debug_log_path();
+        $file_size = ( ! empty($log_path) && file_exists($log_path))
+            ? size_format(filesize($log_path))
+            : '0 B';
+
+        $disable_url  = wp_nonce_url(
+            add_query_arg('pixelflow_disable_debug', '1'),
+            'pixelflow_disable_debug'
+        );
+        $settings_url = admin_url('options-general.php?page=pixelflow-settings');
+
+        printf(
+            '<div class="notice notice-warning"><p>'
+            . '<strong>PixelFlow:</strong> '
+            . 'Woo events debug logging is <strong>enabled</strong>. '
+            . 'Events are being saved to a log file (current size: <strong>%s</strong>). '
+            . 'This may slow down your site &mdash; disable it when not in use. '
+            . '<a href="%s">Disable debug logging</a> &nbsp;|&nbsp; '
+            . '<a href="%s">Go to settings</a>'
+            . '</p></div>',
+            esc_html($file_size),
+            esc_url($disable_url),
+            esc_url($settings_url)
+        );
     }
 
     /**

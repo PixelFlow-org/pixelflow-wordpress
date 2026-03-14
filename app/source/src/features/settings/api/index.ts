@@ -149,6 +149,40 @@ const wordpressSettingsApi = authApi.injectEndpoints({
     }),
 
     /**
+     * Clear WooCommerce debug log file
+     * @description Deletes the debug log file server-side; no parameters are accepted
+     */
+    clearDebugLog: builder.mutation<{ message: string }, void>({
+      queryFn: async () => {
+        try {
+          const formData = new FormData();
+          formData.append('action', 'pixelflow_clear_debug_log');
+          formData.append('nonce', nonce);
+
+          const response = await fetch(ajaxUrl, { method: 'POST', body: formData });
+          const data = await response.json();
+
+          if (data.success) {
+            return { data: data.data as { message: string } };
+          }
+          return {
+            error: {
+              status: 'CUSTOM_ERROR',
+              error: data.data?.message || 'Failed to clear log file',
+            } as FetchBaseQueryError,
+          };
+        } catch (error) {
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: 'Network error while clearing log file',
+            } as FetchBaseQueryError,
+          };
+        }
+      },
+    }),
+
+    /**
      * Remove tracking script code
      * @description Deletes the stored tracking script from WordPress database via adapter
      */
@@ -167,9 +201,44 @@ const wordpressSettingsApi = authApi.injectEndpoints({
         }
       },
     }),
+
+    getDebugLog: builder.query<{ content: string; message?: string }, void>({
+      queryFn: async () => {
+        try {
+          const formData = new FormData();
+          formData.append('action', 'pixelflow_get_debug_log');
+          formData.append('nonce', nonce);
+
+          const response = await fetch(ajaxUrl, { method: 'POST', body: formData });
+          const data = await response.json();
+
+          if (data.success) {
+            return { data: data.data as { content: string; message?: string } };
+          }
+          return {
+            error: {
+              status: 'CUSTOM_ERROR',
+              error: data.data?.message || 'Failed to fetch log file',
+            } as FetchBaseQueryError,
+          };
+        } catch (error) {
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: error instanceof Error ? error.message : 'Network error while fetching log file',
+            } as FetchBaseQueryError,
+          };
+        }
+      },
+    }),
   }),
   overrideExisting: false,
 });
 
-export const { useSaveSettingsMutation, useSaveScriptCodeMutation, useRemoveScriptCodeMutation } =
-  wordpressSettingsApi;
+export const {
+  useSaveSettingsMutation,
+  useSaveScriptCodeMutation,
+  useRemoveScriptCodeMutation,
+  useClearDebugLogMutation,
+  useLazyGetDebugLogQuery,
+} = wordpressSettingsApi;

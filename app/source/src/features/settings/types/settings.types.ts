@@ -7,6 +7,7 @@ export interface PixelFlowGeneralOptions {
   woo_disable_purchase_freebies: number; // Disable Purchase event tracking for free products
   excluded_user_roles: string[]; // Array of role keys to exclude from script injection
   remove_on_uninstall: number; // Remove all plugin settings when plugin is uninstalled
+  woo_debug_enabled: number; // Log WooCommerce event data to a debug file
 }
 
 // User role structure parsed from WordPress
@@ -21,6 +22,7 @@ export interface PixelFlowSettings {
   nonce: string;
   ajax_url: string;
   is_woocommerce_active: boolean;
+  woo_debug_log_url?: string;
 }
 
 // RTK Query types

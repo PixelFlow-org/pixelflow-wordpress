@@ -274,6 +274,90 @@ function pixelflow_get_utm_params_from_cookie(): array
 }
 
 /**
+ * Get the absolute filesystem path to the WooCommerce debug log file.
+ *
+ * Strips all non-alphanumeric characters from the stored key and verifies
+ * the resulting path stays inside WP_CONTENT_DIR (defense-in-depth against
+ * a malicious stored value such as '../wp-config.php').
+ *
+ * Returns '' when the key is absent or the path escapes the content directory.
+ *
+ * @return string Absolute path or empty string on failure
+ */
+define('PIXELFLOW_DEBUG_LOG_MAX_SIZE', 1_048_576); // 1 MB
+
+function pixelflow_get_debug_log_path(): string
+{
+    $key = preg_replace('/[^a-zA-Z0-9]/', '', (string) get_option('pixelflow_debug_log_key', ''));
+
+    if (empty($key)) {
+        return '';
+    }
+
+    $path         = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'pixelflow_debug_' . $key . '.log';
+    $real_content = realpath(WP_CONTENT_DIR);
+
+    // For a file that doesn't exist yet, realpath() returns false — use the constructed path directly.
+    $real_path = file_exists($path) ? realpath($path) : $path;
+
+    if ($real_content !== false && strpos($real_path, $real_content . DIRECTORY_SEPARATOR) !== 0) {
+        return '';
+    }
+
+    return $path;
+}
+
+/**
+ * Append a debug log entry to the log file, trimming the oldest entries when
+ * the file exceeds PIXELFLOW_DEBUG_LOG_MAX_SIZE (filterable via
+ * 'pixelflow_debug_log_max_size'). The entire append + trim is performed under
+ * a single LOCK_EX so concurrent requests are safe.
+ *
+ * @param string $log_file Absolute path to the log file.
+ * @param string $data     Raw string to append (must end with "\n---\n").
+ */
+function pixelflow_write_debug_log_entry(string $log_file, string $data): void
+{
+    $max_size = (int) apply_filters('pixelflow_debug_log_max_size', PIXELFLOW_DEBUG_LOG_MAX_SIZE);
+    if ($max_size <= 0) {
+        $max_size = PIXELFLOW_DEBUG_LOG_MAX_SIZE;
+    }
+
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+    $fp = fopen($log_file, 'c+');
+    if ( ! $fp) {
+        return;
+    }
+
+    flock($fp, LOCK_EX);
+
+    fseek($fp, 0, SEEK_END);
+    fwrite($fp, $data);
+    fflush($fp);
+
+    $size = ftell($fp);
+
+    if ($size > $max_size) {
+        fseek($fp, 0, SEEK_SET);
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread
+        $content = fread($fp, $size);
+
+        // Find the first clean entry boundary past the midpoint, then drop everything before it.
+        $cut_pos = strpos($content, "\n---\n", (int) ($size / 2));
+
+        if ($cut_pos !== false) {
+            $new_content = substr($content, $cut_pos + strlen("\n---\n"));
+            ftruncate($fp, 0);
+            fseek($fp, 0, SEEK_SET);
+            fwrite($fp, $new_content);
+        }
+    }
+
+    flock($fp, LOCK_UN);
+    fclose($fp);
+}
+
+/**
  * Append cookie parameters to payload
  *
  * @param array &$payload Payload array (passed by reference)
