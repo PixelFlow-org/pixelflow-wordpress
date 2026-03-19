@@ -41,3 +41,5 @@ app/source/.env.*.local
 
 #Plugin publish
 svn/
+
+.DS_Store

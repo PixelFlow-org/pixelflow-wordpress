@@ -117,6 +117,34 @@ cd app/source
 npm run dev  # Start development server with hot reload
 ```
 
+### Testing core/features/ui changes with yalc
+
+To try unpublished changes from `plugin-core` or `plugin-features` before publishing:
+
+1. **One-time link** (if not already done):
+   ```bash
+   # From repo root: publish and link
+   cd packages/pixelflow-plugin-core && pnpm run yalc:publish
+   cd ../pixelflow-plugin-features && yalc add @pixelflow-org/plugin-core && pnpm install && pnpm run yalc:publish
+   cd ../../platforms/pixelflow-wordpress/app/source && yalc add @pixelflow-org/plugin-core @pixelflow-org/plugin-features && pnpm install
+   ```
+
+2. **After every change** in core or features:
+   - Push from the package you changed:
+     ```bash
+     cd packages/pixelflow-plugin-core && pnpm run yalc:push
+     # and/or
+     cd packages/pixelflow-plugin-features && pnpm run yalc:push
+     ```
+   - In the WordPress app: **clear Vite’s cache and restart** or changes won’t show:
+     ```bash
+     cd platforms/pixelflow-wordpress/app/source
+     rm -rf node_modules/.vite
+     pnpm dev
+     ```
+
+If you don’t see changes, you usually forgot a `yalc:push` in the package you edited or didn’t clear `node_modules/.vite` and restart the dev server.
+
 ### Adding New PixelFlow Classes
 
 To add a new class (e.g., `info-chk-itm-ctnr-pf`), update the following files:
@@ -312,6 +340,9 @@ For more information:
 * [Meta Business Tools](https://www.facebook.com/business/tools)
 
 ## Changelog
+
+### 1.1.6
+New logic for working with URL triggers (formerly known as tracking urls)
 
 ### 1.1.5
 Added debug section to debug WooCommerce events

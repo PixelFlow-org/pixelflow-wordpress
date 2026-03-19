@@ -17,7 +17,7 @@ import { PlatformAdapter } from '@pixelflow-org/plugin-core';
 
 /** Hooks */
 import { AuthScreen, usePixelsData } from '@pixelflow-org/plugin-features';
-import { useTrackingUrlsData } from '@pixelflow-org/plugin-features';
+import { useUrlTriggersData } from '@pixelflow-org/plugin-features';
 import { useEventsData } from '@pixelflow-org/plugin-features';
 import { useUsersData } from '@pixelflow-org/plugin-features';
 
@@ -25,7 +25,7 @@ import { useUsersData } from '@pixelflow-org/plugin-features';
 import {
   NavPanel,
   PixelsModule,
-  TrackingUrlsModule,
+  UrlTriggersModule,
   EventsModule,
 } from '@pixelflow-org/plugin-features';
 import StartSetupModal from './components/start-setup-modal';
@@ -102,11 +102,11 @@ const Home = ({ adapter }: HomeProps): ReactElement => {
     adapter,
   });
 
-  /** Tracking URLs */
-  // Manage URL-based event tracking configurations for conversion tracking
-  const { trackingUrls, trackingUrlsEvents, addTrackingUrl, deleteTrackingUrl, updateCurrency } =
-    useTrackingUrlsData({
+  /** URL triggers */
+  const { urlTriggers, eventTypes, addUrlTrigger, deleteUrlTrigger, updateCurrency } =
+    useUrlTriggersData({
       siteExternalId: siteExternalId ?? '',
+      siteId,
       adapter,
     });
 
@@ -217,7 +217,7 @@ const Home = ({ adapter }: HomeProps): ReactElement => {
     generateAndSaveScript();
     // Note: getHashedApiKey and getSite are intentionally NOT in dependencies
     // to avoid infinite loops - they're stable functions from hooks
-  }, [siteExternalId, pixels, siteId, selectedCurrency, trackingUrls, user]);
+  }, [siteExternalId, pixels, siteId, selectedCurrency, urlTriggers, user]);
 
   // Automatically associate tracking data with the current site on component mount
   useEffect(() => {
@@ -423,11 +423,11 @@ const Home = ({ adapter }: HomeProps): ReactElement => {
       {activeTab === 'url' &&
         (user ? (
           <>
-            <TrackingUrlsModule
-              trackingUrls={trackingUrls ?? []}
-              trackingUrlsEvents={trackingUrlsEvents ?? []}
-              addTrackingUrl={addTrackingUrl}
-              deleteTrackingUrl={deleteTrackingUrl}
+            <UrlTriggersModule
+              urlTriggers={urlTriggers ?? []}
+              eventTypes={eventTypes ?? []}
+              addUrlTrigger={addUrlTrigger}
+              deleteUrlTrigger={deleteUrlTrigger}
               open={openAddUrlModal}
               setOpen={setOpenAddUrlModal}
               adapter={adapter}
@@ -437,7 +437,7 @@ const Home = ({ adapter }: HomeProps): ReactElement => {
               className="my-4 mx-auto"
               onClick={() => setOpenAddUrlModal(true)}
             >
-              Add Url
+              Add Url trigger
             </Button.Root>
           </>
         ) : (

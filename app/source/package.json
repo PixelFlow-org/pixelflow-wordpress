@@ -14,9 +14,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@pixelflow-org/plugin-core": "^2.1.0",
-    "@pixelflow-org/plugin-features": "^1.2.5",
-    "@pixelflow-org/plugin-ui": "^1.2.1",
+    "@pixelflow-org/plugin-core": "^2.1.1",
+    "@pixelflow-org/plugin-features": "^1.2.6",
+    "@pixelflow-org/plugin-ui": "^1.2.2",
     "@reduxjs/toolkit": "^2.9.0",
     "@tailwindcss/vite": "^4.1.14",
     "react": "^19.2.0",
