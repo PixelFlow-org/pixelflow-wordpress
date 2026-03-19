@@ -9,14 +9,14 @@ importers:
   .:
     dependencies:
       '@pixelflow-org/plugin-core':
-        specifier: ^2.1.0
-        version: 2.1.0(@reduxjs/toolkit@2.9.0(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0))(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)(redux@5.0.1)
+        specifier: ^2.1.1
+        version: 2.1.1(@reduxjs/toolkit@2.9.0(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0))(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)(redux@5.0.1)
       '@pixelflow-org/plugin-features':
-        specifier: ^1.2.5
-        version: 1.2.5(@pixelflow-org/plugin-core@2.1.0(@reduxjs/toolkit@2.9.0(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0))(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)(redux@5.0.1))(@pixelflow-org/plugin-ui@1.2.1(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(tailwindcss@4.1.14))(@remixicon/react@4.6.0(react@19.2.0))(date-fns@4.1.0)(formik@2.4.6(@types/react@19.2.2)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)(reselect@5.1.1)(yup@1.7.1)
+        specifier: ^1.2.6
+        version: 1.2.6(@pixelflow-org/plugin-core@2.1.1(@reduxjs/toolkit@2.9.0(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0))(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)(redux@5.0.1))(@pixelflow-org/plugin-ui@1.2.2(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(tailwindcss@4.1.14))(@remixicon/react@4.6.0(react@19.2.0))(date-fns@4.1.0)(formik@2.4.6(@types/react@19.2.2)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)(reselect@5.1.1)(yup@1.7.1)
       '@pixelflow-org/plugin-ui':
-        specifier: ^1.2.1
-        version: 1.2.1(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(tailwindcss@4.1.14)
+        specifier: ^1.2.2
+        version: 1.2.2(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(tailwindcss@4.1.14)
       '@reduxjs/toolkit':
         specifier: ^2.9.0
         version: 2.9.0(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)
@@ -455,15 +455,15 @@ packages:
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
 
-  '@pixelflow-org/plugin-core@2.1.0':
-    resolution: {integrity: sha512-qSygibzPtCaEdaPE5nJV/ZJFJTqtcgA/LkkeFKCBn/adavGntoOMVfBNnuw9cj+bJvPYY86+XHjYsvWDQvU6jw==, tarball: https://npm.pkg.github.com/download/@pixelflow-org/plugin-core/2.1.0/210271fd4c77037c7596269aa5686fc761e60bb5}
+  '@pixelflow-org/plugin-core@2.1.1':
+    resolution: {integrity: sha512-3Xx3ZYdczSt5DZK2Tklw/8eZxy+9u4tlppTeZ5VbHK3kxwxtWoBZ4Ryq+6HBBNJnuuDxYIQZEWNp+nglBKD5uw==, tarball: https://npm.pkg.github.com/download/@pixelflow-org/plugin-core/2.1.1/a0b9fa1d7fa35f9292526da6131683ede6a36361}
     peerDependencies:
       '@reduxjs/toolkit': ^2.8.2
       react: ^18 || ^19
       react-redux: ^9.2.0
 
-  '@pixelflow-org/plugin-features@1.2.5':
-    resolution: {integrity: sha512-9SynENG+/8lsQYJPxnEPrPKpkpbYRRfgoS7ey4/5uOjQ+BmIsmmPspw8U0fkuVtfPpqziIVpLDbMBNcPFupozg==, tarball: https://npm.pkg.github.com/download/@pixelflow-org/plugin-features/1.2.5/f314374129a2a72ada704b818803039d7ccbed7c}
+  '@pixelflow-org/plugin-features@1.2.6':
+    resolution: {integrity: sha512-qZnKcRdcosYqIogQ6XP68Weq5V47bzyluSKmZ/U326EKd0Ol9uvvULn07QXaceMOLrBtLheORuY5tLZXE4YaPw==, tarball: https://npm.pkg.github.com/download/@pixelflow-org/plugin-features/1.2.6/26d8c05e8ddc5d749703ef7a427d2122f91b7617}
     peerDependencies:
       '@pixelflow-org/plugin-core': ^2.0.0
       '@pixelflow-org/plugin-ui': ^1.0.0
@@ -476,8 +476,8 @@ packages:
       reselect: ^5.1.1
       yup: ^1.7.1
 
-  '@pixelflow-org/plugin-ui@1.2.1':
-    resolution: {integrity: sha512-2VrtIqdnxpTmWHk5Yyw2IHkNpwmC4G/V87KRL3I6iY9GO14jxCw6IaENa/JPoDdkn2FN0AvKo00ntoVbLsv9xQ==, tarball: https://npm.pkg.github.com/download/@pixelflow-org/plugin-ui/1.2.1/429bc3592e03a81a5162323ef104c1df0c4abd53}
+  '@pixelflow-org/plugin-ui@1.2.2':
+    resolution: {integrity: sha512-VXzTMkjhbZRuEkAyyspQgBbmEBKOApfqgzvrZ1mhUiFJqfWHdJeeOsJ0kJhx78hof1eZBSRHbBQxditbGwn4ig==, tarball: https://npm.pkg.github.com/download/@pixelflow-org/plugin-ui/1.2.2/f4b2ce5c69da4d31d0b568da575e41b2080fe874}
     peerDependencies:
       react: ^18 || ^19
       react-dom: ^18 || ^19
@@ -1409,6 +1409,7 @@ packages:
 
   deep-diff@0.3.8:
     resolution: {integrity: sha512-yVn6RZmHiGnxRKR9sJb3iVV2XTF1Ghh2DiWRZ3dMnGc43yUdWWF/kX6lQyk3+P84iprfWKU/8zFTrlkvtFm1ug==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   deep-is@0.1.4:
     resolution: {integrity: sha512-oIPzksmTg4/MriiaYGO+okXDT7ztn/w3Eptv/+gSIdMdKsJo0u4CfYNFJPy+4SKMuCqGw2wxnA+URMg3t8a/bQ==}
@@ -2942,7 +2943,7 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.19.1
 
-  '@pixelflow-org/plugin-core@2.1.0(@reduxjs/toolkit@2.9.0(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0))(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)(redux@5.0.1)':
+  '@pixelflow-org/plugin-core@2.1.1(@reduxjs/toolkit@2.9.0(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0))(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)(redux@5.0.1)':
     dependencies:
       '@reduxjs/toolkit': 2.9.0(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)
       async-mutex: 0.5.0
@@ -2954,11 +2955,11 @@ snapshots:
     transitivePeerDependencies:
       - redux
 
-  '@pixelflow-org/plugin-features@1.2.5(@pixelflow-org/plugin-core@2.1.0(@reduxjs/toolkit@2.9.0(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0))(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)(redux@5.0.1))(@pixelflow-org/plugin-ui@1.2.1(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(tailwindcss@4.1.14))(@remixicon/react@4.6.0(react@19.2.0))(date-fns@4.1.0)(formik@2.4.6(@types/react@19.2.2)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)(reselect@5.1.1)(yup@1.7.1)':
+  '@pixelflow-org/plugin-features@1.2.6(@pixelflow-org/plugin-core@2.1.1(@reduxjs/toolkit@2.9.0(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0))(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)(redux@5.0.1))(@pixelflow-org/plugin-ui@1.2.2(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(tailwindcss@4.1.14))(@remixicon/react@4.6.0(react@19.2.0))(date-fns@4.1.0)(formik@2.4.6(@types/react@19.2.2)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)(reselect@5.1.1)(yup@1.7.1)':
     dependencies:
-      '@pixelflow-org/plugin-core': 2.1.0(@reduxjs/toolkit@2.9.0(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0))(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)(redux@5.0.1)
+      '@pixelflow-org/plugin-core': 2.1.1(@reduxjs/toolkit@2.9.0(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0))(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)(redux@5.0.1)
       '@pixelflow-org/plugin-features': 'link:'
-      '@pixelflow-org/plugin-ui': 1.2.1(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(tailwindcss@4.1.14)
+      '@pixelflow-org/plugin-ui': 1.2.2(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(tailwindcss@4.1.14)
       '@remixicon/react': 4.6.0(react@19.2.0)
       date-fns: 4.1.0
       formik: 2.4.6(@types/react@19.2.2)(react@19.2.0)
@@ -2968,7 +2969,7 @@ snapshots:
       reselect: 5.1.1
       yup: 1.7.1
 
-  '@pixelflow-org/plugin-ui@1.2.1(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(tailwindcss@4.1.14)':
+  '@pixelflow-org/plugin-ui@1.2.2(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(tailwindcss@4.1.14)':
     dependencies:
       '@radix-ui/react-dialog': 1.1.15(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@radix-ui/react-dropdown-menu': 2.1.16(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
