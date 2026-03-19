@@ -332,7 +332,7 @@ function pixelflow_write_debug_log_entry(string $log_file, string $data): void
     flock($fp, LOCK_EX);
 
     fseek($fp, 0, SEEK_END);
-    fwrite($fp, $data);
+    fwrite($fp, $data); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
     fflush($fp);
 
     $size = ftell($fp);
@@ -349,12 +349,12 @@ function pixelflow_write_debug_log_entry(string $log_file, string $data): void
             $new_content = substr($content, $cut_pos + strlen("\n---\n"));
             ftruncate($fp, 0);
             fseek($fp, 0, SEEK_SET);
-            fwrite($fp, $new_content);
+            fwrite($fp, $new_content); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
         }
     }
 
     flock($fp, LOCK_UN);
-    fclose($fp);
+    fclose($fp); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 }
 
 /**
