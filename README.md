@@ -341,6 +341,9 @@ For more information:
 
 ## Changelog
 
+### 1.1.6
+New logic for working with URL triggers (formerly known as tracking urls)
+
 ### 1.1.5
 Added debug section to debug WooCommerce events
 
