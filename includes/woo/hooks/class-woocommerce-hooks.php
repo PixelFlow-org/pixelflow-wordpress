@@ -124,10 +124,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 'eventName'      => 'AddToCart',
                 'eventTime'      => $event_time,
                 'actionSource'   => 'website',
-                // siteURL is the page URL where event happened
-                'siteURL'        => isset($_SERVER['HTTP_REFERER']) ? esc_url_raw(
-                    wp_unslash($_SERVER['HTTP_REFERER'])
-                ) : home_url('/'),
+                'siteURL'        => pixelflow_get_site_url(),
                 'additionalData' => $this->build_additional_data($product, $quantity),
                 'utm_params'     => pixelflow_get_utm_params_from_cookie(),
             ],
@@ -288,7 +285,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 'eventName'      => 'InitiateCheckout',
                 'eventTime'      => $event_time,
                 'actionSource'   => 'website',
-                'siteURL'        => home_url('/'),
+                'siteURL'        => pixelflow_get_site_url(),
                 'additionalData' => $additionalData,
                 'utm_params'     => $utm_params,
             ],
@@ -360,7 +357,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 'eventName'      => 'Purchase',
                 'eventTime'      => $event_time,
                 'actionSource'   => 'website',
-                'siteURL'        => home_url('/'),
+                'siteURL'        => pixelflow_get_site_url(),
                 'customerData'   => $customer,
                 'additionalData' => $additional,
                 'utm_params'     => pixelflow_get_utm_params_from_cookie(),
@@ -614,7 +611,6 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return;
         }
 
-        $response_summary = null;
         if (is_wp_error($response)) {
             $response_summary = ['wp_error' => $response->get_error_message()];
         } elseif (is_array($response)) {
@@ -622,6 +618,8 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 'code'    => wp_remote_retrieve_response_code($response),
                 'message' => wp_remote_retrieve_response_message($response),
             ];
+        } else {
+            $response_summary = $response;
         }
 
         $cookie_keys = ['_pf_utm', 'pf_clkid', 'pf_fbc', '_fbp', '_fbc', 'pf_loc'];
@@ -655,6 +653,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
     private function post_event(array $payload): void
     {
         $url = $this->api_url . '/event';
+        $event_skipped_message = __('EVENT SENDING SKIPPED BECAUSE USER AGENT MATCHED BOT SIGNATURE', 'pixelflow');
 
         // add loc from cookies
         $cookie_pf_loc = filter_input(INPUT_COOKIE, 'pf_loc', FILTER_UNSAFE_RAW);
@@ -711,11 +710,18 @@ class PixelFlow_WooCommerce_Cart_Hooks
         // Make connect stage fast, so it truly doesn’t slow the user down much
         add_filter('http_request_args', [$this, 'tune_connect_timeout_for_pixelflow'], 10, 2);
 
-        $response = wp_remote_post($url, $args);
+        if(!pixelflow_if_is_bot($ua)) {
+            $response = wp_remote_post($url, $args);
+        } else {
+            $response = $event_skipped_message;
+        }
 
         remove_filter('http_request_args', [$this, 'tune_connect_timeout_for_pixelflow'], 10);
 
         $event_name = isset($payload['eventData']['eventName']) ? (string) $payload['eventData']['eventName'] : 'unknown';
+        if(pixelflow_if_is_bot($ua)) {
+            $event_name .= " " . $event_skipped_message;
+        }
         $this->debug_log($event_name, $payload, $response);
     }
 

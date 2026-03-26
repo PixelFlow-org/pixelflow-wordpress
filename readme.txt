@@ -4,7 +4,7 @@ Tags: facebook pixel, conversions api, meta pixel, woocommerce tracking, ecommer
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.6
+Stable tag: 1.1.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -144,6 +144,9 @@ We offer documentation, video tutorials, and email support on all plans. Most us
 7. Events in the Pixelflow dashboard
 
 == Changelog ==
+
+= 1.1.7 =
+Prevent sending events from bots to PixelFlow, improved the way of finding the correct siteURL to send
 
 = 1.1.6 =
 New logic for working with URL triggers (formerly known as tracking urls)

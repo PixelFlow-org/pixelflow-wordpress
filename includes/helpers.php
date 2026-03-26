@@ -399,3 +399,76 @@ function pixelflow_append_cookie_params(
         }
     }
 }
+
+
+/**
+ * @param $userAgent
+ *
+ * @return bool
+ */
+define('PIXELFLOW_BOT_PATTERNS', [
+    'bot', // Catches googlebot, bingbot, storebot, etc.
+    'crawler',
+    'spider',
+    'scraper',
+    'headless',
+    'phantom',
+    'selenium',
+]);
+function pixelflow_if_is_bot($userAgent) {
+    $bot_patterns = apply_filters('pixelflow_useragent_bot_patterns', PIXELFLOW_BOT_PATTERNS);
+
+    if (!is_array($bot_patterns)) {
+        return false;
+    }
+
+    $lowerUA = strtolower((string)$userAgent);
+
+    foreach ($bot_patterns as $pattern) {
+        if (strpos($lowerUA, (string)$pattern) !== false) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * @return string|null
+ */
+function pixelflow_get_site_url() {
+    $fallback = home_url('/');
+
+    $host      = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '';
+    $uri       = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
+    $site_host = parse_url(home_url('/'), PHP_URL_HOST);
+
+    if ($host !== '' && $uri !== '' && $host === $site_host) {
+        $is_ajax_uri =
+            strpos($uri, 'wc-ajax') !== false ||
+            strpos($uri, 'admin-ajax.php') !== false ||
+            strpos($uri, '/wp-json/') !== false;
+
+        if (!$is_ajax_uri) {
+            $scheme = is_ssl() ? 'https://' : 'http://';
+            $url = $scheme . $host . $uri;
+
+            $url = esc_url_raw($url);
+            if ($url !== '') {
+                return $url;
+            }
+        }
+    }
+
+    if (!empty($_SERVER['HTTP_REFERER'])) {
+        $referer = esc_url_raw(wp_unslash($_SERVER['HTTP_REFERER']));
+
+        $referer_host = parse_url($referer, PHP_URL_HOST);
+
+        if ($referer_host && $site_host && $referer_host === $site_host) {
+            return $referer;
+        }
+    }
+
+    return $fallback;
+}
