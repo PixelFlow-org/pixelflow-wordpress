@@ -341,6 +341,9 @@ For more information:
 
 ## Changelog
 
+### 1.1.8
+Fixed plugin authentication
+
 ### 1.1.7
 Prevent sending events from bots to PixelFlow
 Improved the way of finding the correct siteURL to send
