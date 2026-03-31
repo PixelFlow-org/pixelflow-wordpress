@@ -231,6 +231,46 @@ function pixelflow_get_client_ip_address(): string
 }
 
 /**
+ * Get UTM parameters from the current request query string.
+ *
+ * @return array
+ */
+function pixelflow_get_utm_params_from_query(): array
+{
+    $allowed = [
+        'utm_source',
+        'utm_medium',
+        'utm_campaign',
+        'utm_term',
+        'utm_content',
+        'utm_id',
+    ];
+
+    $out = [];
+
+    foreach ($allowed as $key) {
+        if (isset($_GET[$key]) && is_scalar($_GET[$key])) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $out[$key] = sanitize_text_field(wp_unslash((string)$_GET[$key]));
+        }
+    }
+
+    if (empty($out)) {
+        $site_url = pixelflow_get_site_url();
+        $query    = parse_url($site_url, PHP_URL_QUERY);
+        if ($query) {
+            parse_str($query, $parsed);
+            foreach ($allowed as $key) {
+                if (isset($parsed[$key]) && is_scalar($parsed[$key])) {
+                    $out[$key] = sanitize_text_field((string)$parsed[$key]);
+                }
+            }
+        }
+    }
+
+    return $out;
+}
+
+/**
  * Get UTM parameters from cookie
  *
  * @return array UTM parameters array
@@ -238,7 +278,7 @@ function pixelflow_get_client_ip_address(): string
 function pixelflow_get_utm_params_from_cookie(): array
 {
     if ( ! isset($_COOKIE['_pf_utm']) || ! is_string($_COOKIE['_pf_utm'])) {
-        return [];
+        return pixelflow_get_utm_params_from_query();
     }
 
     $raw = sanitize_text_field(wp_unslash($_COOKIE['_pf_utm']));

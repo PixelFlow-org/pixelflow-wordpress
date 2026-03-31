@@ -342,7 +342,9 @@ For more information:
 ## Changelog
 
 ### 1.1.7
-Prevent sending events from bots to PixelFlow, improved the way of finding the correct siteURL to send
+Prevent sending events from bots to PixelFlow
+Improved the way of finding the correct siteURL to send
+Improved getting the UTM params
 
 ### 1.1.6
 New logic for working with URL triggers (formerly known as tracking urls)
