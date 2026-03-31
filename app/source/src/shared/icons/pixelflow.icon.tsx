@@ -16,9 +16,9 @@ const PixelflowIcon = () => (
         y2="12.0588"
         gradientUnits="userSpaceOnUse"
       >
-        <stop stop-color="#FF2CFF"></stop>
-        <stop offset="0.5" stop-color="#722CFF"></stop>
-        <stop offset="1" stop-color="#2C72FF"></stop>
+        <stop stopColor="#FF2CFF"></stop>
+        <stop offset="0.5" stopColor="#722CFF"></stop>
+        <stop offset="1" stopColor="#2C72FF"></stop>
       </linearGradient>
     </defs>
   </svg>
