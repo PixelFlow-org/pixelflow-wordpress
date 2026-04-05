@@ -59,6 +59,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
      */
     private function init_hooks()
     {
+        // Skip all hook registration if this is a cache-warmer / internal request
+        if (pixelflow_is_cache_warmer_request()) {
+            return;
+        }
+
         if (is_admin()) {
             return;
         }
@@ -432,10 +437,12 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
         $out['external_id'] = pixelflow_sha256_if_not_empty(pixelflow_normalize_external_id($external_raw));
 
+        $ip = pixelflow_get_client_ip_address();
         if ($ip !== '') {
             $out['client_ip_address'] = $ip;
         }
 
+        $ua = pixelflow_get_client_user_agent();
         if ($ua !== '') {
             $out['client_user_agent'] = $ua;
         }
@@ -655,6 +662,16 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $url = $this->api_url . '/event';
         $event_skipped_message = __('EVENT SENDING SKIPPED BECAUSE USER AGENT MATCHED BOT SIGNATURE', 'pixelflow');
 
+        // Resolve UA early so the bot check always has a value
+        $ua = pixelflow_get_client_user_agent();
+
+        // Bot check before any further processing
+        $is_bot = pixelflow_if_is_bot($ua);
+
+        // Also skip if the resolved IP is private (server-to-server / cache warmer)
+        $resolved_ip = pixelflow_get_client_ip_address();
+        $is_private_ip = pixelflow_is_private_ip($resolved_ip);
+
         // add loc from cookies
         $cookie_pf_loc = filter_input(INPUT_COOKIE, 'pf_loc', FILTER_UNSAFE_RAW);
 
@@ -675,22 +692,16 @@ class PixelFlow_WooCommerce_Cart_Hooks
             }
         }
 
-        // add ua and ip
+        // add ua and ip to customerData
         if ( ! isset($payload['eventData']['customerData']) || ! is_array($payload['eventData']['customerData'])) {
             $payload['eventData']['customerData'] = [];
         }
         $cd = &$payload['eventData']['customerData'];
-        if ( ! isset($cd['client_user_agent'])) {
-            $ua = pixelflow_get_client_user_agent();
-            if (is_string($ua) && $ua !== '') {
+        if ( ! isset($cd['client_user_agent']) && $ua !== '') {
                 $cd['client_user_agent'] = $ua;
             }
-        }
-        if ( ! isset($cd['client_ip_address'])) {
-            $ip = pixelflow_get_client_ip_address();
-            if (is_string($ip) && $ip !== '') {
-                $cd['client_ip_address'] = $ip;
-            }
+        if ( ! isset($cd['client_ip_address']) && $resolved_ip !== '' && ! $is_private_ip) {
+            $cd['client_ip_address'] = $resolved_ip;
         }
 
         $args = [
@@ -710,16 +721,17 @@ class PixelFlow_WooCommerce_Cart_Hooks
         // Make connect stage fast, so it truly doesn’t slow the user down much
         add_filter('http_request_args', [$this, 'tune_connect_timeout_for_pixelflow'], 10, 2);
 
-        if(!pixelflow_if_is_bot($ua)) {
+        if ( ! $is_bot && ! $is_private_ip) {
             $response = wp_remote_post($url, $args);
         } else {
-            $response = $event_skipped_message;
+            $skip_reason = $is_bot ? 'BOT_UA' : 'PRIVATE_IP';
+            $response = $event_skipped_message . ' (' . $skip_reason . ')';
         }
 
         remove_filter('http_request_args', [$this, 'tune_connect_timeout_for_pixelflow'], 10);
 
         $event_name = isset($payload['eventData']['eventName']) ? (string) $payload['eventData']['eventName'] : 'unknown';
-        if(pixelflow_if_is_bot($ua)) {
+        if ($is_bot || $is_private_ip) {
             $event_name .= " " . $event_skipped_message;
         }
         $this->debug_log($event_name, $payload, $response);
