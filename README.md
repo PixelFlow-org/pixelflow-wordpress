@@ -341,6 +341,9 @@ For more information:
 
 ## Changelog
 
+### 1.1.9
+Improved Woo events tracking
+
 ### 1.1.8
 Fixed plugin authentication
 

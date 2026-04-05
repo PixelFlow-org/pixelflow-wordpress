@@ -293,6 +293,7 @@ function pixelflow_is_cache_warmer_request(): bool
 
     // If the resolved IP is private/loopback, this is likely an internal request
     $ip = pixelflow_get_client_ip_address();
+
     if (pixelflow_is_private_ip($ip)) {
         return true;
     }

@@ -74,6 +74,14 @@ class PixelFlow_WooCommerce_Cart_Hooks
         add_action('wp', [$this, 'pf_initiate_checkout_fallback'], 20);
         add_action('woocommerce_cart_emptied', [$this, 'pf_reset_checkout_guard'], 10);
 
+        // Persist tracking cookies to order meta while the browser request is available
+        add_action('woocommerce_new_order', [$this, 'pf_save_tracking_cookies_to_order'], 10, 1);
+
+        // Fire Purchase on order status change (works even for async payment gateways)
+        add_action('woocommerce_order_status_processing', [$this, 'pf_purchase_hook'], 10, 1);
+        add_action('woocommerce_order_status_completed', [$this, 'pf_purchase_hook'], 10, 1);
+
+        // Keep thankyou as a fallback for gateways that go straight to "on-hold" or "pending"
         add_action('woocommerce_thankyou', [$this, 'pf_purchase_hook'], 10, 1);
     }
 
@@ -136,6 +144,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
         ];
         pixelflow_append_cookie_params($payload);
 
+        $customer = $this->build_customer_data_from_current_user();
+        if ( ! empty($customer)) {
+            $payload['eventData']['customerData'] = $customer;
+        }
+
         $this->post_event($payload);
     }
 
@@ -169,6 +182,13 @@ class PixelFlow_WooCommerce_Cart_Hooks
             'currency'    => $currency,
             'value'       => $price * $qty,
             'contentType' => 'product',
+            'contents'    => [
+                [
+                    'id'         => 'product_' . $id,
+                    'quantity'   => $qty,
+                    'item_price' => $price,
+                ],
+            ],
         ];
     }
 
@@ -297,6 +317,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
         ];
         pixelflow_append_cookie_params($payload);
 
+        $customer = $this->build_customer_data_from_current_user();
+        if ( ! empty($customer)) {
+            $payload['eventData']['customerData'] = $customer;
+        }
+
         $this->post_event($payload);
     }
 
@@ -309,7 +334,46 @@ class PixelFlow_WooCommerce_Cart_Hooks
     }
 
     /**
-     * Purchase: fires on thank you page with order_id.
+     * Save tracking cookies to order meta at order creation time.
+     * At this point the browser IS making the request, so $_COOKIE is available.
+     * By the time the order status changes (via async webhook), cookies are gone.
+     */
+    public function pf_save_tracking_cookies_to_order($order_id): void
+    {
+        $order_id = (int)$order_id;
+        if ($order_id <= 0) {
+            return;
+        }
+
+        $order = wc_get_order($order_id);
+        if ( ! $order) {
+            return;
+        }
+
+        $cookie_keys = ['_fbp', 'pf_fbc', '_fbc', 'pf_clkid', 'pf_loc', '_pf_utm'];
+
+        foreach ($cookie_keys as $key) {
+            if (isset($_COOKIE[$key]) && is_string($_COOKIE[$key]) && $_COOKIE[$key] !== '') {
+                $order->update_meta_data('_pf_cookie_' . $key, sanitize_text_field(wp_unslash($_COOKIE[$key])));
+            }
+        }
+
+        // Also save client IP and UA while we have them from the real browser request
+        $ip = pixelflow_get_client_ip_address();
+        $ua = pixelflow_get_client_user_agent();
+
+        if ($ip !== '' && ! pixelflow_is_private_ip($ip)) {
+            $order->update_meta_data('_pf_client_ip', $ip);
+        }
+        if ($ua !== '') {
+            $order->update_meta_data('_pf_client_ua', $ua);
+        }
+
+        $order->save();
+    }
+
+    /**
+     * Purchase: fires on order status change to processing/completed, or on thank-you page as fallback.
      */
     public function pf_purchase_hook($order_id): void
     {
@@ -336,7 +400,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             }
         }
 
-        // Avoid duplicate sends for page refreshes
+        // Avoid duplicate sends (works across thankyou page refresh AND status change hooks)
         $meta_key = '_pf_purchase_sent';
         $sent     = $order->get_meta($meta_key, true);
 
@@ -362,15 +426,78 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 'eventName'      => 'Purchase',
                 'eventTime'      => $event_time,
                 'actionSource'   => 'website',
-                'siteURL'        => pixelflow_get_site_url(),
+                'siteURL'        => $order->get_checkout_order_received_url() ?: pixelflow_get_site_url(),
                 'customerData'   => $customer,
                 'additionalData' => $additional,
-                'utm_params'     => pixelflow_get_utm_params_from_cookie(),
+                'utm_params'     => $this->get_utm_params_for_order($order),
             ],
         ];
-        pixelflow_append_cookie_params($payload);
+        $this->append_cookie_params_for_order($payload, $order);
 
         $this->post_event($payload);
+    }
+
+    /**
+     * Get UTM params from order meta (saved at order creation) or fall back to cookies.
+     */
+    private function get_utm_params_for_order(WC_Order $order): array
+    {
+        $saved_utm = $order->get_meta('_pf_cookie__pf_utm', true);
+        if ( ! empty($saved_utm) && is_string($saved_utm)) {
+            parse_str($saved_utm, $parsed);
+            if (is_array($parsed) && ! empty($parsed)) {
+                $allowed = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'utm_id'];
+                $out = [];
+                foreach ($allowed as $key) {
+                    if (isset($parsed[$key]) && is_scalar($parsed[$key])) {
+                        $out[$key] = sanitize_text_field((string)$parsed[$key]);
+                    }
+                }
+                if ( ! empty($out)) {
+                    return $out;
+                }
+            }
+        }
+
+        return pixelflow_get_utm_params_from_cookie();
+    }
+
+    /**
+     * Append cookie params from order meta (saved at creation) or fall back to live cookies.
+     */
+    private function append_cookie_params_for_order(array &$payload, WC_Order $order): void
+    {
+        if ( ! isset($payload['eventData']) || ! is_array($payload['eventData'])) {
+            return;
+        }
+
+        $map = [
+            'clkId' => 'pf_clkid',
+            'fbc'   => 'pf_fbc',
+            'fbp'   => '_fbp',
+        ];
+
+        foreach ($map as $param => $cookie_name) {
+            // Try order meta first (saved at woocommerce_new_order)
+            $val = $order->get_meta('_pf_cookie_' . $cookie_name, true);
+            if (empty($val) && isset($_COOKIE[$cookie_name])) {
+                $val = sanitize_text_field(wp_unslash($_COOKIE[$cookie_name]));
+            }
+            if ( ! empty($val) && is_string($val)) {
+                $payload['eventData'][$param] = $val;
+            }
+        }
+
+        // Fallback for _fbc
+        if ( ! isset($payload['eventData']['fbc'])) {
+            $fbc = $order->get_meta('_pf_cookie__fbc', true);
+            if (empty($fbc) && isset($_COOKIE['_fbc'])) {
+                $fbc = sanitize_text_field(wp_unslash($_COOKIE['_fbc']));
+            }
+            if ( ! empty($fbc) && is_string($fbc)) {
+                $payload['eventData']['fbc'] = $fbc;
+            }
+        }
     }
 
 
@@ -409,6 +536,59 @@ class PixelFlow_WooCommerce_Cart_Hooks
     }
 
 
+    /**
+     * Build hashed customer data for the currently logged-in WP user.
+     * Returns an empty array for guests (no user_id).
+     * Used to enrich AddToCart and InitiateCheckout events with PII for logged-in users,
+     * improving Facebook match rate before the order is placed.
+     *
+     * Pulls WP user fields + WooCommerce billing meta (billing_phone, billing_city, etc.)
+     * when available. client_ip_address and client_user_agent are added by post_event().
+     */
+    private function build_customer_data_from_current_user(): array
+    {
+        $user_id = get_current_user_id();
+        if ($user_id <= 0) {
+            return [];
+        }
+
+        $user = get_userdata($user_id);
+        if ( ! $user) {
+            return [];
+        }
+
+        // WooCommerce stores billing data in user meta
+        $phone   = (string)get_user_meta($user_id, 'billing_phone',     true);
+        $city    = (string)get_user_meta($user_id, 'billing_city',       true);
+        $state   = (string)get_user_meta($user_id, 'billing_state',      true);
+        $zip     = (string)get_user_meta($user_id, 'billing_postcode',   true);
+        $country = (string)get_user_meta($user_id, 'billing_country',    true);
+
+        // Use billing first/last name when available, fall back to WP display name fields
+        $fn = (string)get_user_meta($user_id, 'billing_first_name', true);
+        $ln = (string)get_user_meta($user_id, 'billing_last_name',  true);
+        if ($fn === '') {
+            $fn = (string)$user->first_name;
+        }
+        if ($ln === '') {
+            $ln = (string)$user->last_name;
+        }
+
+        $out = [
+            'em'          => pixelflow_sha256_if_not_empty(pixelflow_normalize_email((string)$user->user_email)),
+            'fn'          => pixelflow_sha256_if_not_empty(pixelflow_normalize_name($fn)),
+            'ln'          => pixelflow_sha256_if_not_empty(pixelflow_normalize_name($ln)),
+            'ph'          => pixelflow_sha256_if_not_empty(pixelflow_normalize_phone($phone)),
+            'ct'          => pixelflow_sha256_if_not_empty(pixelflow_normalize_city($city)),
+            'st'          => pixelflow_sha256_if_not_empty(pixelflow_normalize_state($state)),
+            'zp'          => pixelflow_sha256_if_not_empty(pixelflow_normalize_zip($zip)),
+            'country'     => pixelflow_sha256_if_not_empty(pixelflow_normalize_country($country)),
+            'external_id' => pixelflow_sha256_if_not_empty(pixelflow_normalize_external_id((string)$user_id)),
+        ];
+
+        return array_filter($out, fn($v) => $v !== '');
+    }
+
     private function build_customer_data_from_order(WC_Order $order): array
     {
         $email   = (string)$order->get_billing_email();
@@ -437,14 +617,44 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
         $out['external_id'] = pixelflow_sha256_if_not_empty(pixelflow_normalize_external_id($external_raw));
 
+        // Get IP and UA: prefer values saved to order meta at creation time (real browser request),
+        // fall back to current request values
+        $ip = (string)$order->get_meta('_pf_client_ip', true);
+        if ($ip === '') {
         $ip = pixelflow_get_client_ip_address();
-        if ($ip !== '') {
+        }
+
+        $ua = (string)$order->get_meta('_pf_client_ua', true);
+        if ($ua === '') {
+        $ua = pixelflow_get_client_user_agent();
+        }
+
+        if ($ip !== '' && ! pixelflow_is_private_ip($ip)) {
             $out['client_ip_address'] = $ip;
         }
 
-        $ua = pixelflow_get_client_user_agent();
         if ($ua !== '') {
             $out['client_user_agent'] = $ua;
+        }
+
+        // Restore location data from saved pf_loc cookie if not already set
+        $saved_loc = (string)$order->get_meta('_pf_cookie_pf_loc', true);
+        if ($saved_loc !== '' && empty($out['st'])) {
+            $decoded = json_decode($saved_loc, true);
+            if (is_array($decoded)) {
+                if (isset($decoded['st']) && $decoded['st'] !== '') {
+                    $out['st'] = sanitize_text_field($decoded['st']);
+                }
+                if (isset($decoded['zp']) && $decoded['zp'] !== '') {
+                    $out['zp'] = sanitize_text_field($decoded['zp']);
+                }
+                if (isset($decoded['ct']) && $decoded['ct'] !== '') {
+                    $out['ct'] = sanitize_text_field($decoded['ct']);
+                }
+                if (isset($decoded['country']) && $decoded['country'] !== '') {
+                    $out['country'] = sanitize_text_field($decoded['country']);
+                }
+            }
         }
 
         foreach ($out as $k => $v) {
@@ -513,7 +723,9 @@ class PixelFlow_WooCommerce_Cart_Hooks
             $num_items += $qty;
         }
 
-        $value = (float)$cart->get_total('raw');
+        // Use cart contents total (sum of line_totals, after discounts, excl. tax) so
+        // value always equals sum(item_price × qty) — consistent with the contents array above.
+        $value = (float)$cart->get_cart_contents_total();
 
         return [
             'content_ids' => array_values(array_unique($content_ids)),
@@ -527,14 +739,20 @@ class PixelFlow_WooCommerce_Cart_Hooks
     /**
      * Purchase additionalData requirements:
      * content_ids, contentType, contents, currency, num_items, value
+     *
+     * Handles order-level discounts (bundles, subscription trials, coupons) by distributing
+     * the gap between sum(item totals) and actual products value proportionally across items,
+     * so sum(item_price × qty) always equals value minus shipping and tax.
+     * For normal orders with no gap the ratio is 1.0 and prices are unchanged.
      */
     private function build_purchase_additional_data_from_order(WC_Order $order): array
     {
-        $currency = (string)$order->get_currency();
+        $currency  = (string)$order->get_currency();
+        $num_items = 0;
 
-        $content_ids = [];
-        $contents    = [];
-        $num_items   = 0;
+        // ── Pass 1: collect raw line totals ──────────────────────────────────
+        $rows            = [];
+        $sum_item_totals = 0.0;
 
         foreach ($order->get_items('line_item') as $item) {
             if ( ! ($item instanceof WC_Order_Item_Product)) {
@@ -546,47 +764,64 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 continue;
             }
 
-            $pid = (int)$item->get_product_id();
-            $vid = (int)$item->get_variation_id();
-
+            $pid        = (int)$item->get_product_id();
+            $vid        = (int)$item->get_variation_id();
             $tracked_id = $vid > 0 ? $vid : $pid;
 
             if ($tracked_id <= 0) {
                 continue;
             }
 
-            // Unit price after discounts, excluding tax (recommended)
+            // Line total after item-level discounts, excl. tax
             $line_total = (float)$item->get_total();
-            $price      = $line_total / $qty;
 
-            // Fallback: if total is 0 but subtotal exists (rare, but happens)
-            if ($price <= 0) {
+            // Fallback: subtotal exists but total is 0 (e.g. 100% item-level coupon)
+            if ($line_total <= 0) {
                 $line_subtotal = (float)$item->get_subtotal();
-                $price         = $line_subtotal / $qty;
-            }
-
-            // Final fallback: product price
-            if ($price <= 0) {
-                $product = $item->get_product();
-                if ($product instanceof WC_Product) {
-                    $raw   = $product->get_price();
-                    $price = $raw !== '' ? (float)wc_format_decimal($raw, wc_get_price_decimals()) : 0.0;
+                if ($line_subtotal > 0) {
+                    $line_total = $line_subtotal;
                 }
             }
 
-            $price = (float)wc_format_decimal($price, wc_get_price_decimals());
-
-            $content_ids[] = 'product_' . $tracked_id;
-            $contents[]    = [
-                'id'         => 'product_' . $tracked_id,
-                'quantity'   => $qty,
-                'item_price' => $price
+            $rows[]           = [
+                'tracked_id' => $tracked_id,
+                'qty'        => $qty,
+                'line_total' => $line_total,
             ];
-
-            $num_items += $qty;
+            $sum_item_totals += $line_total;
+            $num_items       += $qty;
         }
 
-        $value = (float)$order->get_total();
+        // ── Pass 2: calculate discount ratio ─────────────────────────────────
+        // What the customer actually paid for products only (excl. shipping + tax)
+        $order_products_value = max(
+            0.0,
+            (float)$order->get_total() - (float)$order->get_shipping_total() - (float)$order->get_total_tax()
+        );
+
+        // Only redistribute when there is a gap (order-level discount, bundle, subscription trial).
+        // When sum_item_totals == order_products_value the ratio is 1.0 — prices unchanged.
+        $discount_ratio = ($sum_item_totals > 0 && $order_products_value < $sum_item_totals)
+            ? $order_products_value / $sum_item_totals
+            : 1.0;
+
+        // ── Pass 3: build contents with adjusted prices ───────────────────────
+        $content_ids = [];
+        $contents    = [];
+
+        foreach ($rows as $row) {
+            $adjusted_total = $row['line_total'] * $discount_ratio;
+            $price          = $row['qty'] > 0
+                ? (float)wc_format_decimal($adjusted_total / $row['qty'], wc_get_price_decimals())
+                : 0.0;
+
+            $content_ids[] = 'product_' . $row['tracked_id'];
+            $contents[]    = [
+                'id'         => 'product_' . $row['tracked_id'],
+                'quantity'   => $row['qty'],
+                'item_price' => $price,
+            ];
+        }
 
         return [
             'content_ids' => array_values(array_unique($content_ids)),
@@ -594,7 +829,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             'contents'    => $contents,
             'currency'    => $currency,
             'num_items'   => (int)$num_items,
-            'value'       => $value,
+            'value'       => (float)$order->get_total(),
         ];
     }
 
