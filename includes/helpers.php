@@ -327,7 +327,7 @@ function pixelflow_get_utm_params_from_query(): array
 
     if (empty($out)) {
         $site_url = pixelflow_get_site_url();
-        $query    = parse_url($site_url, PHP_URL_QUERY);
+        $query    = wp_parse_url($site_url, PHP_URL_QUERY);
         if ($query) {
             parse_str($query, $parsed);
             foreach ($allowed as $key) {
@@ -348,20 +348,22 @@ function pixelflow_get_utm_params_from_query(): array
  */
 function pixelflow_get_utm_params_from_cookie(): array
 {
+    $fallback = pixelflow_get_utm_params_from_query();
+
     if ( ! isset($_COOKIE['_pf_utm']) || ! is_string($_COOKIE['_pf_utm'])) {
-        return pixelflow_get_utm_params_from_query();
+        return $fallback;
     }
 
     $raw = sanitize_text_field(wp_unslash($_COOKIE['_pf_utm']));
 
     if ($raw === '') {
-        return [];
+        return $fallback;
     }
 
     parse_str($raw, $parsed);
 
     if ( ! is_array($parsed) || empty($parsed)) {
-        return [];
+        return $fallback;
     }
 
     $allowed = [
@@ -381,7 +383,7 @@ function pixelflow_get_utm_params_from_cookie(): array
         }
     }
 
-    return $out;
+    return $out ?: $fallback;
 }
 
 /**
@@ -561,9 +563,9 @@ function pixelflow_if_is_bot($userAgent) {
 function pixelflow_get_site_url() {
     $fallback = home_url('/');
 
-    $host      = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '';
-    $uri       = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
-    $site_host = parse_url(home_url('/'), PHP_URL_HOST);
+    $host      = isset($_SERVER['HTTP_HOST']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_HOST'])) : '';
+    $uri       = isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : '';
+    $site_host = wp_parse_url(home_url('/'), PHP_URL_HOST);
 
     if ($host !== '' && $uri !== '' && $host === $site_host) {
         $is_ajax_uri =
@@ -585,7 +587,7 @@ function pixelflow_get_site_url() {
     if (!empty($_SERVER['HTTP_REFERER'])) {
         $referer = esc_url_raw(wp_unslash($_SERVER['HTTP_REFERER']));
 
-        $referer_host = parse_url($referer, PHP_URL_HOST);
+        $referer_host = wp_parse_url($referer, PHP_URL_HOST);
 
         if ($referer_host && $site_host && $referer_host === $site_host) {
             return $referer;

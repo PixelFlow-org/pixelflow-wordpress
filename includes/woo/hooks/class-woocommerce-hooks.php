@@ -23,6 +23,8 @@ class PixelFlow_WooCommerce_Cart_Hooks
     private string $api_key;
     private string $site_external_id;
     private $options;
+    private array $sent_in_request = [];
+    private bool  $coupon_changed  = false;
 
     private const DEFAULT_TIMEOUT = 5;
     private int $timeout;
@@ -73,6 +75,9 @@ class PixelFlow_WooCommerce_Cart_Hooks
         add_action('woocommerce_before_checkout_form', [$this, 'pf_initiate_checkout_hook'], 10);
         add_action('wp', [$this, 'pf_initiate_checkout_fallback'], 20);
         add_action('woocommerce_cart_emptied', [$this, 'pf_reset_checkout_guard'], 10);
+        add_action('woocommerce_applied_coupon',         [$this, 'pf_coupon_changed_flag'], 10);
+        add_action('woocommerce_removed_coupon',         [$this, 'pf_coupon_changed_flag'], 10);
+        add_action('woocommerce_after_calculate_totals', [$this, 'pf_after_calculate_totals_hook'], 20);
 
         // Persist tracking cookies to order meta while the browser request is available
         add_action('woocommerce_new_order', [$this, 'pf_save_tracking_cookies_to_order'], 10, 1);
@@ -122,7 +127,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
         }
 
         // When option is set to 1: do not send AddToCart for free products (price 0)
-        if ( ! empty($this->options['woo_disable_add_to_cart_freebies']) && $this->options['woo_disable_add_to_cart_freebies'] === 1) {
+        if ( ! empty($this->options['woo_disable_add_to_cart_freebies']) && (int)$this->options['woo_disable_add_to_cart_freebies'] === 1) {
             if ((float)wc_get_price_to_display($product) <= 0) {
                 return;
             }
@@ -219,7 +224,18 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
     private function get_initiate_checkout_guard_key(): string
     {
-        return 'pf_initiate_checkout_' . WC()->cart->get_cart_hash();
+        if ( ! function_exists('WC') || ! WC()->cart) {
+            return '';
+        }
+
+        $cart        = WC()->cart;
+        $fingerprint = md5(json_encode([
+            'hash'    => $cart->get_cart_hash(),
+            'coupons' => $cart->get_applied_coupons(),
+            'total'   => $cart->get_cart_contents_total(),
+        ]));
+
+        return 'pf_initiate_checkout_' . $fingerprint;
     }
 
     /**
@@ -274,7 +290,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
         }
 
         // When option is set to 1: do not send InitiateCheckout if cart has only free products
-        if ( ! empty($this->options['woo_disable_initiate_checkout_freebies']) && $this->options['woo_disable_initiate_checkout_freebies'] === 1) {
+        if ( ! empty($this->options['woo_disable_initiate_checkout_freebies']) && (int)$this->options['woo_disable_initiate_checkout_freebies'] === 1) {
             if ( ! $this->cart_has_paid_items($cart)) {
                 return;
             }
@@ -288,10 +304,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
         $guard_key = $this->get_initiate_checkout_guard_key();
 
-        $already = WC()->session->get($guard_key);
-
-        if ($already) {
-            return;
+        if ($guard_key !== '') {
+            $already = WC()->session->get($guard_key);
+            if ($already) {
+                return;
+            }
         }
 
         // Extra dedupe (fast TTL) to avoid same-load double send when multiple hooks fire
@@ -299,7 +316,12 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return;
         }
 
-        WC()->session->set($guard_key, 1);
+        if ($guard_key !== '') {
+            WC()->session->set($guard_key, 1);
+            // Remember the active guard key so pf_reset_checkout_guard() can clear it
+            // even after the cart is emptied (where get_cart_hash() would differ).
+            WC()->session->set('pf_last_checkout_guard_key', $guard_key);
+        }
 
         $event_time = time();
 
@@ -325,11 +347,30 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $this->post_event($payload);
     }
 
+    public function pf_coupon_changed_flag(): void
+    {
+        $this->coupon_changed = true;
+    }
+
+    public function pf_after_calculate_totals_hook(): void
+    {
+        if ( ! $this->coupon_changed) {
+            return;
+        }
+        $this->coupon_changed = false;
+        $this->maybe_send_initiate_checkout('coupon_changed');
+    }
+
     public function pf_reset_checkout_guard(): void
     {
-        if (function_exists('WC') && WC()->session) {
-            $guard_key = $this->get_initiate_checkout_guard_key();
+        if ( ! function_exists('WC') || ! WC()->session) {
+            return;
+        }
+
+        $guard_key = WC()->session->get('pf_last_checkout_guard_key');
+        if ( ! empty($guard_key) && is_string($guard_key)) {
             WC()->session->set($guard_key, 0);
+            WC()->session->set('pf_last_checkout_guard_key', '');
         }
     }
 
@@ -394,7 +435,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
         }
 
         // When option is set to 1: do not send Purchase if order has only free products
-        if ( ! empty($this->options['woo_disable_purchase_freebies']) && $this->options['woo_disable_purchase_freebies'] === 1) {
+        if ( ! empty($this->options['woo_disable_purchase_freebies']) && (int)$this->options['woo_disable_purchase_freebies'] === 1) {
             if ( ! $this->order_has_paid_items($order)) {
                 return;
             }
@@ -508,13 +549,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
      */
     private function should_send_event(string $key, int $ttl_seconds): bool
     {
-        static $sent_in_request = [];
-
-        if (isset($sent_in_request[$key]) && $sent_in_request[$key] === 1) {
+        if (isset($this->sent_in_request[$key]) && $this->sent_in_request[$key] === 1) {
             return false;
         }
 
-        $sent_in_request[$key] = 1;
+        $this->sent_in_request[$key] = 1;
 
         if ( ! function_exists('WC') || ! WC()->session) {
             return true;
@@ -674,6 +713,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
     private function build_checkout_additional_data_from_cart($cart): array
     {
         $currency = function_exists('get_woocommerce_currency') ? (string)get_woocommerce_currency() : 'USD';
+        $decimals = wc_get_price_decimals();
 
         $content_ids = [];
         $contents    = [];
@@ -708,10 +748,10 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 $product = $cart_item['data'];
 
                 $raw   = $product->get_price(); // string or ''
-                $price = $raw !== '' ? (float)wc_format_decimal($raw, wc_get_price_decimals()) : 0.0;
+                $price = $raw !== '' ? (float)wc_format_decimal($raw, $decimals) : 0.0;
             }
 
-            $price = (float)wc_format_decimal($price, wc_get_price_decimals());
+            $price = (float)wc_format_decimal($price, $decimals);
 
             $content_ids[] = 'product_' . $tracked_id;
             $contents[]    = [
@@ -723,17 +763,38 @@ class PixelFlow_WooCommerce_Cart_Hooks
             $num_items += $qty;
         }
 
-        // Use cart contents total (sum of line_totals, after discounts, excl. tax) so
-        // value always equals sum(item_price × qty) — consistent with the contents array above.
-        $value = (float)$cart->get_cart_contents_total();
+        $value = (float)wc_format_decimal($cart->get_cart_contents_total(), $decimals);
+        $this->adjust_last_item_price($contents, $value, $decimals);
 
         return [
             'content_ids' => array_values(array_unique($content_ids)),
+            'contentType' => 'product',
             'contents'    => $contents,
             'currency'    => $currency,
             'num_items'   => (int)$num_items,
             'value'       => $value,
         ];
+    }
+
+    /**
+     * Adjusts the last item's price so sum(item_price × qty) === value exactly,
+     * absorbing any rounding gap from WooCommerce coupon/discount distribution.
+     */
+    private function adjust_last_item_price(array &$contents, float $value, int $decimals): void
+    {
+        if (empty($contents)) {
+            return;
+        }
+        $last_idx = count($contents) - 1;
+        $last_qty = $contents[$last_idx]['quantity'];
+        if ($last_qty <= 0) {
+            return;
+        }
+        $accounted = 0.0;
+        for ($i = 0; $i < $last_idx; $i++) {
+            $accounted += $contents[$i]['item_price'] * $contents[$i]['quantity'];
+        }
+        $contents[$last_idx]['item_price'] = round(($value - $accounted) / $last_qty, 2);
     }
 
     /**
@@ -809,10 +870,12 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $content_ids = [];
         $contents    = [];
 
+        $decimals = wc_get_price_decimals();
+
         foreach ($rows as $row) {
             $adjusted_total = $row['line_total'] * $discount_ratio;
             $price          = $row['qty'] > 0
-                ? (float)wc_format_decimal($adjusted_total / $row['qty'], wc_get_price_decimals())
+                ? (float)wc_format_decimal($adjusted_total / $row['qty'], $decimals)
                 : 0.0;
 
             $content_ids[] = 'product_' . $row['tracked_id'];
@@ -823,13 +886,15 @@ class PixelFlow_WooCommerce_Cart_Hooks
             ];
         }
 
+        $this->adjust_last_item_price($contents, $order_products_value, $decimals);
+
         return [
             'content_ids' => array_values(array_unique($content_ids)),
             'contentType' => 'product',
             'contents'    => $contents,
             'currency'    => $currency,
             'num_items'   => (int)$num_items,
-            'value'       => (float)$order->get_total(),
+            'value'       => $order_products_value,
         ];
     }
 
@@ -920,10 +985,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
             $decoded = json_decode($raw, true);
             if (is_array($decoded)) {
-                $cd['st']      = isset($decoded['st']) ? sanitize_text_field($decoded['st']) : '';
-                $cd['zp']      = isset($decoded['zp']) ? sanitize_text_field($decoded['zp']) : '';
-                $cd['ct']      = isset($decoded['ct']) ? sanitize_text_field($decoded['ct']) : '';
-                $cd['country'] = isset($decoded['country']) ? sanitize_text_field($decoded['country']) : '';
+                foreach (['st', 'zp', 'ct', 'country'] as $loc_key) {
+                    if ( ! isset($cd[$loc_key]) && ! empty($decoded[$loc_key])) {
+                        $cd[$loc_key] = sanitize_text_field($decoded[$loc_key]);
+                    }
+                }
             }
         }
 
