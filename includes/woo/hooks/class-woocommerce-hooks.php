@@ -71,6 +71,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
         }
 
         add_action('woocommerce_add_to_cart', [$this, 'pf_add_to_cart_hook'], 10, 6);
+        add_action('woocommerce_after_cart_item_quantity_update', [$this, 'pf_cart_item_quantity_update_hook'], 10, 4);
 
         add_action('woocommerce_before_checkout_form', [$this, 'pf_initiate_checkout_hook'], 10);
         add_action('wp', [$this, 'pf_initiate_checkout_fallback'], 20);
@@ -144,6 +145,81 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 'actionSource'   => 'website',
                 'siteURL'        => pixelflow_get_site_url(),
                 'additionalData' => $this->build_additional_data($product, $quantity),
+                'utm_params'     => pixelflow_get_utm_params_from_cookie(),
+            ],
+        ];
+        pixelflow_append_cookie_params($payload);
+
+        $customer = $this->build_customer_data_from_current_user();
+        if ( ! empty($customer)) {
+            $payload['eventData']['customerData'] = $customer;
+        }
+
+        $this->post_event($payload);
+    }
+
+    /**
+     * Fires when an existing cart item's quantity is updated (e.g. via WC Store API update-item).
+     * Sends AddToCart only when the quantity has increased (delta > 0).
+     *
+     * @param string  $cart_item_key
+     * @param int     $new_quantity
+     * @param int     $old_quantity
+     * @param WC_Cart $cart
+     */
+    public function pf_cart_item_quantity_update_hook(
+        string $cart_item_key,
+        int $new_quantity,
+        int $old_quantity,
+        $cart
+    ): void {
+        $added = $new_quantity - $old_quantity;
+        if ($added <= 0) {
+            return; // quantity decreased or unchanged — not an AddToCart
+        }
+
+        // Use the same dedupe key as pf_add_to_cart_hook with TTL=0:
+        // - TTL=0 means no session-based blocking, so rapid successive clicks each fire their own event
+        // - The in-request guard (sent_in_request) still prevents double-firing when classic
+        //   WooCommerce fires both woocommerce_add_to_cart AND this hook within the same request
+        $dedupe_key = 'add_to_cart:' . $cart_item_key;
+        if ( ! $this->should_send_event($dedupe_key, 0)) {
+            return;
+        }
+
+        if ( ! function_exists('wc_get_product')) {
+            return;
+        }
+
+        $cart_item = $cart->get_cart_item($cart_item_key);
+        if ( ! $cart_item) {
+            return;
+        }
+
+        $variation_id  = (int)($cart_item['variation_id'] ?? 0);
+        $product_id    = (int)($cart_item['product_id'] ?? 0);
+        $wc_product_id = $variation_id > 0 ? $variation_id : $product_id;
+        $product       = wc_get_product($wc_product_id);
+
+        if ( ! $product) {
+            return;
+        }
+
+        if ( ! empty($this->options['woo_disable_add_to_cart_freebies']) && (int)$this->options['woo_disable_add_to_cart_freebies'] === 1) {
+            if ((float)wc_get_price_to_display($product) <= 0) {
+                return;
+            }
+        }
+
+        $payload = [
+            'siteId'    => (string)$this->site_external_id,
+            'eventData' => [
+                'event_id'       => uniqid('', true),
+                'eventName'      => 'AddToCart',
+                'eventTime'      => time(),
+                'actionSource'   => 'website',
+                'siteURL'        => pixelflow_get_site_url(),
+                'additionalData' => $this->build_additional_data($product, $added),
                 'utm_params'     => pixelflow_get_utm_params_from_cookie(),
             ],
         ];
@@ -764,7 +840,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
         }
 
         $value = (float)wc_format_decimal($cart->get_cart_contents_total(), $decimals);
-        $this->adjust_last_item_price($contents, $value, $decimals);
+        $this->apply_rounding_correction($contents, $value, $decimals);
 
         return [
             'content_ids' => array_values(array_unique($content_ids)),
@@ -777,24 +853,78 @@ class PixelFlow_WooCommerce_Cart_Hooks
     }
 
     /**
-     * Adjusts the last item's price so sum(item_price × qty) === value exactly,
-     * absorbing any rounding gap from WooCommerce coupon/discount distribution.
+     * Applies a minimal safe rounding correction to one item so that
+     * sum(item_price * quantity) gets as close to value as possible.
      */
-    private function adjust_last_item_price(array &$contents, float $value, int $decimals): void
+    private function apply_rounding_correction(array &$contents, float $value, int $decimals): void
     {
         if (empty($contents)) {
             return;
         }
-        $last_idx = count($contents) - 1;
-        $last_qty = $contents[$last_idx]['quantity'];
-        if ($last_qty <= 0) {
+
+        $computed = 0.0;
+        foreach ($contents as $item) {
+            $computed += (float) $item['item_price'] * (int) $item['quantity'];
+        }
+
+        $computed = round($computed, $decimals);
+        $delta = round($value - $computed, $decimals);
+
+        if ($delta == 0.0) {
             return;
         }
-        $accounted = 0.0;
-        for ($i = 0; $i < $last_idx; $i++) {
-            $accounted += $contents[$i]['item_price'] * $contents[$i]['quantity'];
+
+        $step = 1 / (10 ** $decimals);
+        $maxGap = count($contents) * $step;
+
+        if (abs($delta) > $maxGap) {
+            return;
         }
-        $contents[$last_idx]['item_price'] = round(($value - $accounted) / $last_qty, 2);
+
+        $bestIdx = -1;
+        $bestCorrected = 0.0;
+        $bestResidual = null;
+        $bestQty1 = false;
+
+        foreach ($contents as $idx => $item) {
+            $qty = (int) ($item['quantity'] ?? 0);
+            $price = (float) ($item['item_price'] ?? 0);
+
+            if ($qty <= 0 || $price <= 0.0) {
+                continue;
+            }
+
+            $corrected = round($price + $delta / $qty, $decimals);
+
+            if ($corrected <= 0.0 || $corrected == $price) {
+                continue;
+            }
+
+            $newComputed = round($computed - ($price * $qty) + ($corrected * $qty), $decimals);
+            $residual = abs(round($value - $newComputed, $decimals));
+            $isQty1 = ($qty === 1);
+
+            if (
+                $bestIdx === -1
+                || $residual < $bestResidual
+                || ($residual == $bestResidual && $isQty1 && !$bestQty1)
+            ) {
+                $bestIdx = $idx;
+                $bestCorrected = $corrected;
+                $bestResidual = $residual;
+                $bestQty1 = $isQty1;
+
+                if ($residual == 0.0) {
+                    break;
+                }
+            }
+        }
+
+        if ($bestIdx === -1) {
+            return;
+        }
+
+        $contents[$bestIdx]['item_price'] = $bestCorrected;
     }
 
     /**
@@ -886,7 +1016,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             ];
         }
 
-        $this->adjust_last_item_price($contents, $order_products_value, $decimals);
+        $this->apply_rounding_correction($contents, $order_products_value, $decimals);
 
         return [
             'content_ids' => array_values(array_unique($content_ids)),
