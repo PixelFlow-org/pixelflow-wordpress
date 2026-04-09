@@ -146,7 +146,7 @@ We offer documentation, video tutorials, and email support on all plans. Most us
 == Changelog ==
 
 = 1.1.9 =
-Improved Woo events tracking
+Improved Woo events tracking: blocked bots actions, cart updates now counts, include hashed customer details if the user is logged in, coupon in cart counts in products prices for InitiateCheckout and Purchase events
 
 = 1.1.8 =
 Fixed plugin authentication
