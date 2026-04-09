@@ -202,32 +202,103 @@ function pixelflow_get_client_user_agent(): string
  */
 function pixelflow_get_client_ip_address(): string
 {
-    // Prefer CF if available, then XFF, then REMOTE_ADDR
-    $candidates = [];
+    // Check headers in priority order: CDN/proxy headers first, then standard headers
+    $header_keys = [
+        'HTTP_CF_CONNECTING_IP',      // Cloudflare
+        'HTTP_TRUE_CLIENT_IP',        // Akamai
+        'HTTP_FASTLY_CLIENT_IP',      // Fastly
+        'HTTP_X_REAL_IP',             // Nginx proxy
+        'HTTP_X_FORWARDED_FOR',       // Standard proxy (first IP = client)
+        'HTTP_X_CLUSTER_CLIENT_IP',   // Cluster setups
+        'HTTP_FORWARDED_FOR',         // RFC 7239 variant
+        'HTTP_FORWARDED',             // RFC 7239
+        'HTTP_X_SUCURI_CLIENTIP',     // Sucuri WAF
+        'HTTP_X_ORIGINAL_FORWARDED_FOR', // Some load balancers
+        'REMOTE_ADDR',                // Direct connection (last resort)
+    ];
 
-    if (isset($_SERVER['HTTP_CF_CONNECTING_IP']) && is_string($_SERVER['HTTP_CF_CONNECTING_IP'])) {
-        $candidates[] = sanitize_text_field(wp_unslash($_SERVER['HTTP_CF_CONNECTING_IP']));
+    foreach ($header_keys as $key) {
+        if ( ! isset($_SERVER[$key]) || ! is_string($_SERVER[$key])) {
+            continue;
     }
 
-    if (isset($_SERVER['HTTP_X_FORWARDED_FOR']) && is_string($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-        $xff = sanitize_text_field(wp_unslash($_SERVER['HTTP_X_FORWARDED_FOR']));
-        $parts = explode(',', $xff);
-        if (isset($parts[0]) && is_string($parts[0])) {
-            $candidates[] = trim($parts[0]);
-        }
+        $raw = sanitize_text_field(wp_unslash($_SERVER[$key]));
+
+        // X-Forwarded-For can contain multiple IPs; take the first (client)
+        if (strpos($raw, ',') !== false) {
+            $parts = explode(',', $raw);
+            $raw   = trim($parts[0]);
     }
 
-    if (isset($_SERVER['REMOTE_ADDR']) && is_string($_SERVER['REMOTE_ADDR'])) {
-        $candidates[] = sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR']));
-    }
-
-    foreach ($candidates as $ip) {
-        if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP)) {
-            return $ip;
+        if ($raw !== '' && filter_var($raw, FILTER_VALIDATE_IP)) {
+            return $raw;
         }
     }
 
     return '';
+}
+
+/**
+ * Check if an IP address is private/reserved (loopback, LAN, etc.)
+ *
+ * @param string $ip IP address to check
+ * @return bool True if the IP is private/reserved
+ */
+function pixelflow_is_private_ip(string $ip): bool
+{
+    if ($ip === '') {
+        return true;
+    }
+
+    return filter_var(
+        $ip,
+        FILTER_VALIDATE_IP,
+        FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+    ) === false;
+}
+
+/**
+ * Detect if the current request is from a known cache-warming service or
+ * internal server request (NitroPack, WP Rocket, etc.)
+ *
+ * @return bool True if the request appears to be a cache warmer
+ */
+function pixelflow_is_cache_warmer_request(): bool
+{
+    $ua = pixelflow_get_client_user_agent();
+    $ua_lower = strtolower($ua);
+
+    // Known cache-warming user agents
+    $cache_warmer_patterns = [
+        'nitropack',
+        'wp rocket',
+        'wprocket',
+        'prerender',
+        'google page speed',
+        'pagespeed',
+        'lighthouse',
+        'ptst/',         // WebPageTest
+    ];
+
+    foreach ($cache_warmer_patterns as $pattern) {
+        if (strpos($ua_lower, $pattern) !== false) {
+            return true;
+        }
+    }
+
+    // NitroPack-specific headers
+    if ( ! empty($_SERVER['HTTP_X_NITROPACK_REQUEST'])) {
+        return true;
+    }
+
+    // If the resolved IP is private/loopback, this is likely an internal request
+    $ip = pixelflow_get_client_ip_address();
+
+    if (pixelflow_is_private_ip($ip)) {
+        return true;
+    }
+
+    return false;
 }
 
 /**
@@ -256,7 +327,7 @@ function pixelflow_get_utm_params_from_query(): array
 
     if (empty($out)) {
         $site_url = pixelflow_get_site_url();
-        $query    = parse_url($site_url, PHP_URL_QUERY);
+        $query    = wp_parse_url($site_url, PHP_URL_QUERY);
         if ($query) {
             parse_str($query, $parsed);
             foreach ($allowed as $key) {
@@ -277,20 +348,22 @@ function pixelflow_get_utm_params_from_query(): array
  */
 function pixelflow_get_utm_params_from_cookie(): array
 {
+    $fallback = pixelflow_get_utm_params_from_query();
+
     if ( ! isset($_COOKIE['_pf_utm']) || ! is_string($_COOKIE['_pf_utm'])) {
-        return pixelflow_get_utm_params_from_query();
+        return $fallback;
     }
 
     $raw = sanitize_text_field(wp_unslash($_COOKIE['_pf_utm']));
 
     if ($raw === '') {
-        return [];
+        return $fallback;
     }
 
     parse_str($raw, $parsed);
 
     if ( ! is_array($parsed) || empty($parsed)) {
-        return [];
+        return $fallback;
     }
 
     $allowed = [
@@ -310,7 +383,7 @@ function pixelflow_get_utm_params_from_cookie(): array
         }
     }
 
-    return $out;
+    return $out ?: $fallback;
 }
 
 /**
@@ -454,6 +527,17 @@ define('PIXELFLOW_BOT_PATTERNS', [
     'headless',
     'phantom',
     'selenium',
+    'facebookexternalhit',
+    'meta-externalagent',
+    'python-requests',
+    'python-urllib',
+    'curl/',
+    'wget/',
+    'ahrefsbot',
+    'semrushbot',
+    'dotbot',
+    'rogerbot',
+    'linkupbot',
 ]);
 function pixelflow_if_is_bot($userAgent) {
     $bot_patterns = apply_filters('pixelflow_useragent_bot_patterns', PIXELFLOW_BOT_PATTERNS);
@@ -479,9 +563,9 @@ function pixelflow_if_is_bot($userAgent) {
 function pixelflow_get_site_url() {
     $fallback = home_url('/');
 
-    $host      = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '';
-    $uri       = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
-    $site_host = parse_url(home_url('/'), PHP_URL_HOST);
+    $host      = isset($_SERVER['HTTP_HOST']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_HOST'])) : '';
+    $uri       = isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : '';
+    $site_host = wp_parse_url(home_url('/'), PHP_URL_HOST);
 
     if ($host !== '' && $uri !== '' && $host === $site_host) {
         $is_ajax_uri =
@@ -503,7 +587,7 @@ function pixelflow_get_site_url() {
     if (!empty($_SERVER['HTTP_REFERER'])) {
         $referer = esc_url_raw(wp_unslash($_SERVER['HTTP_REFERER']));
 
-        $referer_host = parse_url($referer, PHP_URL_HOST);
+        $referer_host = wp_parse_url($referer, PHP_URL_HOST);
 
         if ($referer_host && $site_host && $referer_host === $site_host) {
             return $referer;
