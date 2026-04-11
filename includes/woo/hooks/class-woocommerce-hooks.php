@@ -109,6 +109,16 @@ class PixelFlow_WooCommerce_Cart_Hooks
         array $variation,
         array $cart_item_data
     ): void {
+        // Skip events triggered by simulation/replay AJAX plugins (e.g. ppc-simulate-cart)
+        // to avoid duplicate AddToCart signals that Meta cannot deduplicate.
+        $current_uri          = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
+        $blocked_ajax_actions = apply_filters('pixelflow_blocked_ajax_actions', ['ppc-simulate-cart']);
+        foreach ($blocked_ajax_actions as $action) {
+            if (strpos($current_uri, (string)$action) !== false) {
+                return;
+            }
+        }
+
         // One event per actual cart line add
         $dedupe_key = 'add_to_cart:' . $cart_item_key;
 
@@ -135,6 +145,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
         }
 
         $event_time = time();
+        $utm        = pixelflow_get_utm_params_from_cookie();
 
         $payload = [
             'siteId'    => (string)$this->site_external_id,
@@ -145,9 +156,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 'actionSource'   => 'website',
                 'siteURL'        => pixelflow_get_site_url(),
                 'additionalData' => $this->build_additional_data($product, $quantity),
-                'utm_params'     => pixelflow_get_utm_params_from_cookie(),
             ],
         ];
+        if ( ! empty($utm)) {
+            $payload['eventData']['utm_params'] = $utm;
+        }
         pixelflow_append_cookie_params($payload);
 
         $customer = $this->build_customer_data_from_current_user();
@@ -176,6 +189,15 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $added = $new_quantity - $old_quantity;
         if ($added <= 0) {
             return; // quantity decreased or unchanged — not an AddToCart
+        }
+
+        // Same guard as pf_add_to_cart_hook — skip simulation/replay AJAX endpoints
+        $current_uri          = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
+        $blocked_ajax_actions = apply_filters('pixelflow_blocked_ajax_actions', ['ppc-simulate-cart']);
+        foreach ($blocked_ajax_actions as $action) {
+            if (strpos($current_uri, (string)$action) !== false) {
+                return;
+            }
         }
 
         // Use the same dedupe key as pf_add_to_cart_hook with TTL=0:
@@ -211,6 +233,8 @@ class PixelFlow_WooCommerce_Cart_Hooks
             }
         }
 
+        $utm = pixelflow_get_utm_params_from_cookie();
+
         $payload = [
             'siteId'    => (string)$this->site_external_id,
             'eventData' => [
@@ -220,9 +244,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 'actionSource'   => 'website',
                 'siteURL'        => pixelflow_get_site_url(),
                 'additionalData' => $this->build_additional_data($product, $added),
-                'utm_params'     => pixelflow_get_utm_params_from_cookie(),
             ],
         ];
+        if ( ! empty($utm)) {
+            $payload['eventData']['utm_params'] = $utm;
+        }
         pixelflow_append_cookie_params($payload);
 
         $customer = $this->build_customer_data_from_current_user();
@@ -410,9 +436,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 'actionSource'   => 'website',
                 'siteURL'        => pixelflow_get_site_url(),
                 'additionalData' => $additionalData,
-                'utm_params'     => $utm_params,
             ],
         ];
+        if ( ! empty($utm_params)) {
+            $payload['eventData']['utm_params'] = $utm_params;
+        }
         pixelflow_append_cookie_params($payload);
 
         $customer = $this->build_customer_data_from_current_user();
@@ -535,6 +563,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
         $additional = $this->build_purchase_additional_data_from_order($order);
         $customer   = $this->build_customer_data_from_order($order);
+        $utm        = $this->get_utm_params_for_order($order);
 
         $payload = [
             'siteId'    => (string)$this->site_external_id,
@@ -546,9 +575,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 'siteURL'        => $order->get_checkout_order_received_url() ?: pixelflow_get_site_url(),
                 'customerData'   => $customer,
                 'additionalData' => $additional,
-                'utm_params'     => $this->get_utm_params_for_order($order),
             ],
         ];
+        if ( ! empty($utm)) {
+            $payload['eventData']['utm_params'] = $utm;
+        }
         $this->append_cookie_params_for_order($payload, $order);
 
         $this->post_event($payload);
@@ -943,6 +974,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
         // ── Pass 1: collect raw line totals ──────────────────────────────────
         $rows            = [];
+        $product_names   = [];
         $sum_item_totals = 0.0;
 
         foreach ($order->get_items('line_item') as $item) {
@@ -962,6 +994,8 @@ class PixelFlow_WooCommerce_Cart_Hooks
             if ($tracked_id <= 0) {
                 continue;
             }
+
+            $product_names[] = (string)$item->get_name();
 
             // Line total after item-level discounts, excl. tax
             $line_total = (float)$item->get_total();
@@ -1020,6 +1054,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
         return [
             'content_ids' => array_values(array_unique($content_ids)),
+            'contentName' => implode(', ', array_unique($product_names)),
             'contentType' => 'product',
             'contents'    => $contents,
             'currency'    => $currency,

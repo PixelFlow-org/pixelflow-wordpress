@@ -538,6 +538,9 @@ define('PIXELFLOW_BOT_PATTERNS', [
     'dotbot',
     'rogerbot',
     'linkupbot',
+    'geedoshopproductfinder',
+    'shopproductfinder',
+    'pricefinder',
 ]);
 function pixelflow_if_is_bot($userAgent) {
     $bot_patterns = apply_filters('pixelflow_useragent_bot_patterns', PIXELFLOW_BOT_PATTERNS);
@@ -560,6 +563,29 @@ function pixelflow_if_is_bot($userAgent) {
 /**
  * @return string|null
  */
+/**
+ * Remove fbclid and utm_* tracking parameters from a URL.
+ * Returns the original URL unchanged if it has no query string.
+ */
+function pixelflow_strip_tracking_params(string $url): string {
+    $parts = wp_parse_url($url);
+    if (empty($parts['query'])) {
+        return $url;
+    }
+    parse_str($parts['query'], $params);
+    foreach (array_keys($params) as $k) {
+        if ($k === 'fbclid' || strpos($k, 'utm_') === 0) {
+            unset($params[$k]);
+        }
+    }
+    $scheme = isset($parts['scheme']) ? $parts['scheme'] . '://' : '';
+    $host   = $parts['host'] ?? '';
+    $path   = $parts['path'] ?? '';
+    $query  = !empty($params) ? '?' . http_build_query($params) : '';
+    $fragment = isset($parts['fragment']) ? '#' . $parts['fragment'] : '';
+    return $scheme . $host . $path . $query . $fragment;
+}
+
 function pixelflow_get_site_url() {
     $fallback = home_url('/');
 
@@ -579,7 +605,7 @@ function pixelflow_get_site_url() {
 
             $url = esc_url_raw($url);
             if ($url !== '') {
-                return $url;
+                return pixelflow_strip_tracking_params($url);
             }
         }
     }
@@ -590,7 +616,7 @@ function pixelflow_get_site_url() {
         $referer_host = wp_parse_url($referer, PHP_URL_HOST);
 
         if ($referer_host && $site_host && $referer_host === $site_host) {
-            return $referer;
+            return pixelflow_strip_tracking_params($referer);
         }
     }
 

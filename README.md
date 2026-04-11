@@ -341,8 +341,12 @@ For more information:
 
 ## Changelog
 
+### 1.1.10
+Woo events tracking hardened to prevent double or unnecessary events tracked
+
 ### 1.1.9
 Improved Woo events tracking: blocked bots actions, cart updates now counts, include hashed customer details if the user is logged in, coupon in cart counts in products prices for InitiateCheckout and Purchase events
+
 ### 1.1.8
 Fixed plugin authentication
 
