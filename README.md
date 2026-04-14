@@ -341,6 +341,9 @@ For more information:
 
 ## Changelog
 
+### 1.1.11
+XStore theme false AddToCart event sending disabled
+
 ### 1.1.10
 Woo events tracking hardened to prevent double or unnecessary events tracked
 

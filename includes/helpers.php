@@ -387,6 +387,35 @@ function pixelflow_get_utm_params_from_cookie(): array
 }
 
 /**
+ * Returns true when the current request should not produce tracking events.
+ *
+ * - ppc-simulate-cart: matched via REQUEST_URI (sent as a wc-ajax query param)
+ * - xstore_get_user_compare: matched via POST action field
+ * Additional URI-based actions can be added via the pixelflow_blocked_ajax_actions filter.
+ *
+ * @return bool
+ */
+function pixelflow_is_blocked_ajax_action(): bool
+{
+    // XStore theme sends the request which triggers add to cart soehow
+    $post_action = isset($_POST['action']) ? (string) $_POST['action'] : '';
+    if ($post_action === 'xstore_get_user_compare') {
+        return true;
+    }
+
+    // URI-based actions (e.g. ?wc-ajax=ppc-simulate-cart)
+    $current_uri          = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
+    $blocked_ajax_actions = apply_filters('pixelflow_blocked_ajax_actions', ['ppc-simulate-cart']);
+    foreach ($blocked_ajax_actions as $action) {
+        if (strpos($current_uri, (string) $action) !== false) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
  * Get the absolute filesystem path to the WooCommerce debug log file.
  *
  * Strips all non-alphanumeric characters from the stored key and verifies

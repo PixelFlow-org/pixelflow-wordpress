@@ -109,14 +109,8 @@ class PixelFlow_WooCommerce_Cart_Hooks
         array $variation,
         array $cart_item_data
     ): void {
-        // Skip events triggered by simulation/replay AJAX plugins (e.g. ppc-simulate-cart)
-        // to avoid duplicate AddToCart signals that Meta cannot deduplicate.
-        $current_uri          = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
-        $blocked_ajax_actions = apply_filters('pixelflow_blocked_ajax_actions', ['ppc-simulate-cart']);
-        foreach ($blocked_ajax_actions as $action) {
-            if (strpos($current_uri, (string)$action) !== false) {
-                return;
-            }
+        if (pixelflow_is_blocked_ajax_action()) {
+            return;
         }
 
         // One event per actual cart line add
@@ -191,13 +185,8 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return; // quantity decreased or unchanged — not an AddToCart
         }
 
-        // Same guard as pf_add_to_cart_hook — skip simulation/replay AJAX endpoints
-        $current_uri          = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
-        $blocked_ajax_actions = apply_filters('pixelflow_blocked_ajax_actions', ['ppc-simulate-cart']);
-        foreach ($blocked_ajax_actions as $action) {
-            if (strpos($current_uri, (string)$action) !== false) {
-                return;
-            }
+        if (pixelflow_is_blocked_ajax_action()) {
+            return;
         }
 
         // Use the same dedupe key as pf_add_to_cart_hook with TTL=0:
