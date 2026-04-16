@@ -341,6 +341,9 @@ For more information:
 
 ## Changelog
 
+### 1.1.12
+Disable some WooCommerce events from tracking, add plugin version to logs
+
 ### 1.1.11
 XStore theme false AddToCart event sending disabled
 
