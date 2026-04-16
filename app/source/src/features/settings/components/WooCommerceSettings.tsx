@@ -39,6 +39,33 @@ export function WooCommerceSettings() {
     await saveSettings({ generalOptionsOverride: { [option]: newValue } });
   };
 
+  // Master event toggles: when disabling, also force the freebies sub-option off
+  const masterFreebiesMap: Partial<
+    Record<keyof PixelFlowGeneralOptions, keyof PixelFlowGeneralOptions>
+  > = {
+    woo_disable_add_to_cart: 'woo_disable_add_to_cart_freebies',
+    woo_disable_initiate_checkout: 'woo_disable_initiate_checkout_freebies',
+    woo_disable_purchase: 'woo_disable_purchase_freebies',
+  };
+
+  const handleToggleMasterEvent = async (masterOption: keyof PixelFlowGeneralOptions) => {
+    const newValue = generalOptions[masterOption] === 1 ? 0 : 1;
+    updateGeneralOption(masterOption, newValue);
+
+    const freebiesKey = masterFreebiesMap[masterOption];
+    const cascade = newValue === 1 && freebiesKey;
+    if (cascade) {
+      updateGeneralOption(freebiesKey!, 1);
+    }
+
+    await saveSettings({
+      generalOptionsOverride: {
+        [masterOption]: newValue,
+        ...(cascade ? { [freebiesKey!]: 1 } : {}),
+      },
+    });
+  };
+
   return (
     <div className="max-w-6xl py-3">
       <div className=" rounded-lg shadow-sm border border-gray-200 p-6">
@@ -76,14 +103,86 @@ export function WooCommerceSettings() {
         {generalOptions.woo_enabled === 1 && (
           <div className="space-y-6 mt-6">
             <div className="flex gap-3 [@media(max-width:1100px)]:flex-wrap flex-col">
-              <h4 className="font-semibold !mb-0 !text-foreground !text-lg">Additional options</h4>
+              <h4 className="font-semibold !mb-0 !text-foreground !text-lg">eCommerce Events</h4>
               <div className="flex items-center gap-3">
+                <UI.Switch.Root
+                  checked={generalOptions.woo_disable_add_to_cart === 0}
+                  onCheckedChange={() => handleToggleMasterEvent('woo_disable_add_to_cart')}
+                  id="woo_disable_add_to_cart"
+                  variant={'green'}
+                  disabled={isSaving}
+                ></UI.Switch.Root>
+                <UI.TooltipRoot>
+                  <UI.TooltipTrigger asChild>
+                    <UI.Label.Root className="cursor-pointer" htmlFor="woo_disable_add_to_cart">
+                      <span>
+                        Enable <b>Add to Cart</b> event
+                      </span>
+                    </UI.Label.Root>
+                  </UI.TooltipTrigger>
+                  <UI.TooltipContent>
+                    When disabled, Add to Cart events will not be sent for any product.
+                  </UI.TooltipContent>
+                </UI.TooltipRoot>
+              </div>
+              <div className="flex items-center gap-3">
+                <UI.Switch.Root
+                  checked={generalOptions.woo_disable_initiate_checkout === 0}
+                  onCheckedChange={() => handleToggleMasterEvent('woo_disable_initiate_checkout')}
+                  id="woo_disable_initiate_checkout"
+                  variant={'green'}
+                  disabled={isSaving}
+                ></UI.Switch.Root>
+                <UI.TooltipRoot>
+                  <UI.TooltipTrigger asChild>
+                    <UI.Label.Root
+                      className="cursor-pointer"
+                      htmlFor="woo_disable_initiate_checkout"
+                    >
+                      <span>
+                        Enable <b>Initiate Checkout</b> event
+                      </span>
+                    </UI.Label.Root>
+                  </UI.TooltipTrigger>
+                  <UI.TooltipContent>
+                    When disabled, Initiate Checkout events will not be sent regardless of cart
+                    contents.
+                  </UI.TooltipContent>
+                </UI.TooltipRoot>
+              </div>
+              <div className="flex items-center gap-3">
+                <UI.Switch.Root
+                  checked={generalOptions.woo_disable_purchase === 0}
+                  onCheckedChange={() => handleToggleMasterEvent('woo_disable_purchase')}
+                  id="woo_disable_purchase"
+                  variant={'green'}
+                  disabled={isSaving}
+                ></UI.Switch.Root>
+                <UI.TooltipRoot>
+                  <UI.TooltipTrigger asChild>
+                    <UI.Label.Root className="cursor-pointer" htmlFor="woo_disable_purchase">
+                      <span>
+                        Enable <b>Purchase</b> event
+                      </span>
+                    </UI.Label.Root>
+                  </UI.TooltipTrigger>
+                  <UI.TooltipContent>
+                    When disabled, Purchase events will not be sent for any order.
+                  </UI.TooltipContent>
+                </UI.TooltipRoot>
+              </div>
+            </div>
+            <div className="flex gap-3 [@media(max-width:1100px)]:flex-wrap flex-col">
+              <h4 className="font-semibold !mb-0 !text-foreground !text-lg">Additional options</h4>
+              <div
+                className={`flex items-center gap-3${generalOptions.woo_disable_add_to_cart === 1 ? ' opacity-40 pointer-events-none' : ''}`}
+              >
                 <UI.Switch.Root
                   checked={generalOptions.woo_disable_add_to_cart_freebies === 0}
                   onCheckedChange={() => handleToggleOption('woo_disable_add_to_cart_freebies')}
                   id="woo_disable_add_to_cart_freebies"
                   variant={'green'}
-                  disabled={isSaving}
+                  disabled={isSaving || generalOptions.woo_disable_add_to_cart === 1}
                 ></UI.Switch.Root>
                 <UI.TooltipRoot>
                   <UI.TooltipTrigger asChild>
@@ -102,7 +201,9 @@ export function WooCommerceSettings() {
                   </UI.TooltipContent>
                 </UI.TooltipRoot>
               </div>
-              <div className="flex items-center gap-3">
+              <div
+                className={`flex items-center gap-3${generalOptions.woo_disable_initiate_checkout === 1 ? ' opacity-40 pointer-events-none' : ''}`}
+              >
                 <UI.Switch.Root
                   checked={generalOptions.woo_disable_initiate_checkout_freebies === 0}
                   onCheckedChange={() =>
@@ -110,7 +211,7 @@ export function WooCommerceSettings() {
                   }
                   id="woo_disable_initiate_checkout_freebies"
                   variant={'green'}
-                  disabled={isSaving}
+                  disabled={isSaving || generalOptions.woo_disable_initiate_checkout === 1}
                 ></UI.Switch.Root>
                 <UI.TooltipRoot>
                   <UI.TooltipTrigger asChild>
@@ -130,13 +231,15 @@ export function WooCommerceSettings() {
                   </UI.TooltipContent>
                 </UI.TooltipRoot>
               </div>
-              <div className="flex items-center gap-3">
+              <div
+                className={`flex items-center gap-3${generalOptions.woo_disable_purchase === 1 ? ' opacity-40 pointer-events-none' : ''}`}
+              >
                 <UI.Switch.Root
                   checked={generalOptions.woo_disable_purchase_freebies === 0}
                   onCheckedChange={() => handleToggleOption('woo_disable_purchase_freebies')}
                   id="woo_disable_purchase_freebies"
                   variant={'green'}
-                  disabled={isSaving}
+                  disabled={isSaving || generalOptions.woo_disable_purchase === 1}
                 ></UI.Switch.Root>
                 <UI.TooltipRoot>
                   <UI.TooltipTrigger asChild>

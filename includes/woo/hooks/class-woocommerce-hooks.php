@@ -131,6 +131,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return;
         }
 
+        // Master disable: skip AddToCart for all products (overrides freebies setting)
+        if ( ! empty($this->options['woo_disable_add_to_cart']) && (int)$this->options['woo_disable_add_to_cart'] === 1) {
+            return;
+        }
+
         // When option is set to 1: do not send AddToCart for free products (price 0)
         if ( ! empty($this->options['woo_disable_add_to_cart_freebies']) && (int)$this->options['woo_disable_add_to_cart_freebies'] === 1) {
             if ((float)wc_get_price_to_display($product) <= 0) {
@@ -213,6 +218,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $product       = wc_get_product($wc_product_id);
 
         if ( ! $product) {
+            return;
+        }
+
+        // Master disable: skip AddToCart for all products (overrides freebies setting)
+        if ( ! empty($this->options['woo_disable_add_to_cart']) && (int)$this->options['woo_disable_add_to_cart'] === 1) {
             return;
         }
 
@@ -380,6 +390,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return;
         }
 
+        // Master disable: skip InitiateCheckout entirely (overrides freebies setting)
+        if ( ! empty($this->options['woo_disable_initiate_checkout']) && (int)$this->options['woo_disable_initiate_checkout'] === 1) {
+            return;
+        }
+
         // When option is set to 1: do not send InitiateCheckout if cart has only free products
         if ( ! empty($this->options['woo_disable_initiate_checkout_freebies']) && (int)$this->options['woo_disable_initiate_checkout_freebies'] === 1) {
             if ( ! $this->cart_has_paid_items($cart)) {
@@ -524,6 +539,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $order = wc_get_order($order_id);
 
         if ( ! $order) {
+            return;
+        }
+
+        // Master disable: skip Purchase entirely (overrides freebies setting)
+        if ( ! empty($this->options['woo_disable_purchase']) && (int)$this->options['woo_disable_purchase'] === 1) {
             return;
         }
 
@@ -1100,6 +1120,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
         $entry = [
             'time'      => gmdate('Y-m-d H:i:s'),
+            'version'   => PIXELFLOW_VERSION,
             'hook'      => $hook_name,
             'client_ip' => $client_ip,
             'payload'   => $payload,
