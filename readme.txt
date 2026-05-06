@@ -4,7 +4,7 @@ Tags: facebook pixel, conversions api, meta pixel, woocommerce tracking, ecommer
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.12
+Stable tag: 1.1.13
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -144,6 +144,9 @@ We offer documentation, video tutorials, and email support on all plans. Most us
 7. Events in the Pixelflow dashboard
 
 == Changelog ==
+
+= 1.1.13 =
+Custom filters introduced to disable certain e-commerce events programmatically: pixelflow_should_send_add_to_cart, pixelflow_should_send_initiate_checkout, pixelflow_should_send_purchase
 
 = 1.1.12 =
 Disable some WooCommerce events from tracking, add plugin version to logs

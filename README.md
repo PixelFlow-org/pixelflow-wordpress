@@ -341,6 +341,9 @@ For more information:
 
 ## Changelog
 
+### 1.1.13
+Custom filters introduced to disable certain e-commerce events programmatically: pixelflow_should_send_add_to_cart, pixelflow_should_send_initiate_checkout, pixelflow_should_send_purchase
+
 ### 1.1.12
 Disable some WooCommerce events from tracking, add plugin version to logs
 
