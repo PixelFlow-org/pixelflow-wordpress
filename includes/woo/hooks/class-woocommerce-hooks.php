@@ -143,6 +143,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
             }
         }
 
+        $should_send = apply_filters('pixelflow_should_send_add_to_cart', true, $product, $quantity, $cart_item_key);
+        if ($should_send === false) {
+            return;
+        }
+
         $event_time = time();
         $utm        = pixelflow_get_utm_params_from_cookie();
 
@@ -230,6 +235,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
             if ((float)wc_get_price_to_display($product) <= 0) {
                 return;
             }
+        }
+
+        $should_send = apply_filters('pixelflow_should_send_add_to_cart', true, $product, $added, $cart_item_key);
+        if ($should_send === false) {
+            return;
         }
 
         $utm = pixelflow_get_utm_params_from_cookie();
@@ -405,6 +415,12 @@ class PixelFlow_WooCommerce_Cart_Hooks
         if ( ! WC()->session) {
             return;
         }
+
+        $should_send = apply_filters('pixelflow_should_send_initiate_checkout', true, $cart);
+        if ($should_send === false) {
+            return;
+        }
+
         $additionalData = $this->build_checkout_additional_data_from_cart($cart);
         $utm_params     = pixelflow_get_utm_params_from_cookie();
 
@@ -552,6 +568,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
             if ( ! $this->order_has_paid_items($order)) {
                 return;
             }
+        }
+
+        $should_send = apply_filters('pixelflow_should_send_purchase', true, $order);
+        if ($should_send === false) {
+            return;
         }
 
         // Avoid duplicate sends (works across thankyou page refresh AND status change hooks)
