@@ -210,6 +210,16 @@ class PixelFlow
             $sanitized['excluded_user_roles'] = array_map('sanitize_text_field', $input['excluded_user_roles']);
         }
 
+        // Sanitize woo_excluded_skus (comma-separated string → filtered array of non-empty SKUs)
+        if (isset($input['woo_excluded_skus'])) {
+            if ( ! is_array($input['woo_excluded_skus'])) {
+                $input['woo_excluded_skus'] = explode(',', $input['woo_excluded_skus']);
+            }
+            $sanitized['woo_excluded_skus'] = array_values(
+                array_filter(array_map('sanitize_text_field', $input['woo_excluded_skus']))
+            );
+        }
+
         return $sanitized;
     }
 

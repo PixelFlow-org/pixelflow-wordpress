@@ -78,7 +78,7 @@ const wordpressSettingsApi = authApi.injectEndpoints({
           formData.append('nonce', nonce);
 
           Object.entries(generalOptions).forEach(([key, value]) => {
-            if (key === 'excluded_user_roles' && Array.isArray(value)) {
+            if ((key === 'excluded_user_roles' || key === 'woo_excluded_skus') && Array.isArray(value)) {
               // Send array as comma-separated string
               formData.append(`general_options[${key}]`, value.join(','));
             } else {

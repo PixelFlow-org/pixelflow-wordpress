@@ -50,6 +50,7 @@ const defaultGeneralOptions: PixelFlowGeneralOptions = {
   woo_disable_initiate_checkout_freebies: 0,
   woo_disable_purchase_freebies: 0,
   woo_debug_enabled: 0,
+  woo_excluded_skus: [],
 };
 
 /**
@@ -89,6 +90,12 @@ export function useSettings(): UseSettingsReturn {
       // Ensure excluded_user_roles is always an array
       if (!Array.isArray(generalOpts.excluded_user_roles)) {
         generalOpts.excluded_user_roles = [];
+      }
+      // Ensure woo_excluded_skus is always an array
+      if (!Array.isArray(generalOpts.woo_excluded_skus)) {
+        generalOpts.woo_excluded_skus = generalOpts.woo_excluded_skus
+          ? String(generalOpts.woo_excluded_skus).split(',').filter(Boolean)
+          : [];
       }
       setGeneralOptions(generalOpts);
       setScriptCode(wordpressSettings.script_code || '');

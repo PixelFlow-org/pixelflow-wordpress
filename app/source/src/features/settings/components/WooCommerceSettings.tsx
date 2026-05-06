@@ -3,6 +3,9 @@
  * @description Configuration interface for WooCommerce event tracking
  */
 
+/** External libraries */
+import React from 'react';
+
 /** UI Components */
 import * as UI from '@pixelflow-org/plugin-ui';
 
@@ -25,6 +28,30 @@ export function WooCommerceSettings() {
     error,
     isSaving,
   } = useSettings();
+
+  const [skuInput, setSkuInput] = React.useState('');
+
+  const handleSkuKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter' && e.key !== ',') return;
+    e.preventDefault();
+    const sku = skuInput.trim();
+    if (!sku) return;
+    const current = generalOptions.woo_excluded_skus || [];
+    if (current.includes(sku)) {
+      setSkuInput('');
+      return;
+    }
+    const updated = [...current, sku];
+    setSkuInput('');
+    updateGeneralOption('woo_excluded_skus', updated);
+    await saveSettings({ generalOptionsOverride: { woo_excluded_skus: updated } });
+  };
+
+  const handleRemoveSku = async (sku: string) => {
+    const updated = (generalOptions.woo_excluded_skus || []).filter((s) => s !== sku);
+    updateGeneralOption('woo_excluded_skus', updated);
+    await saveSettings({ generalOptionsOverride: { woo_excluded_skus: updated } });
+  };
 
   if (!isWooCommerceActive) {
     return null;
@@ -258,6 +285,78 @@ export function WooCommerceSettings() {
                     itself
                   </UI.TooltipContent>
                 </UI.TooltipRoot>
+              </div>
+            </div>
+            <div className="flex gap-3 [@media(max-width:1100px)]:flex-wrap flex-col">
+              <h4 className="font-semibold !mb-0 !text-foreground !text-lg">Excluded SKUs</h4>
+              <p className="text-sm text-foreground pt-0">
+                Products with these SKUs will not trigger any tracking events (Add to Cart,{' '}
+                <UI.TooltipRoot>
+                  <UI.TooltipTrigger asChild>
+                    <span className="inline-flex items-center gap-0.5 cursor-default">
+                      Checkout
+                      <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-gray-300 text-gray-600 text-[9px] font-bold leading-none select-none">
+                        ?
+                      </span>
+                    </span>
+                  </UI.TooltipTrigger>
+                  <UI.TooltipContent>
+                    Checkout event is skipped only when every item in the cart has an excluded SKU.
+                    If at least one non-excluded product is in the cart, the event fires normally.
+                  </UI.TooltipContent>
+                </UI.TooltipRoot>
+                ,{' '}
+                <UI.TooltipRoot>
+                  <UI.TooltipTrigger asChild>
+                    <span className="inline-flex items-center gap-0.5 cursor-default">
+                      Purchase
+                      <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-gray-300 text-gray-600 text-[9px] font-bold leading-none select-none">
+                        ?
+                      </span>
+                    </span>
+                  </UI.TooltipTrigger>
+                  <UI.TooltipContent>
+                    Purchase event is skipped only when every item in the order has an excluded SKU.
+                    If at least one non-excluded product is in the order, the event fires normally.
+                  </UI.TooltipContent>
+                </UI.TooltipRoot>
+                ). Type a SKU (case sensitive) and press{' '}
+                <kbd className="px-1 py-0.5 text-xs border border-gray-300 rounded">Enter</kbd> to
+                add.
+              </p>
+              <div className="w-100">
+                <UI.Input.Root>
+                  <UI.Input.Wrapper>
+                    <UI.Input.Input
+                      value={skuInput}
+                      name="skuInput"
+                      id="skuInput"
+                      onChange={(e) => setSkuInput(e.target.value)}
+                      onKeyDown={handleSkuKeyDown}
+                      placeholder="Type a SKU and press Enter"
+                      disabled={isSaving}
+                    />
+                  </UI.Input.Wrapper>
+                </UI.Input.Root>
+              </div>
+              <div className="flex flex-wrap gap-2 min-h-8">
+                {(generalOptions.woo_excluded_skus || []).map((sku) => (
+                  <span
+                    key={sku}
+                    className="inline-flex items-center gap-1 px-2 py-1 text-sm bg-gray-100 border border-gray-300 rounded"
+                  >
+                    {sku}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSku(sku)}
+                      disabled={isSaving}
+                      className="text-gray-500 hover:text-gray-800 leading-none disabled:opacity-40"
+                      aria-label={`Remove SKU ${sku}`}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
               </div>
             </div>
           </div>
