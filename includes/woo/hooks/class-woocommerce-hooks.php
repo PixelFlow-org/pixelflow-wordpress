@@ -143,6 +143,16 @@ class PixelFlow_WooCommerce_Cart_Hooks
             }
         }
 
+        $excluded_skus = $this->get_excluded_skus();
+        if ( ! empty($excluded_skus) && in_array($product->get_sku(), $excluded_skus, true)) {
+            return;
+        }
+
+        $should_send = apply_filters('pixelflow_should_send_add_to_cart', true, $product, $quantity, $cart_item_key);
+        if ($should_send === false) {
+            return;
+        }
+
         $event_time = time();
         $utm        = pixelflow_get_utm_params_from_cookie();
 
@@ -230,6 +240,16 @@ class PixelFlow_WooCommerce_Cart_Hooks
             if ((float)wc_get_price_to_display($product) <= 0) {
                 return;
             }
+        }
+
+        $excluded_skus = $this->get_excluded_skus();
+        if ( ! empty($excluded_skus) && in_array($product->get_sku(), $excluded_skus, true)) {
+            return;
+        }
+
+        $should_send = apply_filters('pixelflow_should_send_add_to_cart', true, $product, $added, $cart_item_key);
+        if ($should_send === false) {
+            return;
         }
 
         $utm = pixelflow_get_utm_params_from_cookie();
@@ -405,6 +425,27 @@ class PixelFlow_WooCommerce_Cart_Hooks
         if ( ! WC()->session) {
             return;
         }
+
+        $excluded_skus = $this->get_excluded_skus();
+        if ( ! empty($excluded_skus)) {
+            $all_excluded = true;
+            foreach ($cart->get_cart() as $cart_item) {
+                $item_product = $cart_item['data'] ?? null;
+                if ($item_product && ! in_array($item_product->get_sku(), $excluded_skus, true)) {
+                    $all_excluded = false;
+                    break;
+                }
+            }
+            if ($all_excluded) {
+                return;
+            }
+        }
+
+        $should_send = apply_filters('pixelflow_should_send_initiate_checkout', true, $cart);
+        if ($should_send === false) {
+            return;
+        }
+
         $additionalData = $this->build_checkout_additional_data_from_cart($cart);
         $utm_params     = pixelflow_get_utm_params_from_cookie();
 
@@ -552,6 +593,26 @@ class PixelFlow_WooCommerce_Cart_Hooks
             if ( ! $this->order_has_paid_items($order)) {
                 return;
             }
+        }
+
+        $excluded_skus = $this->get_excluded_skus();
+        if ( ! empty($excluded_skus)) {
+            $all_excluded = true;
+            foreach ($order->get_items('line_item') as $item) {
+                $item_product = $item->get_product();
+                if ($item_product && ! in_array($item_product->get_sku(), $excluded_skus, true)) {
+                    $all_excluded = false;
+                    break;
+                }
+            }
+            if ($all_excluded) {
+                return;
+            }
+        }
+
+        $should_send = apply_filters('pixelflow_should_send_purchase', true, $order);
+        if ($should_send === false) {
+            return;
         }
 
         // Avoid duplicate sends (works across thankyou page refresh AND status change hooks)
@@ -1222,6 +1283,14 @@ class PixelFlow_WooCommerce_Cart_Hooks
         return $args;
     }
 
+    private function get_excluded_skus(): array
+    {
+        $raw = $this->options['woo_excluded_skus'] ?? [];
+        if ( ! is_array($raw)) {
+            $raw = array_filter(array_map('trim', explode(',', (string)$raw)));
+        }
+        return array_values($raw);
+    }
 
 }
 

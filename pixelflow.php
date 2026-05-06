@@ -2,7 +2,7 @@
 /**
  * Plugin Name: PixelFlow
  * Description: PixelFlow Official Plugin for WordPress. Easily Install Meta's Conversions API on Your Website
- * Version: 1.1.12
+ * Version: 1.1.13
  * Author: PixelFlow Team
  * Author URI: https://pixelflow.so/
  * License: GPL v2 or later
@@ -17,7 +17,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('PIXELFLOW_VERSION', '1.1.12');
+define('PIXELFLOW_VERSION', '1.1.13');
 define('PIXELFLOW_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('PIXELFLOW_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('PIXELFLOW_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -208,6 +208,16 @@ class PixelFlow
                 $input['excluded_user_roles'] = explode(',', $input['excluded_user_roles']);
             }
             $sanitized['excluded_user_roles'] = array_map('sanitize_text_field', $input['excluded_user_roles']);
+        }
+
+        // Sanitize woo_excluded_skus (comma-separated string → filtered array of non-empty SKUs)
+        if (isset($input['woo_excluded_skus'])) {
+            if ( ! is_array($input['woo_excluded_skus'])) {
+                $input['woo_excluded_skus'] = explode(',', $input['woo_excluded_skus']);
+            }
+            $sanitized['woo_excluded_skus'] = array_values(
+                array_filter(array_map('sanitize_text_field', $input['woo_excluded_skus']))
+            );
         }
 
         return $sanitized;
