@@ -397,14 +397,15 @@ function pixelflow_get_utm_params_from_cookie(): array
  */
 function pixelflow_is_blocked_ajax_action(): bool
 {
-    // XStore theme sends the request which triggers add to cart soehow
-    $post_action = isset($_POST['action']) ? (string) $_POST['action'] : '';
+    // XStore theme sends the request which triggers add to cart somehow
+    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- read-only inspection; nonce is verified upstream by WooCommerce
+    $post_action = isset($_POST['action']) ? sanitize_text_field(wp_unslash($_POST['action'])) : '';
     if ($post_action === 'xstore_get_user_compare') {
         return true;
     }
 
     // URI-based actions (e.g. ?wc-ajax=ppc-simulate-cart)
-    $current_uri          = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
+    $current_uri          = isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : '';
     $blocked_ajax_actions = apply_filters('pixelflow_blocked_ajax_actions', ['ppc-simulate-cart']);
     foreach ($blocked_ajax_actions as $action) {
         if (strpos($current_uri, (string) $action) !== false) {
