@@ -2,7 +2,7 @@
 /**
  * Plugin Name: PixelFlow
  * Description: PixelFlow Official Plugin for WordPress. Easily Install Meta's Conversions API on Your Website
- * Version: 1.1.13
+ * Version: 1.1.14
  * Author: PixelFlow Team
  * Author URI: https://pixelflow.so/
  * License: GPL v2 or later
@@ -17,7 +17,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('PIXELFLOW_VERSION', '1.1.13');
+define('PIXELFLOW_VERSION', '1.1.14');
 define('PIXELFLOW_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('PIXELFLOW_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('PIXELFLOW_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -60,6 +60,7 @@ class PixelFlow
         add_action('init', array($this, 'init'));
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'register_settings'));
+        add_action('admin_init', array($this, 'migrate_product_id_format'));
         add_action('admin_init', array($this, 'handle_disable_debug_action'));
         add_action('admin_notices', array($this, 'display_debug_notice'));
         add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
@@ -171,6 +172,19 @@ class PixelFlow
         register_setting('pixelflow_settings', 'pixelflow_debug_options', array($this, 'sanitize_debug_options'));
     }
 
+    public function migrate_product_id_format()
+    {
+        if (get_option('pixelflow_migration_product_id_format_done')) {
+            return;
+        }
+        $opts = get_option('pixelflow_general_options');
+        if (is_array($opts) && ! isset($opts['woo_product_id_format'])) {
+            $opts['woo_product_id_format'] = ! empty($opts['woo_enabled']) ? 'legacy' : 'product_id';
+            update_option('pixelflow_general_options', $opts);
+        }
+        update_option('pixelflow_migration_product_id_format_done', 1, true);
+    }
+
     /**
      * Sanitize options
      */
@@ -219,6 +233,12 @@ class PixelFlow
                 array_filter(array_map('sanitize_text_field', $input['woo_excluded_skus']))
             );
         }
+
+        // Sanitize woo_product_id_format
+        $allowed_formats = ['product_id', 'prefixed', 'sku', 'legacy', 'off'];
+        $sanitized['woo_product_id_format'] = in_array($input['woo_product_id_format'] ?? '', $allowed_formats, true)
+            ? $input['woo_product_id_format']
+            : 'product_id';
 
         return $sanitized;
     }

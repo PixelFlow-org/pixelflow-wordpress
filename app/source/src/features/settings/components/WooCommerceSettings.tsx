@@ -8,6 +8,7 @@ import React from 'react';
 
 /** UI Components */
 import * as UI from '@pixelflow-org/plugin-ui';
+import { Dropdown } from '@pixelflow-org/plugin-ui';
 
 /** Hooks */
 import { useSettings } from '@/features/settings/contexts/SettingsContext.tsx';
@@ -56,7 +57,6 @@ export function WooCommerceSettings() {
   if (!isWooCommerceActive) {
     return null;
   }
-  console.log('WooCommerceSettings', generalOptions);
 
   const handleToggleOption = async (option: keyof PixelFlowGeneralOptions) => {
     const newValue = generalOptions[option] === 1 ? 0 : 1;
@@ -73,6 +73,16 @@ export function WooCommerceSettings() {
     woo_disable_add_to_cart: 'woo_disable_add_to_cart_freebies',
     woo_disable_initiate_checkout: 'woo_disable_initiate_checkout_freebies',
     woo_disable_purchase: 'woo_disable_purchase_freebies',
+  };
+
+  const handleProductIdFormatChange = async (value: string) => {
+    const prev = generalOptions.woo_product_id_format;
+    updateGeneralOption('woo_product_id_format', value);
+    try {
+      await saveSettings({ generalOptionsOverride: { woo_product_id_format: value } });
+    } catch {
+      updateGeneralOption('woo_product_id_format', prev);
+    }
   };
 
   const handleToggleMasterEvent = async (masterOption: keyof PixelFlowGeneralOptions) => {
@@ -198,6 +208,95 @@ export function WooCommerceSettings() {
                   </UI.TooltipContent>
                 </UI.TooltipRoot>
               </div>
+            </div>
+            <div className="flex gap-3 [@media(max-width:1100px)]:flex-wrap flex-col">
+              <h4 className="font-semibold !mb-0 !text-foreground !text-lg">Product ID Format</h4>
+              {(() => {
+                const formatOptions = [
+                  {
+                    value: 'product_id',
+                    label: 'Product ID',
+                    example: '123',
+                    description: 'Numeric WooCommerce product ID',
+                  },
+                  {
+                    value: 'prefixed',
+                    label: 'Prefixed',
+                    example: 'wc_post_id_123',
+                    description: 'Prefixed with wc_post_id_',
+                  },
+                  {
+                    value: 'sku',
+                    label: 'SKU',
+                    example: 'TRDDS64',
+                    description: 'Falls back to product ID if SKU is empty',
+                  },
+                  {
+                    value: 'legacy',
+                    label: 'Legacy',
+                    example: 'product_123',
+                    description: 'Original format (pre-2.x)',
+                  },
+                  {
+                    value: 'off',
+                    label: 'Off',
+                    example: null,
+                    description: 'No product ID sent, contents omitted',
+                  },
+                ] as const;
+
+                const selected = formatOptions.find(
+                  (o) => o.value === generalOptions.woo_product_id_format,
+                );
+
+                return (
+                  <>
+                    <Dropdown.Root>
+                      <Dropdown.Trigger asChild>
+                        <button
+                          type="button"
+                          disabled={isSaving}
+                          className="inline-flex items-center justify-between gap-2 w-56 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm hover:border-gray-400 disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          <span>
+                            {selected ? (
+                              <>
+                                {selected.label}
+                                {selected.example && (
+                                  <code className="ml-2 px-1.5 py-0.5 text-xs bg-gray-100 border border-gray-200 rounded font-mono">
+                                    {selected.example}
+                                  </code>
+                                )}
+                              </>
+                            ) : (
+                              'Select format'
+                            )}
+                          </span>
+                          <span className="text-gray-400">▾</span>
+                        </button>
+                      </Dropdown.Trigger>
+                      <Dropdown.Content>
+                        {formatOptions.map(({ value, label, example }) => (
+                          <Dropdown.Item
+                            key={value}
+                            onSelect={() => handleProductIdFormatChange(value)}
+                          >
+                            {label}
+                            {example && (
+                              <code className="ml-2 px-1.5 py-0.5 text-xs bg-gray-100 border border-gray-200 rounded font-mono">
+                                {example}
+                              </code>
+                            )}
+                          </Dropdown.Item>
+                        ))}
+                      </Dropdown.Content>
+                    </Dropdown.Root>
+                    {selected && (
+                      <p className="text-sm text-gray-500">{selected.description}</p>
+                    )}
+                  </>
+                );
+              })()}
             </div>
             <div className="flex gap-3 [@media(max-width:1100px)]:flex-wrap flex-col">
               <h4 className="font-semibold !mb-0 !text-foreground !text-lg">Additional options</h4>
