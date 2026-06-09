@@ -464,7 +464,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
         }
 
         // Extra dedupe (fast TTL) to avoid same-load double send when multiple hooks fire
-        if ( ! $this->should_send_event('initiate_checkout:' . $source, 10)) {
+        if ( ! $this->should_send_event('initiate_checkout', 10)) {
             return;
         }
 

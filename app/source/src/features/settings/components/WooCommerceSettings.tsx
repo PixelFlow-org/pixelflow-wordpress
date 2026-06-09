@@ -210,95 +210,6 @@ export function WooCommerceSettings() {
               </div>
             </div>
             <div className="flex gap-3 [@media(max-width:1100px)]:flex-wrap flex-col">
-              <h4 className="font-semibold !mb-0 !text-foreground !text-lg">Product ID Format</h4>
-              {(() => {
-                const formatOptions = [
-                  {
-                    value: 'product_id',
-                    label: 'Product ID',
-                    example: '123',
-                    description: 'Numeric WooCommerce product ID',
-                  },
-                  {
-                    value: 'prefixed',
-                    label: 'Prefixed',
-                    example: 'wc_post_id_123',
-                    description: 'Prefixed with wc_post_id_',
-                  },
-                  {
-                    value: 'sku',
-                    label: 'SKU',
-                    example: 'TRDDS64',
-                    description: 'Falls back to product ID if SKU is empty',
-                  },
-                  {
-                    value: 'legacy',
-                    label: 'Legacy',
-                    example: 'product_123',
-                    description: 'Original format (pre-2.x)',
-                  },
-                  {
-                    value: 'off',
-                    label: 'Off',
-                    example: null,
-                    description: 'No product ID sent, contents omitted',
-                  },
-                ] as const;
-
-                const selected = formatOptions.find(
-                  (o) => o.value === generalOptions.woo_product_id_format,
-                );
-
-                return (
-                  <>
-                    <Dropdown.Root>
-                      <Dropdown.Trigger asChild>
-                        <button
-                          type="button"
-                          disabled={isSaving}
-                          className="inline-flex items-center justify-between gap-2 w-56 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm hover:border-gray-400 disabled:opacity-60 disabled:cursor-not-allowed"
-                        >
-                          <span>
-                            {selected ? (
-                              <>
-                                {selected.label}
-                                {selected.example && (
-                                  <code className="ml-2 px-1.5 py-0.5 text-xs bg-gray-100 border border-gray-200 rounded font-mono">
-                                    {selected.example}
-                                  </code>
-                                )}
-                              </>
-                            ) : (
-                              'Select format'
-                            )}
-                          </span>
-                          <span className="text-gray-400">▾</span>
-                        </button>
-                      </Dropdown.Trigger>
-                      <Dropdown.Content>
-                        {formatOptions.map(({ value, label, example }) => (
-                          <Dropdown.Item
-                            key={value}
-                            onSelect={() => handleProductIdFormatChange(value)}
-                          >
-                            {label}
-                            {example && (
-                              <code className="ml-2 px-1.5 py-0.5 text-xs bg-gray-100 border border-gray-200 rounded font-mono">
-                                {example}
-                              </code>
-                            )}
-                          </Dropdown.Item>
-                        ))}
-                      </Dropdown.Content>
-                    </Dropdown.Root>
-                    {selected && (
-                      <p className="text-sm text-gray-500">{selected.description}</p>
-                    )}
-                  </>
-                );
-              })()}
-            </div>
-            <div className="flex gap-3 [@media(max-width:1100px)]:flex-wrap flex-col">
               <h4 className="font-semibold !mb-0 !text-foreground !text-lg">Additional options</h4>
               <div
                 className={`flex items-center gap-3${generalOptions.woo_disable_add_to_cart === 1 ? ' opacity-40 pointer-events-none' : ''}`}
@@ -385,6 +296,126 @@ export function WooCommerceSettings() {
                   </UI.TooltipContent>
                 </UI.TooltipRoot>
               </div>
+            </div>
+
+            <div className="flex gap-3 [@media(max-width:1100px)]:flex-wrap flex-col">
+              <h4 className="font-semibold !mb-0 !text-foreground !text-lg pb-0">
+                Send product IDs with events
+              </h4>
+              <p className="text-sm text-foreground !my-0">
+                When enabled, PixelFlow includes the product ID with your eCommerce events. This is{' '}
+                <strong>not</strong> a catalog sync: it does not upload or create products in Meta.
+                It simply tags each event with an ID so Meta can connect it to a product already in
+                your catalog (used for dynamic product ads and catalog reporting). For this to work,
+                the format below must match how your products are identified in Meta Commerce
+                Manager. If you are not running catalog or dynamic product ads, you can leave this
+                off.
+              </p>
+              <p className="text-sm text-foreground !mt-0">
+                Not sure which format to use? Open your{' '}
+                <a href="https://business.facebook.com/commerce/" target="_blank">
+                  Meta Commerce Manager
+                </a>
+                , select your catalog, and check the Content ID on any product. Match the format
+                below to what you see there.
+              </p>
+              {(() => {
+                const formatOptions = [
+                  {
+                    value: 'product_id',
+                    label: 'Product ID',
+                    example: '123',
+                    description:
+                      "The raw WooCommerce product ID. Safest choice if you're unsure, since it's always unique.",
+                  },
+                  {
+                    value: 'prefixed',
+                    label: 'Prefixed',
+                    example: 'wc_post_id_123',
+                    description:
+                      'Use this if your catalog was created by the official Meta for WooCommerce plugin.',
+                  },
+                  {
+                    value: 'sku',
+                    label: 'SKU',
+                    example: 'TRDDS64',
+                    description:
+                      'Uses your product SKU. Falls back to the product ID if a product has no SKU.',
+                  },
+                  {
+                    value: 'legacy',
+                    label: 'Legacy',
+                    example: 'product_123',
+                    description:
+                      'Older format. Only use this if your catalog already uses these IDs.',
+                  },
+                  {
+                    value: 'off',
+                    label: 'Off',
+                    example: null,
+                    description:
+                      "Don't send product IDs. Fine if you're not running catalog or dynamic product ads.",
+                  },
+                ] as const;
+
+                const selected = formatOptions.find(
+                  (o) => o.value === generalOptions.woo_product_id_format
+                );
+
+                return (
+                  <>
+                    <Dropdown.Root>
+                      <Dropdown.Trigger asChild>
+                        <button
+                          type="button"
+                          disabled={isSaving}
+                          className="inline-flex items-center justify-between gap-2 w-56 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm hover:border-gray-400 disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          <span>
+                            {selected ? (
+                              <>
+                                {selected.label}{' '}
+                                {selected.example && (
+                                  <code className="ml-2 px-1.5 py-0.5 text-xs bg-gray-100 border border-gray-200 rounded font-mono">
+                                    {selected.example}
+                                  </code>
+                                )}
+                              </>
+                            ) : (
+                              'Select format'
+                            )}
+                          </span>
+                          <span className="text-gray-400">▾</span>
+                        </button>
+                      </Dropdown.Trigger>
+                      <Dropdown.Content>
+                        {formatOptions.map(({ value, label, example }) => (
+                          <Dropdown.Item
+                            key={value}
+                            onSelect={() => handleProductIdFormatChange(value)}
+                          >
+                            {label}{' '}
+                            {example && (
+                              <code className="ml-2 px-1.5 py-0.5 text-xs bg-gray-100 border border-gray-200 rounded font-mono">
+                                {example}
+                              </code>
+                            )}
+                          </Dropdown.Item>
+                        ))}
+                      </Dropdown.Content>
+                    </Dropdown.Root>
+                    {selected && (
+                      <p className="text-sm text-gray-500 !mb-0">
+                        <strong>
+                          {selected.label}
+                          {selected.example && ` (${selected.example})`}:
+                        </strong>{' '}
+                        {selected.description}
+                      </p>
+                    )}
+                  </>
+                );
+              })()}
             </div>
             <div className="flex gap-3 [@media(max-width:1100px)]:flex-wrap flex-col">
               <h4 className="font-semibold !mb-0 !text-foreground !text-lg">Excluded SKUs</h4>
