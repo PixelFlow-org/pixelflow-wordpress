@@ -171,6 +171,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             $payload['eventData']['utm_params'] = $utm;
         }
         pixelflow_append_cookie_params($payload);
+        pixelflow_append_attribution_from_cookie($payload);
 
         $customer = $this->build_customer_data_from_current_user();
         if ( ! empty($customer)) {
@@ -269,6 +270,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             $payload['eventData']['utm_params'] = $utm;
         }
         pixelflow_append_cookie_params($payload);
+        pixelflow_append_attribution_from_cookie($payload);
 
         $customer = $this->build_customer_data_from_current_user();
         if ( ! empty($customer)) {
@@ -492,6 +494,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             $payload['eventData']['utm_params'] = $utm_params;
         }
         pixelflow_append_cookie_params($payload);
+        pixelflow_append_attribution_from_cookie($payload);
 
         $customer = $this->build_customer_data_from_current_user();
         if ( ! empty($customer)) {
@@ -545,7 +548,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return;
         }
 
-        $cookie_keys = ['_fbp', 'pf_fbc', '_fbc', 'pf_clkid', 'pf_loc', '_pf_utm'];
+        $cookie_keys = ['_fbp', 'pf_fbc', '_fbc', 'pf_clkid', 'pf_loc', '_pf_utm', '_pf_attribution'];
 
         foreach ($cookie_keys as $key) {
             if (isset($_COOKIE[$key]) && is_string($_COOKIE[$key]) && $_COOKIE[$key] !== '') {
@@ -656,6 +659,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             $payload['eventData']['utm_params'] = $utm;
         }
         $this->append_cookie_params_for_order($payload, $order);
+        $this->append_attribution_for_order($payload, $order);
 
         $this->post_event($payload);
     }
@@ -723,6 +727,39 @@ class PixelFlow_WooCommerce_Cart_Hooks
         }
     }
 
+
+    /**
+     * Appends the attribution block to a Purchase payload.
+     * Reads from order meta first (saved at woocommerce_new_order when cookies were available),
+     * then falls back to the live $_COOKIE (e.g. thank-you page same request).
+     * Delegates parsing and sanitization to pixelflow_get_attribution_from_cookie().
+     *
+     * @param array    $payload Event payload passed by reference
+     * @param WC_Order $order
+     * @return void
+     */
+    private function append_attribution_for_order( array &$payload, WC_Order $order ): void {
+        if ( ! isset( $payload['eventData'] ) || ! is_array( $payload['eventData'] ) ) {
+            return;
+        }
+
+        $raw = $order->get_meta( '_pf_cookie__pf_attribution', true );
+
+        if ( empty( $raw ) && isset( $_COOKIE['_pf_attribution'] ) && is_string( $_COOKIE['_pf_attribution'] ) ) {
+            $raw = $_COOKIE['_pf_attribution'];
+        }
+
+        if ( empty( $raw ) ) {
+            return;
+        }
+
+        $attribution = pixelflow_get_attribution_from_cookie( $raw );
+        if ( $attribution === null ) {
+            return;
+        }
+
+        $payload['eventData']['attribution'] = $attribution;
+    }
 
     /**
      * Dedupe helper:
