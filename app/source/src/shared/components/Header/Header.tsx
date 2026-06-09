@@ -53,13 +53,6 @@ const Header = ({ selectedCurrency, updateCurrency, user }: HeaderProps) => {
               >
                 FAQ
               </a>
-              <a
-                href="https://docs.pixelflow.so/articles/how-to-track-website-elements-via-classes-cdrqg"
-                target="_blank"
-                className="!text-foreground flex gap-1"
-              >
-                Classes guide
-              </a>
             </div>
           </Dropdown.Content>
         </Dropdown.Root>

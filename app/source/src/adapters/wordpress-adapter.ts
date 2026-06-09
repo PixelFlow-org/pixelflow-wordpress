@@ -23,9 +23,8 @@ export class WordpressAdapter implements PlatformAdapter {
    *
    * Note: Script is generated from saved params on the PHP side
    */
-  // @ts-expect-error TS6133
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async injectScript(script: string): Promise<void> {
+  async injectScript(_script: string): Promise<void> {
     // Script is not saved - only params are saved via saveParams
     // The PHP side generates the script from params when needed
     console.log('[WordPress] Script generation handled by PHP from saved params');

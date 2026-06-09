@@ -295,7 +295,12 @@ function pixelflow_is_cache_warmer_request(): bool
     $ip = pixelflow_get_client_ip_address();
 
     if (pixelflow_is_private_ip($ip)) {
-        return true;
+        /**
+         * Filter: pixelflow_is_cache_warmer_request
+         * Return false on local/staging to allow events to fire on private IPs.
+         * Example: add_filter('pixelflow_is_cache_warmer_request', '__return_false');
+         */
+        return (bool) apply_filters('pixelflow_is_cache_warmer_request', true);
     }
 
     return false;
