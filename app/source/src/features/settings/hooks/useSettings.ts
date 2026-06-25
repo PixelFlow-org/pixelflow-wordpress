@@ -51,6 +51,7 @@ const defaultGeneralOptions: PixelFlowGeneralOptions = {
   woo_disable_purchase_freebies: 0,
   woo_debug_enabled: 0,
   woo_excluded_skus: [],
+  woo_product_id_format: 'product_id',
 };
 
 /**

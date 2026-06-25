@@ -51,8 +51,8 @@ class PixelFlow_WooCommerce_Integration
      */
     private function load_hooks()
     {
-        $api_url = "https://api.pixelflow.so";
-        $params = get_option('pixelflow_script_params', array());
+        $api_url          = "https://api.pixelflow.so";
+        $params           = get_option('pixelflow_script_params', array());
         $site_external_id = isset($params['siteExternalId']) ? $params['siteExternalId'] : '';
         $api_key          = isset($params['apiKey']) ? $params['apiKey'] : '';
         $pixelflow_general_options = get_option('pixelflow_general_options');

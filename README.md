@@ -341,6 +341,9 @@ For more information:
 
 ## Changelog
 
+### 1.1.14
+Added Product ID Format setting for WooCommerce events — choose between numeric ID, prefixed, SKU, legacy, or off; removed the redundant content_ids field from all event payloads.
+
 ### 1.1.13
 Add an option to exclude products with custom SKU from tracking
 Custom filters introduced to disable certain e-commerce events programmatically: pixelflow_should_send_add_to_cart, pixelflow_should_send_initiate_checkout, pixelflow_should_send_purchase

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: PixelFlow
  * Description: PixelFlow Official Plugin for WordPress. Easily Install Meta's Conversions API on Your Website
- * Version: 1.1.13
+ * Version: 1.1.14
  * Author: PixelFlow Team
  * Author URI: https://pixelflow.so/
  * License: GPL v2 or later
@@ -17,7 +17,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('PIXELFLOW_VERSION', '1.1.13');
+define('PIXELFLOW_VERSION', '1.1.14');
 define('PIXELFLOW_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('PIXELFLOW_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('PIXELFLOW_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -60,6 +60,7 @@ class PixelFlow
         add_action('init', array($this, 'init'));
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'register_settings'));
+        add_action('admin_init', array($this, 'migrate_product_id_format'));
         add_action('admin_init', array($this, 'handle_disable_debug_action'));
         add_action('admin_notices', array($this, 'display_debug_notice'));
         add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
@@ -104,13 +105,11 @@ class PixelFlow
         if ($hook === 'settings_page_pixelflow-settings') {
             // Prepare settings for the admin app
             $pixelflow_general_options = get_option('pixelflow_general_options', array());
-            $class_options             = get_option('pixelflow_class_options', array());
             $debug_options             = get_option('pixelflow_debug_options', array());
             $script_params             = get_option('pixelflow_script_params', '');
 
             $settings = array(
                 'general_options'       => $pixelflow_general_options,
-                'class_options'         => $class_options,
                 'debug_options'         => $debug_options,
                 'script_params'         => $script_params,
                 'nonce'                 => wp_create_nonce('pixelflow_settings_nonce'),
@@ -167,8 +166,20 @@ class PixelFlow
     public function register_settings()
     {
         register_setting('pixelflow_settings', 'pixelflow_general_options', array($this, 'sanitize_general_options'));
-        register_setting('pixelflow_settings', 'pixelflow_class_options', array($this, 'sanitize_class_options'));
         register_setting('pixelflow_settings', 'pixelflow_debug_options', array($this, 'sanitize_debug_options'));
+    }
+
+    public function migrate_product_id_format()
+    {
+        if (get_option('pixelflow_migration_product_id_format_done')) {
+            return;
+        }
+        $opts = get_option('pixelflow_general_options', array());
+        if (is_array($opts) && ! isset($opts['woo_product_id_format'])) {
+            $opts['woo_product_id_format'] = ! empty($opts['woo_enabled']) ? 'legacy' : 'product_id';
+            update_option('pixelflow_general_options', $opts);
+        }
+        update_option('pixelflow_migration_product_id_format_done', 1, true);
     }
 
     /**
@@ -220,37 +231,11 @@ class PixelFlow
             );
         }
 
-        return $sanitized;
-    }
-
-    /**
-     * Sanitize class options (WooCommerce class toggles)
-     */
-    public function sanitize_class_options($input)
-    {
-        $sanitized = array();
-
-        // Define all class checkbox options
-        $checkbox_options = array(
-            // Product classes
-            'woo_class_product_container',
-            'woo_class_product_name',
-            'woo_class_product_price',
-            'woo_class_product_quantity',
-            'woo_class_product_add_to_cart',
-            // Cart classes
-            'woo_class_cart_item',
-            'woo_class_cart_price',
-            'woo_class_cart_checkout_button',
-            'woo_class_cart_product_name',
-            'woo_class_cart_products_container',
-            'woo_class_cart_quantity',
-        );
-
-        // Set all checkboxes: 1 if checked, 0 if not
-        foreach ($checkbox_options as $option) {
-            $sanitized[$option] = isset($input[$option]) && $input[$option] ? 1 : 0;
-        }
+        // Sanitize woo_product_id_format
+        $allowed_formats = ['product_id', 'prefixed', 'sku', 'legacy', 'off'];
+        $sanitized['woo_product_id_format'] = in_array($input['woo_product_id_format'] ?? '', $allowed_formats, true)
+            ? $input['woo_product_id_format']
+            : 'product_id';
 
         return $sanitized;
     }
@@ -263,7 +248,7 @@ class PixelFlow
         if (is_admin()) {
             return;
         }
-        $pixelflow_general_options = get_option('pixelflow_general_options');
+        $pixelflow_general_options = get_option('pixelflow_general_options', array());
 
         // Only inject if enabled and user role is not excluded
         if (isset($pixelflow_general_options['enabled']) && $pixelflow_general_options['enabled']) {
@@ -301,9 +286,6 @@ class PixelFlow
                 }
             }
         }
-
-        // Inject debug styles if debug is enabled
-        $this->inject_debug_styles();
     }
 
 
@@ -349,66 +331,6 @@ class PixelFlow
     }
 
     /**
-     * Inject debug CSS styles for enabled debug classes
-     */
-    private function inject_debug_styles()
-    {
-        $pixelflow_general_options = get_option('pixelflow_general_options', array());
-        $debug_options             = get_option('pixelflow_debug_options', array());
-
-        // Check if debug is enabled
-        if ( ! isset($pixelflow_general_options['debug_enabled']) || ! $pixelflow_general_options['debug_enabled']) {
-            return;
-        }
-
-        // Map debug options to CSS styles
-        $debug_styles = array(
-            // Product classes
-            'woo_class_product_container'       => '.info-chk-itm-pf { border: 1px solid green !important; background: rgba(0,0,0,0.1) !important; }',
-            'woo_class_product_name'            => '.info-itm-name-pf { border: 1px solid red !important; }',
-            'woo_class_product_price'           => '.info-itm-prc-pf { border: 1px solid blue !important; }',
-            'woo_class_product_quantity'        => '.info-itm-qnty-pf { border: 1px solid orange !important; }',
-            'woo_class_product_add_to_cart'     => '.action-btn-cart-005-pf { border: 1px solid #fc0390 !important; }',
-            // Cart classes
-            'woo_class_cart_item'               => '.info-chk-itm-pf { border: 1px solid green !important; background: rgba(0,0,0,0.1) !important; }',
-            'woo_class_cart_price'              => '.info-itm-prc-pf { border: 1px solid blue !important; }',
-            'woo_class_cart_checkout_button'    => '.action-btn-buy-004-pf { border: 3px solid #67a174 !important; }',
-            'woo_class_cart_products_container' => '.info-chk-itm-ctnr-pf { border: 3px solid #fcdb03 !important; }',
-        );
-
-        $enabled_styles = array();
-
-        // Collect enabled debug styles
-        foreach ($debug_styles as $option_key => $css) {
-            if (isset($debug_options[$option_key]) && $debug_options[$option_key]) {
-                $enabled_styles[] = $css;
-            }
-        }
-
-        // Only output if there are enabled styles
-        if ( ! empty($enabled_styles)) {
-            $styles = '';
-            foreach ($enabled_styles as $style) {
-                // CSS styles are hardcoded in $debug_styles array, so they're safe
-                // Add .logged-in prefix to each style
-                $styles .= '.logged-in ' . $style;
-            }
-
-            // Ensure CSS content is safe for output
-            // Styles are hardcoded, but validate UTF-8 and remove control characters
-            $styles = wp_check_invalid_utf8($styles);
-            $styles = preg_replace('/[\x00-\x1F\x7F]/u', '', $styles); // Remove control characters
-
-            $style_key = 'pixelflow-debug';
-
-            // Register and enqueue style
-            wp_register_style($style_key, null, array(), PIXELFLOW_VERSION);
-            wp_add_inline_style($style_key, $styles);
-            wp_enqueue_style($style_key);
-        }
-    }
-
-    /**
      * Get the URL to the WooCommerce debug log file.
      * Generates a random key once and persists it as an option.
      */
@@ -438,16 +360,19 @@ class PixelFlow
 
         if ( ! current_user_can('manage_options')) {
             wp_send_json_error(array('message' => __('Unauthorized access', 'pixelflow')), 403);
+            return;
         }
 
         $path = pixelflow_get_debug_log_path();
 
         if (empty($path)) {
             wp_send_json_error(array('message' => __('Log file path could not be resolved.', 'pixelflow')), 400);
+            return;
         }
 
         if ( ! file_exists($path)) {
             wp_send_json_success(array('message' => __('Log file does not exist.', 'pixelflow')));
+            return;
         }
 
         // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
@@ -467,12 +392,14 @@ class PixelFlow
 
         if ( ! current_user_can('manage_options')) {
             wp_send_json_error(array('message' => __('Unauthorized access', 'pixelflow')), 403);
+            return;
         }
 
         $path = pixelflow_get_debug_log_path();
 
         if (empty($path)) {
             wp_send_json_error(array('message' => __('Log file path could not be resolved.', 'pixelflow')), 400);
+            return;
         }
 
         if ( ! file_exists($path)) {
@@ -485,6 +412,7 @@ class PixelFlow
 
         if ($content === false) {
             wp_send_json_error(array('message' => __('Could not read log file.', 'pixelflow')), 500);
+            return;
         }
 
         wp_send_json_success(array('content' => $content));
@@ -620,16 +548,15 @@ class PixelFlow
         // Check user capability
         if ( ! current_user_can('manage_options')) {
             wp_send_json_error(array('message' => __('Unauthorized access', 'pixelflow')), 403);
+            return;
         }
 
         $pixelflow_general_options = get_option('pixelflow_general_options', array());
-        $class_options             = get_option('pixelflow_class_options', array());
         $debug_options             = get_option('pixelflow_debug_options', array());
         $script_params             = get_option('pixelflow_script_params', '');
 
         wp_send_json_success(array(
             'general_options'       => $pixelflow_general_options,
-            'class_options'         => $class_options,
             'debug_options'         => $debug_options,
             'script_params'         => $script_params,
             'is_woocommerce_active' => PixelFlow_WooCommerce_Integration::is_woocommerce_active(),
@@ -647,6 +574,7 @@ class PixelFlow
         // Check user capability
         if ( ! current_user_can('manage_options')) {
             wp_send_json_error(array('message' => __('Unauthorized access', 'pixelflow')), 403);
+            return;
         }
 
         // Get the posted data
@@ -654,12 +582,6 @@ class PixelFlow
             $pixelflow_general_options = array_map('sanitize_text_field', wp_unslash($_POST['general_options']));
         } else {
             $pixelflow_general_options = array();
-        }
-
-        if (isset($_POST['class_options']) && is_array($_POST['class_options'])) {
-            $class_options = array_map('sanitize_text_field', wp_unslash($_POST['class_options']));
-        } else {
-            $class_options = array();
         }
 
         if (isset($_POST['debug_options']) && is_array($_POST['debug_options'])) {
@@ -671,17 +593,14 @@ class PixelFlow
 
         // Sanitize and save options
         $sanitized_general_options = $this->sanitize_general_options($pixelflow_general_options);
-        $sanitized_class_options   = $this->sanitize_class_options($class_options);
-        $sanitized_debug_options   = $this->sanitize_class_options($debug_options);
+        $sanitized_debug_options   = $this->sanitize_debug_options($debug_options);
 
         update_option('pixelflow_general_options', $sanitized_general_options);
-        update_option('pixelflow_class_options', $sanitized_class_options);
         update_option('pixelflow_debug_options', $sanitized_debug_options);
 
         wp_send_json_success(array(
             'message'         => __('Settings saved successfully', 'pixelflow'),
             'general_options' => $sanitized_general_options,
-            'class_options'   => $sanitized_class_options,
             'debug_options'   => $sanitized_debug_options,
         ));
     }
@@ -697,6 +616,7 @@ class PixelFlow
         // Check user capability
         if ( ! current_user_can('manage_options')) {
             wp_send_json_error(array('message' => __('Unauthorized access', 'pixelflow')), 403);
+            return;
         }
 
         // Get the params (base64 encoded JSON)
@@ -711,12 +631,14 @@ class PixelFlow
         $params_json = base64_decode($params_encoded, true);
         if ($params_json === false) {
             wp_send_json_error(array('message' => __('Invalid base64 params payload', 'pixelflow')), 400);
+            return;
         }
 
         // Decode JSON
         $params = json_decode($params_json, true);
         if ($params === null || json_last_error() !== JSON_ERROR_NONE) {
             wp_send_json_error(array('message' => __('Invalid JSON payload', 'pixelflow')), 400);
+            return;
         }
 
         // Validate required parameters
@@ -756,10 +678,10 @@ class PixelFlow
         // Check user capability
         if ( ! current_user_can('manage_options')) {
             wp_send_json_error(array('message' => __('Unauthorized access', 'pixelflow')), 403);
+            return;
         }
 
-        // Clear script code and parameters from options
-        update_option('pixelflow_script_params', '');
+        // Clear script parameters from options
         update_option('pixelflow_script_params', array());
 
         wp_send_json_success(array(
@@ -791,29 +713,22 @@ class PixelFlow
     }
 
     /**
-     * Sanitize blocking rules array
+     * Sanitize debug options
      *
-     * @param array $blocking_rules Raw blocking rules data
-     *
-     * @return array Sanitized blocking rules
+     * @param array $input Raw input array
+     * @return array Sanitized debug options
      */
-    private function sanitize_blocking_rules(array $blocking_rules): array
+    private function sanitize_debug_options(array $input): array
     {
         $sanitized = array();
-        foreach ($blocking_rules as $rule) {
-            if ( ! is_array($rule)) {
-                continue;
-            }
-            $sanitized_rule = array();
-            foreach ($rule as $key => $value) {
-                $sanitized_key                  = sanitize_key($key);
-                $sanitized_rule[$sanitized_key] = is_bool($value) ? $value : sanitize_text_field($value);
-            }
-            $sanitized[] = $sanitized_rule;
+        $boolean_keys = array('woo_debug_enabled');
+        foreach ($boolean_keys as $key) {
+            $sanitized[$key] = isset($input[$key]) ? 1 : 0;
         }
-
         return $sanitized;
     }
+
+
 }
 
 // Initialize the plugin

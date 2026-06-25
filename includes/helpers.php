@@ -295,7 +295,12 @@ function pixelflow_is_cache_warmer_request(): bool
     $ip = pixelflow_get_client_ip_address();
 
     if (pixelflow_is_private_ip($ip)) {
-        return true;
+        /**
+         * Filter: pixelflow_is_cache_warmer_request
+         * Return false on local/staging to allow events to fire on private IPs.
+         * Example: add_filter('pixelflow_is_cache_warmer_request', '__return_false');
+         */
+        return (bool) apply_filters('pixelflow_is_cache_warmer_request', true);
     }
 
     return false;
@@ -397,14 +402,15 @@ function pixelflow_get_utm_params_from_cookie(): array
  */
 function pixelflow_is_blocked_ajax_action(): bool
 {
-    // XStore theme sends the request which triggers add to cart soehow
-    $post_action = isset($_POST['action']) ? (string) $_POST['action'] : '';
+    // XStore theme sends the request which triggers add to cart somehow
+    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- read-only inspection; nonce is verified upstream by WooCommerce
+    $post_action = isset($_POST['action']) ? sanitize_text_field(wp_unslash($_POST['action'])) : '';
     if ($post_action === 'xstore_get_user_compare') {
         return true;
     }
 
     // URI-based actions (e.g. ?wc-ajax=ppc-simulate-cart)
-    $current_uri          = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
+    $current_uri          = isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : '';
     $blocked_ajax_actions = apply_filters('pixelflow_blocked_ajax_actions', ['ppc-simulate-cart']);
     foreach ($blocked_ajax_actions as $action) {
         if (strpos($current_uri, (string) $action) !== false) {
@@ -497,6 +503,142 @@ function pixelflow_write_debug_log_entry(string $log_file, string $data): void
 
     flock($fp, LOCK_UN);
     fclose($fp); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+}
+
+/**
+ * Validates and sanitizes a single touch snapshot decoded from the _pf_attribution cookie.
+ * Returns null if the snapshot is not an array or is missing a numeric timestamp.
+ *
+ * @param mixed $snapshot Raw decoded value from JSON
+ * @return array|null Sanitized snapshot array or null on failure
+ */
+function pixelflow_sanitize_touch_snapshot( $snapshot ): ?array {
+    if ( ! is_array( $snapshot ) ) {
+        return null;
+    }
+
+    if ( ! isset( $snapshot['timestamp'] ) || ! is_numeric( $snapshot['timestamp'] ) ) {
+        return null;
+    }
+
+    $url = null;
+    if ( isset( $snapshot['url'] ) && is_string( $snapshot['url'] ) ) {
+        $url = substr( sanitize_text_field( wp_unslash( $snapshot['url'] ) ), 0, 2048 );
+        if ( $url === '' ) {
+            $url = null;
+        }
+    }
+
+    $referrer_hostname = null;
+    if ( isset( $snapshot['referrer_hostname'] ) && is_string( $snapshot['referrer_hostname'] ) ) {
+        $referrer_hostname = substr( sanitize_text_field( wp_unslash( $snapshot['referrer_hostname'] ) ), 0, 256 );
+        if ( $referrer_hostname === '' ) {
+            $referrer_hostname = null;
+        }
+    }
+
+    $utm_params = null;
+    if ( isset( $snapshot['utm_params'] ) && is_array( $snapshot['utm_params'] ) ) {
+        $allowed = [ 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'utm_id' ];
+        $utm     = [];
+        foreach ( $allowed as $key ) {
+            if ( isset( $snapshot['utm_params'][ $key ] ) && is_string( $snapshot['utm_params'][ $key ] ) ) {
+                $val = substr( sanitize_text_field( wp_unslash( $snapshot['utm_params'][ $key ] ) ), 0, 256 );
+                if ( $val !== '' ) {
+                    $utm[ $key ] = $val;
+                }
+            }
+        }
+        if ( ! empty( $utm ) ) {
+            $utm_params = $utm;
+        }
+    }
+
+    return [
+        'url'               => $url,
+        'referrer_hostname' => $referrer_hostname,
+        'utm_params'        => $utm_params,
+        'timestamp'         => (int) $snapshot['timestamp'],
+    ];
+}
+
+/**
+ * Reads and parses the _pf_attribution cookie (or an override raw string for order-meta path).
+ * Returns a sanitized attribution array ready for eventData.attribution, or null on any failure.
+ *
+ * All four fields (visitor_id, session_id, first_touch, last_touch) must be present and valid
+ * for a non-null return. Partial attribution is never returned.
+ *
+ * @param string|null $raw_override When provided, parses this string instead of $_COOKIE
+ * @return array|null
+ */
+function pixelflow_get_attribution_from_cookie( ?string $raw_override = null ): ?array {
+    if ( $raw_override !== null ) {
+        $raw = urldecode( wp_unslash( $raw_override ) );
+    } elseif ( isset( $_COOKIE['_pf_attribution'] ) && is_string( $_COOKIE['_pf_attribution'] ) ) {
+        $raw = urldecode( wp_unslash( $_COOKIE['_pf_attribution'] ) );
+    } else {
+        return null;
+    }
+
+    $data = json_decode( $raw, true );
+    if ( ! is_array( $data ) ) {
+        return null;
+    }
+
+    $visitor_id = null;
+    if ( isset( $data['visitor_id'] ) && is_string( $data['visitor_id'] ) ) {
+        $visitor_id = substr( sanitize_text_field( $data['visitor_id'] ), 0, 64 );
+    }
+    if ( empty( $visitor_id ) ) {
+        return null;
+    }
+
+    $session_id = null;
+    if ( isset( $data['session_id'] ) && is_string( $data['session_id'] ) ) {
+        $session_id = substr( sanitize_text_field( $data['session_id'] ), 0, 64 );
+    }
+    if ( empty( $session_id ) ) {
+        return null;
+    }
+
+    $first_touch = pixelflow_sanitize_touch_snapshot( $data['first_touch'] ?? null );
+    if ( $first_touch === null ) {
+        return null;
+    }
+
+    $last_touch = pixelflow_sanitize_touch_snapshot( $data['last_touch'] ?? null );
+    if ( $last_touch === null ) {
+        return null;
+    }
+
+    return [
+        'visitor_id'  => $visitor_id,
+        'session_id'  => $session_id,
+        'first_touch' => $first_touch,
+        'last_touch'  => $last_touch,
+    ];
+}
+
+/**
+ * Reads the _pf_attribution cookie and appends it to $payload['eventData']['attribution'].
+ * No-op if the cookie is absent, unparseable, or eventData is not set.
+ * Used for live-request events (AddToCart, InitiateCheckout) where $_COOKIE is available.
+ *
+ * @param array $payload Event payload passed by reference
+ * @return void
+ */
+function pixelflow_append_attribution_from_cookie( array &$payload ): void {
+    if ( ! isset( $payload['eventData'] ) || ! is_array( $payload['eventData'] ) ) {
+        return;
+    }
+
+    $attribution = pixelflow_get_attribution_from_cookie();
+    if ( $attribution === null ) {
+        return;
+    }
+
+    $payload['eventData']['attribution'] = $attribution;
 }
 
 /**

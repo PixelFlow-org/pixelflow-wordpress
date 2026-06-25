@@ -2,9 +2,9 @@
 Contributors: pixelflow
 Tags: facebook pixel, conversions api, meta pixel, woocommerce tracking, ecommerce
 Requires at least: 5.0
-Tested up to: 6.9
+Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.1.13
+Stable tag: 1.1.14
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -144,6 +144,9 @@ We offer documentation, video tutorials, and email support on all plans. Most us
 7. Events in the Pixelflow dashboard
 
 == Changelog ==
+
+= 1.1.14 =
+Added Product ID Format setting for WooCommerce events — choose between numeric ID, prefixed, SKU, legacy, or off; removed the redundant content_ids field from all event payloads.
 
 = 1.1.13 =
 Add an option to exclude products with custom SKU from tracking

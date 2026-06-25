@@ -171,6 +171,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             $payload['eventData']['utm_params'] = $utm;
         }
         pixelflow_append_cookie_params($payload);
+        pixelflow_append_attribution_from_cookie($payload);
 
         $customer = $this->build_customer_data_from_current_user();
         if ( ! empty($customer)) {
@@ -269,6 +270,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             $payload['eventData']['utm_params'] = $utm;
         }
         pixelflow_append_cookie_params($payload);
+        pixelflow_append_attribution_from_cookie($payload);
 
         $customer = $this->build_customer_data_from_current_user();
         if ( ! empty($customer)) {
@@ -302,20 +304,25 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $currency = function_exists('get_woocommerce_currency') ? (string)get_woocommerce_currency() : 'USD';
         $qty      = (int)max(1, $quantity);
 
-        return [
-            'content_ids' => ['product_' . $id],
+        $data = [
             'contentName' => $name,
             'currency'    => $currency,
             'value'       => $price * $qty,
             'contentType' => 'product',
-            'contents'    => [
+        ];
+
+        if (($this->options['woo_product_id_format'] ?? 'product_id') !== 'off') {
+            $formatted_id    = $this->format_product_id($id, $product);
+            $data['contents'] = [
                 [
-                    'id'         => 'product_' . $id,
+                    'id'         => $formatted_id,
                     'quantity'   => $qty,
                     'item_price' => $price,
                 ],
-            ],
-        ];
+            ];
+        }
+
+        return $data;
     }
 
     /**
@@ -459,7 +466,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
         }
 
         // Extra dedupe (fast TTL) to avoid same-load double send when multiple hooks fire
-        if ( ! $this->should_send_event('initiate_checkout:' . $source, 10)) {
+        if ( ! $this->should_send_event('initiate_checkout', 10)) {
             return;
         }
 
@@ -487,6 +494,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             $payload['eventData']['utm_params'] = $utm_params;
         }
         pixelflow_append_cookie_params($payload);
+        pixelflow_append_attribution_from_cookie($payload);
 
         $customer = $this->build_customer_data_from_current_user();
         if ( ! empty($customer)) {
@@ -540,7 +548,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return;
         }
 
-        $cookie_keys = ['_fbp', 'pf_fbc', '_fbc', 'pf_clkid', 'pf_loc', '_pf_utm'];
+        $cookie_keys = ['_fbp', 'pf_fbc', '_fbc', 'pf_clkid', 'pf_loc', '_pf_utm', '_pf_attribution'];
 
         foreach ($cookie_keys as $key) {
             if (isset($_COOKIE[$key]) && is_string($_COOKIE[$key]) && $_COOKIE[$key] !== '') {
@@ -651,6 +659,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             $payload['eventData']['utm_params'] = $utm;
         }
         $this->append_cookie_params_for_order($payload, $order);
+        $this->append_attribution_for_order($payload, $order);
 
         $this->post_event($payload);
     }
@@ -718,6 +727,39 @@ class PixelFlow_WooCommerce_Cart_Hooks
         }
     }
 
+
+    /**
+     * Appends the attribution block to a Purchase payload.
+     * Reads from order meta first (saved at woocommerce_new_order when cookies were available),
+     * then falls back to the live $_COOKIE (e.g. thank-you page same request).
+     * Delegates parsing and sanitization to pixelflow_get_attribution_from_cookie().
+     *
+     * @param array    $payload Event payload passed by reference
+     * @param WC_Order $order
+     * @return void
+     */
+    private function append_attribution_for_order( array &$payload, WC_Order $order ): void {
+        if ( ! isset( $payload['eventData'] ) || ! is_array( $payload['eventData'] ) ) {
+            return;
+        }
+
+        $raw = $order->get_meta( '_pf_cookie__pf_attribution', true );
+
+        if ( empty( $raw ) && isset( $_COOKIE['_pf_attribution'] ) && is_string( $_COOKIE['_pf_attribution'] ) ) {
+            $raw = $_COOKIE['_pf_attribution'];
+        }
+
+        if ( empty( $raw ) ) {
+            return;
+        }
+
+        $attribution = pixelflow_get_attribution_from_cookie( $raw );
+        if ( $attribution === null ) {
+            return;
+        }
+
+        $payload['eventData']['attribution'] = $attribution;
+    }
 
     /**
      * Dedupe helper:
@@ -889,12 +931,12 @@ class PixelFlow_WooCommerce_Cart_Hooks
      */
     private function build_checkout_additional_data_from_cart($cart): array
     {
-        $currency = function_exists('get_woocommerce_currency') ? (string)get_woocommerce_currency() : 'USD';
-        $decimals = wc_get_price_decimals();
+        $currency   = function_exists('get_woocommerce_currency') ? (string)get_woocommerce_currency() : 'USD';
+        $decimals   = wc_get_price_decimals();
+        $id_format  = $this->options['woo_product_id_format'] ?? 'product_id';
 
-        $content_ids = [];
-        $contents    = [];
-        $num_items   = 0;
+        $contents  = [];
+        $num_items = 0;
 
         foreach ($cart->get_cart() as $cart_item) {
             $qty = isset($cart_item['quantity']) ? (int)$cart_item['quantity'] : 0;
@@ -921,36 +963,43 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 $price         = $line_subtotal / $qty;
             }
 
-            if ($price <= 0 && isset($cart_item['data']) && $cart_item['data'] instanceof WC_Product) {
-                $product = $cart_item['data'];
+            $product = isset($cart_item['data']) && $cart_item['data'] instanceof WC_Product
+                ? $cart_item['data']
+                : null;
 
+            if ($price <= 0 && $product !== null) {
                 $raw   = $product->get_price(); // string or ''
                 $price = $raw !== '' ? (float)wc_format_decimal($raw, $decimals) : 0.0;
             }
 
             $price = (float)wc_format_decimal($price, $decimals);
 
-            $content_ids[] = 'product_' . $tracked_id;
-            $contents[]    = [
-                'id'         => 'product_' . $tracked_id,
-                'quantity'   => $qty,
-                'item_price' => $price,
-            ];
+            if ($id_format !== 'off') {
+                $contents[] = [
+                    'id'         => $this->format_product_id($tracked_id, $product),
+                    'quantity'   => $qty,
+                    'item_price' => $price,
+                ];
+            }
 
             $num_items += $qty;
         }
 
         $value = (float)wc_format_decimal($cart->get_cart_contents_total(), $decimals);
-        $this->apply_rounding_correction($contents, $value, $decimals);
 
-        return [
-            'content_ids' => array_values(array_unique($content_ids)),
+        $data = [
             'contentType' => 'product',
-            'contents'    => $contents,
             'currency'    => $currency,
             'num_items'   => (int)$num_items,
             'value'       => $value,
         ];
+
+        if ($id_format !== 'off') {
+            $this->apply_rounding_correction($contents, $value, $decimals);
+            $data['contents'] = $contents;
+        }
+
+        return $data;
     }
 
     /**
@@ -1041,6 +1090,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
     {
         $currency  = (string)$order->get_currency();
         $num_items = 0;
+        $id_format = $this->options['woo_product_id_format'] ?? 'product_id';
 
         // ── Pass 1: collect raw line totals ──────────────────────────────────
         $rows            = [];
@@ -1100,37 +1150,38 @@ class PixelFlow_WooCommerce_Cart_Hooks
             ? $order_products_value / $sum_item_totals
             : 1.0;
 
-        // ── Pass 3: build contents with adjusted prices ───────────────────────
-        $content_ids = [];
-        $contents    = [];
-
         $decimals = wc_get_price_decimals();
 
-        foreach ($rows as $row) {
-            $adjusted_total = $row['line_total'] * $discount_ratio;
-            $price          = $row['qty'] > 0
-                ? (float)wc_format_decimal($adjusted_total / $row['qty'], $decimals)
-                : 0.0;
-
-            $content_ids[] = 'product_' . $row['tracked_id'];
-            $contents[]    = [
-                'id'         => 'product_' . $row['tracked_id'],
-                'quantity'   => $row['qty'],
-                'item_price' => $price,
-            ];
-        }
-
-        $this->apply_rounding_correction($contents, $order_products_value, $decimals);
-
-        return [
-            'content_ids' => array_values(array_unique($content_ids)),
+        $data = [
             'contentName' => implode(', ', array_unique($product_names)),
             'contentType' => 'product',
-            'contents'    => $contents,
             'currency'    => $currency,
             'num_items'   => (int)$num_items,
             'value'       => $order_products_value,
         ];
+
+        if ($id_format !== 'off') {
+            // ── Pass 3: build contents with adjusted prices ───────────────────
+            $contents = [];
+
+            foreach ($rows as $row) {
+                $adjusted_total = $row['line_total'] * $discount_ratio;
+                $price          = $row['qty'] > 0
+                    ? (float)wc_format_decimal($adjusted_total / $row['qty'], $decimals)
+                    : 0.0;
+
+                $contents[] = [
+                    'id'         => $this->format_product_id($row['tracked_id']),
+                    'quantity'   => $row['qty'],
+                    'item_price' => $price,
+                ];
+            }
+
+            $this->apply_rounding_correction($contents, $order_products_value, $decimals);
+            $data['contents'] = $contents;
+        }
+
+        return $data;
     }
 
 
@@ -1290,6 +1341,26 @@ class PixelFlow_WooCommerce_Cart_Hooks
             $raw = array_filter(array_map('trim', explode(',', (string)$raw)));
         }
         return array_values($raw);
+    }
+
+    private function format_product_id(int $id, ?WC_Product $product = null): string
+    {
+        $format = $this->options['woo_product_id_format'] ?? 'product_id';
+        switch ($format) {
+            case 'legacy':
+                return 'product_' . $id;
+            case 'prefixed':
+                return 'wc_post_id_' . $id;
+            case 'sku':
+                if ($product === null) {
+                    $product = wc_get_product($id);
+                }
+                $sku = $product ? (string)$product->get_sku() : '';
+                return $sku !== '' ? $sku : (string)$id;
+            case 'product_id':
+            default:
+                return (string)$id;
+        }
     }
 
 }
