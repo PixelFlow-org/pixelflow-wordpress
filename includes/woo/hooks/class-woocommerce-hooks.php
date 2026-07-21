@@ -114,10 +114,8 @@ class PixelFlow_WooCommerce_Cart_Hooks
         }
 
         // Some third-party integrations (e.g. CheckoutWC Order Bumps) call
-        // woocommerce_add_to_cart with null instead of an array/int here.
-        $variation_id   = (int)$variation_id;
-        $variation      = (array)$variation;
-        $cart_item_data = (array)$cart_item_data;
+        // woocommerce_add_to_cart with null instead of an int here.
+        $variation_id = (int)$variation_id;
 
         // One event per actual cart line add
         $dedupe_key = 'add_to_cart:' . $cart_item_key;
