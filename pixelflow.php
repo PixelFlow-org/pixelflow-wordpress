@@ -2,7 +2,7 @@
 /**
  * Plugin Name: PixelFlow
  * Description: PixelFlow Official Plugin for WordPress. Easily Install Meta's Conversions API on Your Website
- * Version: 1.1.14
+ * Version: 1.1.15
  * Author: PixelFlow Team
  * Author URI: https://pixelflow.so/
  * License: GPL v2 or later
@@ -17,7 +17,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('PIXELFLOW_VERSION', '1.1.14');
+define('PIXELFLOW_VERSION', '1.1.15');
 define('PIXELFLOW_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('PIXELFLOW_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('PIXELFLOW_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -175,7 +175,10 @@ class PixelFlow
             return;
         }
         $opts = get_option('pixelflow_general_options', array());
-        if (is_array($opts) && ! isset($opts['woo_product_id_format'])) {
+        // Only migrate already-configured installs. On a fresh install the option does not
+        // exist yet, and creating it here would make the settings page treat the plugin as
+        // "configured" (showing the options panel before the user has even logged in).
+        if (is_array($opts) && ! empty($opts) && ! isset($opts['woo_product_id_format'])) {
             $opts['woo_product_id_format'] = ! empty($opts['woo_enabled']) ? 'legacy' : 'product_id';
             update_option('pixelflow_general_options', $opts);
         }

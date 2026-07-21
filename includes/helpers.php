@@ -326,7 +326,7 @@ function pixelflow_get_utm_params_from_query(): array
 
     foreach ($allowed as $key) {
         if (isset($_GET[$key]) && is_scalar($_GET[$key])) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-            $out[$key] = sanitize_text_field(wp_unslash((string)$_GET[$key]));
+            $out[$key] = sanitize_text_field(wp_unslash((string)$_GET[$key])); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only UTM param, no nonce applies
         }
     }
 
@@ -576,7 +576,7 @@ function pixelflow_get_attribution_from_cookie( ?string $raw_override = null ): 
     if ( $raw_override !== null ) {
         $raw = urldecode( wp_unslash( $raw_override ) );
     } elseif ( isset( $_COOKIE['_pf_attribution'] ) && is_string( $_COOKIE['_pf_attribution'] ) ) {
-        $raw = urldecode( wp_unslash( $_COOKIE['_pf_attribution'] ) );
+        $raw = urldecode( wp_unslash( $_COOKIE['_pf_attribution'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON; sanitization is applied field-by-field after json_decode()
     } else {
         return null;
     }

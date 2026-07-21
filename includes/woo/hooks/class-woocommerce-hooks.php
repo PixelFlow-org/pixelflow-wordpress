@@ -746,7 +746,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $raw = $order->get_meta( '_pf_cookie__pf_attribution', true );
 
         if ( empty( $raw ) && isset( $_COOKIE['_pf_attribution'] ) && is_string( $_COOKIE['_pf_attribution'] ) ) {
-            $raw = $_COOKIE['_pf_attribution'];
+            $raw = wp_unslash( $_COOKIE['_pf_attribution'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON; field-level sanitization happens inside pixelflow_get_attribution_from_cookie()
         }
 
         if ( empty( $raw ) ) {

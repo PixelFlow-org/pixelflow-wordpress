@@ -341,8 +341,12 @@ For more information:
 
 ## Changelog
 
+### 1.1.15
+Initial setup fix
+
 ### 1.1.14
 Added Product ID Format setting for WooCommerce events — choose between numeric ID, prefixed, SKU, legacy, or off; removed the redundant content_ids field from all event payloads.
+Added support of the first and last touch attribution collection.
 
 ### 1.1.13
 Add an option to exclude products with custom SKU from tracking
