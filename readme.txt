@@ -4,7 +4,7 @@ Tags: facebook pixel, conversions api, meta pixel, woocommerce tracking, ecommer
 Requires at least: 5.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.1.15
+Stable tag: 1.1.16
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -144,6 +144,9 @@ We offer documentation, video tutorials, and email support on all plans. Most us
 7. Events in the Pixelflow dashboard
 
 == Changelog ==
+
+= 1.1.16 =
+Fixed a fatal error (HTTP 500) on WooCommerce add-to-cart when a third-party integration (e.g. CheckoutWC Order Bumps) calls the add-to-cart hook with null instead of an int/array for the variation arguments.
 
 = 1.1.15 =
 Initial setup fix
