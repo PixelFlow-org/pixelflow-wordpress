@@ -105,9 +105,9 @@ class PixelFlow_WooCommerce_Cart_Hooks
         string $cart_item_key,
         int $product_id,
         int $quantity,
-        $variation_id = 0,
-        $variation = [],
-        $cart_item_data = []
+        ?int $variation_id = 0,
+        ?array $variation = [],
+        ?array $cart_item_data = []
     ): void {
         if (pixelflow_is_blocked_ajax_action()) {
             return;
