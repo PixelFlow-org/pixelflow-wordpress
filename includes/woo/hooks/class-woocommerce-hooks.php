@@ -97,21 +97,27 @@ class PixelFlow_WooCommerce_Cart_Hooks
      * @param string $cart_item_key
      * @param int $product_id
      * @param int $quantity
-     * @param int $variation_id
-     * @param array $variation
-     * @param array $cart_item_data
+     * @param int|null $variation_id
+     * @param array|null $variation
+     * @param array|null $cart_item_data
      */
     public function pf_add_to_cart_hook(
         string $cart_item_key,
         int $product_id,
         int $quantity,
-        int $variation_id,
-        array $variation,
-        array $cart_item_data
+        int $variation_id = 0,
+        $variation = [],
+        $cart_item_data = []
     ): void {
         if (pixelflow_is_blocked_ajax_action()) {
             return;
         }
+
+        // Some third-party integrations (e.g. CheckoutWC Order Bumps) call
+        // woocommerce_add_to_cart with null instead of an array/int here.
+        $variation_id   = (int)$variation_id;
+        $variation      = (array)$variation;
+        $cart_item_data = (array)$cart_item_data;
 
         // One event per actual cart line add
         $dedupe_key = 'add_to_cart:' . $cart_item_key;
