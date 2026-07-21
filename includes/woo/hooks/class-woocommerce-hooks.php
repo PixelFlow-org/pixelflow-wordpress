@@ -105,7 +105,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
         string $cart_item_key,
         int $product_id,
         int $quantity,
-        int $variation_id = 0,
+        $variation_id = 0,
         $variation = [],
         $cart_item_data = []
     ): void {
