@@ -81,6 +81,11 @@ function wp_unslash($value)
     return $value;
 }
 
+function wp_json_encode($data, $options = 0, $depth = 512)
+{
+    return json_encode($data, $options, $depth);
+}
+
 /**
  * wc_get_product() stub: records the id it was called with (so the test
  * can assert product-id resolution / AC-2) and returns null, which makes

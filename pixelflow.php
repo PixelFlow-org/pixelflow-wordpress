@@ -83,6 +83,7 @@ class PixelFlow
     {
         // Load WooCommerce integration
         require_once PIXELFLOW_PLUGIN_PATH . 'includes/helpers.php';
+        require_once PIXELFLOW_PLUGIN_PATH . 'includes/consent.php';
         require_once PIXELFLOW_PLUGIN_PATH . 'includes/woo/class-woocommerce-integration.php';
     }
 
@@ -91,6 +92,8 @@ class PixelFlow
      */
     public function init()
     {
+        add_action('plugins_loaded', 'pixelflow_register_wp_consent_api_consumer');
+
         // Initialize WooCommerce integration if enabled
         if (PixelFlow_WooCommerce_Integration::is_woocommerce_active()) {
             PixelFlow_WooCommerce_Integration::get_instance();
