@@ -182,6 +182,72 @@ cd app/source
 npm run build
 ```
 
+## Continuous Integration
+
+Every pull request to `main`, and every push to `main`, runs
+`.github/workflows/ci.yml`. All seven checks below must pass before a pull request
+can be merged; each one is reproducible locally with a single command.
+
+The single required status check is `ci`, an aggregating job that fails unless
+every job below succeeded. Individual results still show on the pull request.
+
+| Check | Reproduce locally | Run from |
+|---|---|---|
+| Lint (ESLint, warnings are fatal) | `pnpm lint` | `app/source` |
+| Types | `pnpm typecheck` | `app/source` |
+| Formatting (Prettier) | `pnpm format:check` — `pnpm format` fixes it | `app/source` |
+| Unit tests (vitest) | `pnpm test` | `app/source` |
+| Production build + packaging | `./build_plugin.sh prod` | plugin root |
+| Plugin Check (WordPress's own checker) | see note below | a WordPress install |
+| PHP syntax + tests, on 7.4 / 8.1 / 8.3 | `php -l <file>` and `php tests/test-*.php` | plugin root |
+
+Notes:
+
+- Node is pinned to the version in `.nvmrc` (also `engines.node`); pnpm to
+  `packageManager` in `app/source/package.json`. CI reads both, so it runs what
+  you run.
+- The `@pixelflow-org/*` packages are private. CI authenticates with the
+  `GH_PACKAGES_TOKEN` secret; locally you need credentials for
+  `npm.pkg.github.com` in your own `~/.npmrc`. A 404 on one of those packages is
+  an authentication failure, not a missing package.
+- There is no separate `pnpm build` step. `build_plugin.sh` runs the production
+  build itself, and CI checks the zip it produces, so the build that ships is the
+  build that is verified.
+- Plugin Check runs against the **packaged** plugin — the unpacked
+  `build/pixelflow.zip` — not against this repository. Most of the tree
+  (`app/source/`, `e2e/`, `tests/`, `openspec/`, tooling, dotfiles) never ships,
+  and checking it reports dozens of findings against files no user receives.
+  Errors block the merge; warnings appear as annotations on the diff without
+  blocking. Because a green checks box on the pull request says nothing about
+  warnings, the action also posts the full report as a pull-request comment and
+  updates that same comment on each push. The report is attached to every run as
+  the `plugin-check-results` artifact as well.
+- To approximate Plugin Check locally you need a WordPress install with the
+  `plugin-check` plugin active and this repository as the plugin directory, then:
+
+  ```bash
+  wp plugin check pixelflow --ignore-codes=outdated_tested_upto_header \
+    --exclude-directories=app/source,e2e,tests,openspec,svn,build,assets,.github \
+    --exclude-files=build_plugin.sh,publish_plugin.sh,CLAUDE.md,.nvmrc,.gitignore,.wordpress-version-checker.json
+  ```
+
+  The exclusions stand in for what `build_plugin.sh` leaves out; CI needs no such
+  list because it checks the real zip.
+
+  **Keep your local `plugin-check` current** (`wp plugin update plugin-check`).
+  CI installs the latest from wordpress.org on every run, so an older local copy
+  reports fewer findings and will tell you a branch is clean when CI disagrees.
+  The 2.x line, for one, added the check that compares API usage against the
+  plugin's `Requires at least` version.
+- `outdated_tested_upto_header` is ignored in CI on purpose. It compares
+  `readme.txt` against the live WordPress release feed, so as a gating check a
+  WordPress release would turn `main` red with no commit here. That gap is tracked
+  by `.github/workflows/wordpress-version-check.yml`, which opens an issue instead.
+- Playwright e2e (`e2e/`) does **not** run in CI — it needs a live WordPress.
+  Run it locally.
+- Branch protection settings and the exact required check names live in
+  `.github/BRANCH_PROTECTION.md`.
+
 ## Deployment
 
 ### Quick Build (Recommended)
@@ -320,7 +386,7 @@ We offer documentation, video tutorials, and email support on all plans. Most us
 
 ## Requirements
 
-- WordPress 5.0 or higher
+- WordPress 6.5 or higher
 - PHP 7.4 or higher
 - WooCommerce 4.0+ (optional, for e-commerce features)
 
@@ -340,6 +406,9 @@ For more information:
 * [Meta Business Tools](https://www.facebook.com/business/tools)
 
 ## Changelog
+
+### 1.1.17
+Added Refresh button to Debug Log popup in Advanced Settings, enabling log re-fetch without closing the modal.
 
 ### 1.1.16
 Fixed a fatal error (HTTP 500) on WooCommerce add-to-cart when a third-party integration (e.g. CheckoutWC Order Bumps) calls the add-to-cart hook with null instead of an int/array for the variation arguments.

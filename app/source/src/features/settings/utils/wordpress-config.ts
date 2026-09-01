@@ -25,4 +25,3 @@ export const getWordPressAjaxConfig = () => ({
   nonce: wordpressSettings?.nonce || '',
   ajaxUrl: wordpressSettings?.ajax_url || '',
 });
-

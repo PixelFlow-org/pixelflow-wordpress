@@ -13,7 +13,8 @@ import * as UI from '@pixelflow-org/plugin-ui';
 import { WooCommerceSettings } from '@/features/settings/components/WooCommerceSettings.tsx';
 
 /** Hooks */
-import { SettingsProvider, useSettings } from '@/features/settings/contexts/SettingsContext.tsx';
+import { SettingsProvider } from '@/features/settings/contexts/SettingsContext.tsx';
+import { useSettingsContext } from '@/features/settings/contexts/useSettingsContext.ts';
 
 type SettingsPageProps = {
   onRegenerateScript: () => void;
@@ -28,7 +29,7 @@ type SettingsPageProps = {
  */
 function SettingsPageContent(props: SettingsPageProps) {
   const { onRegenerateScript } = props;
-  const { generalOptions, scriptCode, isLoading, error } = useSettings();
+  const { generalOptions, scriptCode, isLoading, error } = useSettingsContext();
 
   const [regenerateScriptLoading, setRegenerateScriptLoading] = useState(false);
   const onRegenerateScriptHandle = async () => {

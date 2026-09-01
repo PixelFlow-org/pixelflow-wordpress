@@ -1,0 +1,219 @@
+name: CI
+
+# No `paths:` filters anywhere in this file. A required status check that is
+# skipped never reports, and a pull request waiting on a check that will never
+# arrive cannot be merged. Both jobs run on every pull request.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: frontend
+    runs-on: ubuntu-latest
+    # Job-level permissions REPLACE the workflow-level block rather than adding
+    # to it, so contents/packages have to be restated here.
+    #
+    # `pull-requests: write` lets the Plugin Check action post its report as a
+    # pull-request comment, updating the same comment on each push. Without it
+    # the action still runs, but every run carries a "Resource not accessible by
+    # integration" warning and the findings live only in annotations and the run
+    # artifact — neither of which is visible from the pull request page, where a
+    # green checks box shows nothing about warnings.
+    #
+    # Scoped to this job on purpose: the registry token is handled here too, and
+    # no other job has business writing to pull requests.
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: write
+    # 30, not 15: Plugin Check starts WordPress in Docker via wp-env,
+    # retrying up to three times with a 10-minute ceiling per attempt.
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: app/source
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Reads the version from `packageManager` in app/source/package.json.
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: app/source/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: app/source/pnpm-lock.yaml
+
+      # The @pixelflow-org/* packages are private and live on GitHub Packages.
+      # The file is written, never echoed, and there is no `set -x` in this job.
+      - name: Configure the private registry
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "::error::Repository secret GH_PACKAGES_TOKEN is not set. The @pixelflow-org/* packages come from npm.pkg.github.com and cannot be installed without it. See .github/BRANCH_PROTECTION.md."
+            exit 1
+          fi
+          cat > .npmrc <<NPMRC
+          @pixelflow-org:registry=https://npm.pkg.github.com
+          //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
+          NPMRC
+
+      # An unauthenticated GitHub Packages request answers 404, not 401, so the
+      # bare pnpm output reads as "no such package" and sends you hunting a typo.
+      - name: Install dependencies
+        id: install
+        run: |
+          if ! pnpm install --frozen-lockfile; then
+            echo "::error::pnpm install failed. If the log shows a 404 for an @pixelflow-org/* package, that is an authentication failure, not a missing package: check that GH_PACKAGES_TOKEN is present and still carries read:packages. A lockfile carrying yalc 'link:' paths fails here too."
+            exit 1
+          fi
+
+      # Each check reports independently, so one red step does not hide the
+      # others — but none runs on a failed install, which would only produce
+      # noise about missing modules.
+      - name: Lint
+        if: always() && steps.install.outcome == 'success'
+        run: pnpm lint
+
+      - name: Typecheck
+        if: always() && steps.install.outcome == 'success'
+        run: pnpm typecheck
+
+      - name: Format check
+        if: always() && steps.install.outcome == 'success'
+        run: pnpm format:check
+
+      - name: Unit tests
+        if: always() && steps.install.outcome == 'success'
+        run: pnpm test
+
+      # `build_plugin.sh` runs the production frontend build itself, so this step
+      # *is* the pipeline's production build. There is deliberately no separate
+      # `pnpm build` step: keeping both would bundle twice per run.
+      #
+      # The script also owns the list of files the plugin actually ships, which is
+      # why Plugin Check below is pointed at its output rather than at the
+      # repository. Checking the working tree reports dozens of findings against
+      # sources, tests, planning documents and tooling that never reach a user.
+      #
+      # `.env.production` is untracked, so the script warns and builds with empty
+      # environment values. That is sufficient for static and activation checks,
+      # and is exactly why this zip must never be published as a release artifact.
+      - name: Build and package the plugin
+        id: package
+        if: always() && steps.install.outcome == 'success'
+        working-directory: .
+        run: |
+          ./build_plugin.sh prod
+          unzip -q build/pixelflow.zip -d tmp/
+
+      # Guarded on the packaging step, not on the install: this step consumes
+      # `tmp/pixelflow`, which does not exist if packaging failed.
+      #
+      # Plugin Check derives the plugin slug from the directory name, so it is
+      # pointed at `tmp/pixelflow` and not at `tmp` or at the zip itself.
+      #
+      # Errors fail this step; warnings are emitted as annotations on the diff
+      # without failing it. That is the action's default behaviour and needs no
+      # input — `ignore-warnings` would drop warnings from the output entirely
+      # rather than merely un-gate them.
+      #
+      # `outdated_tested_upto_header` is ignored because it compares readme.txt
+      # against the live WordPress release feed. Left enabled, a WordPress release
+      # would turn `main` red with no commit here and block every open pull
+      # request until someone bumped the readme. That gap is tracked instead by
+      # wordpress-version-check.yml, which opens an issue rather than blocking a
+      # merge.
+      - name: Plugin Check
+        if: always() && steps.package.outcome == 'success'
+        uses: wordpress/plugin-check-action@v1.1.9
+        with:
+          build-dir: ${{ github.workspace }}/tmp/pixelflow
+          ignore-codes: outdated_tested_upto_header
+
+  php:
+    name: php
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        # 7.4 is the floor readme.txt promises users; 8.3 is what the plugin is
+        # developed on; 8.1 is the common middle on real hosting.
+        php-version: ['7.4', '8.1', '8.3']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          coverage: none
+
+      - name: Syntax check every tracked PHP file
+        run: |
+          status=0
+          while IFS= read -r file; do
+            php -l "$file" > /dev/null || { echo "::error file=${file}::PHP syntax error on ${{ matrix.php-version }}"; status=1; }
+          done < <(git ls-files '*.php')
+          exit $status
+
+      # Plain php-runnable scripts: the project has no composer and no PHPUnit.
+      # Each exits 0 on pass, non-zero on failure.
+      - name: Run the standalone PHP tests
+        run: |
+          shopt -s nullglob
+          files=(tests/test-*.php)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "::error::No tests/test-*.php found — the test step would otherwise pass on an empty run."
+            exit 1
+          fi
+          status=0
+          for file in "${files[@]}"; do
+            echo "--- $file"
+            php "$file" || { echo "::error file=${file}::failed on PHP ${{ matrix.php-version }}"; status=1; }
+          done
+          exit $status
+
+  # Single required status check. Everything above stays visible on the pull
+  # request, but the ruleset only has to name this one job — so adding or
+  # removing a PHP version from the matrix no longer invalidates the required
+  # checks list.
+  #
+  # `if: always()` is load-bearing: without it this job is skipped whenever a
+  # dependency fails, and a skipped required check never reports, which blocks
+  # the merge permanently instead of failing it.
+  ci:
+    name: ci
+    if: always()
+    needs: [frontend, php]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Verify every job succeeded
+        env:
+          FRONTEND: ${{ needs.frontend.result }}
+          PHP: ${{ needs.php.result }}
+        run: |
+          echo "frontend: $FRONTEND"
+          echo "php:      $PHP"
+          if [ "$FRONTEND" != "success" ] || [ "$PHP" != "success" ]; then
+            echo "::error::At least one CI job did not succeed. Open the failing job above for the actual error."
+            exit 1
+          fi

@@ -25,7 +25,7 @@ import Home from '@/features/home';
 
 /** Contexts */
 import { SettingsProvider } from '@/features/settings';
-import { usePlatform } from '@/contexts/platform.context';
+import { usePlatform } from '@/contexts/use-platform';
 
 /**
  * Bootstrap component

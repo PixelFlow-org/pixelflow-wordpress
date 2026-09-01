@@ -13,6 +13,7 @@ type LogViewerModalProps = {
   content: string;
   isLoading: boolean;
   error?: string;
+  onRefresh: () => void;
 };
 
 const LogViewerModal = ({
@@ -21,6 +22,7 @@ const LogViewerModal = ({
   content,
   isLoading,
   error,
+  onRefresh,
 }: LogViewerModalProps): ReactElement | null => {
   useEffect(() => {
     if (!open) return;
@@ -80,7 +82,14 @@ const LogViewerModal = ({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end rounded-b-[14px] border-t border-secondary px-5 py-3 pf-modal__footer">
+        <div className="flex justify-end gap-2 rounded-b-[14px] border-t border-secondary px-5 py-3 pf-modal__footer">
+          <button
+            onClick={onRefresh}
+            disabled={isLoading}
+            className="text-xs text-foreground border border-secondary rounded px-3 py-1 hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Refresh
+          </button>
           <button
             onClick={() => onOpenChange(false)}
             className="text-xs text-foreground border border-secondary rounded px-3 py-1 hover:opacity-80"
@@ -90,7 +99,7 @@ const LogViewerModal = ({
         </div>
       </div>
     </div>,
-    document.body,
+    document.body
   );
 };
 

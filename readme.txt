@@ -1,10 +1,10 @@
 === PixelFlow ===
 Contributors: pixelflow
 Tags: facebook pixel, conversions api, meta pixel, woocommerce tracking, ecommerce
-Requires at least: 5.0
-Tested up to: 7.0
+Requires at least: 6.5
+Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.16
+Stable tag: 1.1.17
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -145,6 +145,9 @@ We offer documentation, video tutorials, and email support on all plans. Most us
 
 == Changelog ==
 
+= 1.1.17 =
+Added Refresh button to Debug Log popup in Advanced Settings, enabling log re-fetch without closing the modal.
+
 = 1.1.16 =
 Fixed a fatal error (HTTP 500) on WooCommerce add-to-cart when a third-party integration (e.g. CheckoutWC Order Bumps) calls the add-to-cart hook with null instead of an int/array for the variation arguments.
 
@@ -255,7 +258,7 @@ For more information:
 * [Support](https://pixelflow.so/contact)
 
 **Requirements:**
-* WordPress 5.0 or higher
+* WordPress 6.5 or higher
 * PHP 7.4 or higher
 * WooCommerce 4.0+ (optional, for e-commerce features)
 

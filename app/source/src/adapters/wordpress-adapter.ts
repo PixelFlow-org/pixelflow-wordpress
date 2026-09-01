@@ -14,7 +14,6 @@ import { PlatformAdapter, PlatformConfig } from '@pixelflow-org/plugin-core';
  * @description Implements platform-specific functionality for WordPress,
  * including script injection, theme management, and notifications
  */
-// @ts-expect-error TS2420
 export class WordpressAdapter implements PlatformAdapter {
   constructor(private config: PlatformConfig) {}
 
@@ -129,6 +128,22 @@ export class WordpressAdapter implements PlatformAdapter {
   }
 
   /**
+   * Whether PixelFlow is active
+   *
+   * Reflects the "Activate PixelFlow" toggle on the settings screen, which is
+   * the `enabled` flag of the `pixelflow_general_options` WordPress option
+   * (0 | 1). The same flag gates tracking on the PHP side.
+   *
+   * Note: `pixelflowSettings` is inlined into the page at load, so this is the
+   * toggle's state at page load, not after an in-session change without reload.
+   */
+  async getIsPixelFlowActive(): Promise<boolean> {
+    // eslint-disable-next-line
+    const settings = (window as any).pixelflowSettings;
+    return Number(settings?.general_options?.enabled) === 1;
+  }
+
+  /**
    * Get platform name
    *
    * Returns the platform name from config.
@@ -156,7 +171,7 @@ export class WordpressAdapter implements PlatformAdapter {
     if (typeof document === 'undefined') return 'light';
 
     const storedTheme = localStorage.getItem('pixelflow_theme');
-    let theme: 'light' | 'dark' = 'light';
+    let theme: 'light' | 'dark';
 
     if (storedTheme === 'dark' || storedTheme === 'light') {
       theme = storedTheme;

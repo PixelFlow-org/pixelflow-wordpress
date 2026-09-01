@@ -5,7 +5,7 @@ app/source/node_modules
 app/source/.vscode
 .cursor
 .claude
-CLAUDE.md
+.codex
 
 # Logs
 app/source/logs
@@ -24,6 +24,9 @@ app/*.local
 build/
 *.zip
 
+# Where CI unpacks the built zip for Plugin Check
+tmp/
+
 # Editor directories and files
 app/source/.vscode/*
 app/source/!.vscode/extensions.json
@@ -34,6 +37,10 @@ app/source/*.njsproj
 app/source/*.sln
 app/source/*.sw?
 
+# Registry credentials (generated in CI, never committed)
+.npmrc
+app/source/.npmrc
+
 # Environment
 app/source/.env.production
 app/source/.env.local
@@ -43,3 +50,7 @@ app/source/.env.*.local
 svn/
 
 .DS_Store
+
+# Playwright e2e artifacts
+e2e/test-results/
+e2e/screenshots/
