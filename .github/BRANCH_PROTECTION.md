@@ -69,8 +69,14 @@ The cost of keeping the name is cosmetic: a Plugin Check failure reads as
 job, which would invalidate the required-checks list documented above.
 
 Plugin Check errors fail the job; warnings are emitted as annotations on the diff
-and do not. The complete report is attached to every run as the
-`plugin-check-results` artifact, whatever the outcome.
+and do not. Since the pull request's checks box renders only pass/fail and never
+surfaces a warning, the job holds `pull-requests: write` so the action can post
+its report as a comment, refreshed on every push. The complete report is attached
+to every run as the `plugin-check-results` artifact as well, whatever the outcome.
+
+That permission is set on the `frontend` job rather than on the workflow. Job-level
+permissions replace the workflow-level block instead of extending it, so the job
+restates `contents: read` and `packages: read` alongside it.
 
 > The zip that CI builds is for checking only. `.env.production` is untracked, so
 > the build runs with empty environment values and the resulting plugin is not

@@ -21,6 +21,22 @@ jobs:
   frontend:
     name: frontend
     runs-on: ubuntu-latest
+    # Job-level permissions REPLACE the workflow-level block rather than adding
+    # to it, so contents/packages have to be restated here.
+    #
+    # `pull-requests: write` lets the Plugin Check action post its report as a
+    # pull-request comment, updating the same comment on each push. Without it
+    # the action still runs, but every run carries a "Resource not accessible by
+    # integration" warning and the findings live only in annotations and the run
+    # artifact — neither of which is visible from the pull request page, where a
+    # green checks box shows nothing about warnings.
+    #
+    # Scoped to this job on purpose: the registry token is handled here too, and
+    # no other job has business writing to pull requests.
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: write
     # 30, not 15: Plugin Check starts WordPress in Docker via wp-env,
     # retrying up to three times with a 10-minute ceiling per attempt.
     timeout-minutes: 30

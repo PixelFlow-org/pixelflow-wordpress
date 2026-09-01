@@ -44,13 +44,13 @@
 
 ## 5. Verify on a real run
 
-- [ ] 5.1 Open a pull request and confirm the `frontend` job packages the plugin,
+- [x] 5.1 Open a pull request and confirm the `frontend` job packages the plugin,
       that `wp-env` starts, and that `wp plugin activate pixelflow` succeeds in a
       WordPress installation without WooCommerce
-- [ ] 5.2 Confirm the run is green and that the short-description finding appears as
+- [x] 5.2 Confirm the run is green and that the short-description finding appears as
       a warning annotation, not an error
-- [ ] 5.3 Confirm `plugin-check-results.txt` is attached to the run as an artifact
+- [x] 5.3 Confirm `plugin-check-results.txt` is attached to the run as an artifact
 - [ ] 5.4 Trigger `wordpress-version-check.yml` via `workflow_dispatch` and confirm
       it reports no gap now that `Tested up to` is 7.1
-- [ ] 5.5 Confirm the aggregating `ci` job still reports and that merging is
+- [x] 5.5 Confirm the aggregating `ci` job still reports and that merging is
       possible with no ruleset change

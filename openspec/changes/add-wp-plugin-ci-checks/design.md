@@ -105,6 +105,22 @@ unconditionally. So "errors block, warnings show" needs no input at all.
 to the checker, which removes warnings from the output entirely rather than
 merely un-gating them.
 
+**Revised after the first green run.** "Warnings show" turned out to be weaker
+than intended. Annotations render on the run summary and on the diff, but the
+pull request's own checks box shows only pass/fail — a run with warnings is
+indistinguishable from a clean one at the place the reviewer actually looks, and
+a job cannot report a neutral conclusion to change that. The only thing that
+surfaces on the pull request page itself is a comment.
+
+The action already attempts to post one; without permission it was failing on
+every run with `Resource not accessible by integration`, which was itself
+appearing as a warning. So the `frontend` job now carries
+`pull-requests: write`, turning a recurring failure into the visibility the
+check was supposed to provide. It is set per-job, not per-workflow: job-level
+permissions replace the workflow-level block rather than extending it, so the
+job restates `contents: read` and `packages: read`, and no other job gains write
+access to pull requests.
+
 ### Ignore `outdated_tested_upto_header` in the pipeline, and track it on a schedule
 
 That check queries the live WordPress release feed. As a blocking check it makes

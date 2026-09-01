@@ -218,8 +218,10 @@ Notes:
   (`app/source/`, `e2e/`, `tests/`, `openspec/`, tooling, dotfiles) never ships,
   and checking it reports dozens of findings against files no user receives.
   Errors block the merge; warnings appear as annotations on the diff without
-  blocking. The full report is attached to every run as the
-  `plugin-check-results` artifact.
+  blocking. Because a green checks box on the pull request says nothing about
+  warnings, the action also posts the full report as a pull-request comment and
+  updates that same comment on each push. The report is attached to every run as
+  the `plugin-check-results` artifact as well.
 - To approximate Plugin Check locally you need a WordPress install with the
   `plugin-check` plugin active and this repository as the plugin directory, then:
 
