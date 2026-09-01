@@ -54,28 +54,28 @@ Same branch.
 
 Branch: new, from the updated `main`.
 
-- [ ] 6.1 Create `.github/workflows/ci.yml` triggered on `pull_request` targeting `main` and on `push` to `main`. **No `paths:` filters** — a skipped required check never reports and blocks the merge forever. Set `permissions: contents: read, packages: read`, and a `concurrency` group keyed on the ref with `cancel-in-progress: true`
-- [ ] 6.2 Job `frontend`: `actions/checkout`, `pnpm/action-setup`, `actions/setup-node` with `node-version-file: .nvmrc` and `cache: pnpm`. Add `timeout-minutes` so a hung install cannot occupy a runner for the six-hour default
-- [ ] 6.3 Generate `app/source/.npmrc` from `${{ secrets.GH_PACKAGES_TOKEN }}` via heredoc — no `echo` of the value, no `set -x` anywhere in the job
-- [ ] 6.4 Add `pnpm install --frozen-lockfile`, with an explicit failure message naming `GH_PACKAGES_TOKEN`. An unauthenticated GitHub Packages request returns 404, not 401, so the default output misleads
-- [ ] 6.5 Add the `lint`, `typecheck`, `format:check`, `test` and `build` steps, each with `if: always()` so one failure does not mask the others. Build once — do not add a second build step
-- [ ] 6.6 Job `php`: matrix `[7.4, 8.1, 8.3]`, `shivammathur/setup-php`, running `php -l` over the tracked `.php` files and executing each `tests/test-*.php`. No composer, no PHPUnit. If 7.4 proves unavailable or the codebase already needs 8.x syntax, drop to `[8.1, 8.3]` and record why in `.github/BRANCH_PROTECTION.md`
-- [ ] 6.7 **[M]** Push the branch, open PR 2, paste the run log back. Iterate until all four checks are green — expect the registry credential to be the first thing that fails
+- [x] 6.1 Create `.github/workflows/ci.yml` triggered on `pull_request` targeting `main` and on `push` to `main`. **No `paths:` filters** — a skipped required check never reports and blocks the merge forever. Set `permissions: contents: read, packages: read`, and a `concurrency` group keyed on the ref with `cancel-in-progress: true`
+- [x] 6.2 Job `frontend`: `actions/checkout`, `pnpm/action-setup`, `actions/setup-node` with `node-version-file: .nvmrc` and `cache: pnpm`. Add `timeout-minutes` so a hung install cannot occupy a runner for the six-hour default
+- [x] 6.3 Generate `app/source/.npmrc` from `${{ secrets.GH_PACKAGES_TOKEN }}` via heredoc — no `echo` of the value, no `set -x` anywhere in the job
+- [x] 6.4 Add `pnpm install --frozen-lockfile`, with an explicit failure message naming `GH_PACKAGES_TOKEN`. An unauthenticated GitHub Packages request returns 404, not 401, so the default output misleads
+- [x] 6.5 Add the `lint`, `typecheck`, `format:check`, `test` and `build` steps, each with `if: always()` so one failure does not mask the others. Build once — do not add a second build step
+- [x] 6.6 Job `php`: matrix `[7.4, 8.1, 8.3]`, `shivammathur/setup-php`, running `php -l` over the tracked `.php` files and executing each `tests/test-*.php`. No composer, no PHPUnit. If 7.4 proves unavailable or the codebase already needs 8.x syntax, drop to `[8.1, 8.3]` and record why in `.github/BRANCH_PROTECTION.md`
+- [x] 6.7 **[M]** Pushed, opened, all four checks green on the **first** run: frontend 26s, php (7.4) 21s, php (8.1) 15s, php (8.3) 7s. The registry credential worked immediately and PHP 7.4 needed no code changes — neither anticipated risk materialised
 
 ## 7. PR 2 — documentation
 
 Same branch as group 6.
 
-- [ ] 7.1 Write `.github/BRANCH_PROTECTION.md` with the exact ruleset for `main`: block direct pushes **including for administrators** (no bypass list), require a pull request, **require zero approvals** (single maintainer — GitHub forbids self-approval, so requiring one would make every pull request unmergeable), require status checks, require the branch to be up to date. Include how to temporarily disable the ruleset — with administrators blocked, the maintainer has no other hotfix path
-- [ ] 7.2 Document in the same file: the `GH_PACKAGES_TOKEN` secret, where its expiry date is recorded, and the four status-check names (filled in at 8.1 from a real run)
-- [ ] 7.3 Add a CI section to `README.md` (a developer section — **not** the changelog, which stays user-facing per 4.2) listing each check and the local command that reproduces it (`pnpm lint`, `pnpm typecheck`, `pnpm format:check`, `pnpm test`, `pnpm build`, `php tests/test-*.php`)
+- [x] 7.1 Write `.github/BRANCH_PROTECTION.md` with the exact ruleset for `main`: block direct pushes **including for administrators** (no bypass list), require a pull request, **require zero approvals** (single maintainer — GitHub forbids self-approval, so requiring one would make every pull request unmergeable), require status checks, require the branch to be up to date. Include how to temporarily disable the ruleset — with administrators blocked, the maintainer has no other hotfix path
+- [x] 7.2 Document in the same file: the `GH_PACKAGES_TOKEN` secret, where its expiry date is recorded, and the four status-check names (filled in at 8.1 from a real run)
+- [x] 7.3 Add a CI section to `README.md` (a developer section — **not** the changelog, which stays user-facing per 4.2) listing each check and the local command that reproduces it (`pnpm lint`, `pnpm typecheck`, `pnpm format:check`, `pnpm test`, `pnpm build`, `php tests/test-*.php`)
 - [ ] 7.4 **[M]** Merge PR 2 while `main` is still unprotected — its own green run is the evidence the pipeline works
 
 ## 8. Manual step — enable protection
 
 Maintainer action in the GitHub UI, after group 7 has merged.
 
-- [ ] 8.1 **[M]** Read the four status-check names off the completed PR 2 run — from the run, not from the YAML — and append them to `.github/BRANCH_PROTECTION.md`
+- [x] 8.1 Status-check names read off the completed PR 2 run (`CI / frontend`, `CI / php (7.4)`, `CI / php (8.1)`, `CI / php (8.3)`). **Superseded by an aggregating `ci` job**: the ruleset now names one check instead of four, so a change to the PHP matrix can no longer invalidate the required-checks list. Recorded in `.github/BRANCH_PROTECTION.md`
 - [ ] 8.2 **[M]** Apply the ruleset from `.github/BRANCH_PROTECTION.md`
 - [ ] 8.3 **[M]** Verify protection: a direct push to `main` is rejected, and a pull request carrying a deliberate lint error cannot be merged
 - [ ] 8.4 **[M]** Verify the escape hatch: confirm the documented disable procedure in 7.1 matches the UI
