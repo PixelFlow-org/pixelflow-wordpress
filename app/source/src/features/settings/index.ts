@@ -10,7 +10,8 @@ export { AdvancedSettings } from '@/features/settings/components/AdvancedSetting
 export { WooCommerceSettings } from '@/features/settings/components/WooCommerceSettings.tsx';
 
 // Context & Hooks
-export { useSettings, SettingsProvider } from '@/features/settings/contexts/SettingsContext.tsx';
+export { SettingsProvider } from '@/features/settings/contexts/SettingsContext.tsx';
+export { useSettingsContext } from '@/features/settings/contexts/useSettingsContext.ts';
 
 // Types & API
 export * from '@/features/settings/types/settings.types.ts';

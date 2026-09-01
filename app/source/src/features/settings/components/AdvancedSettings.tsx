@@ -11,7 +11,7 @@ import { toast } from 'react-toastify';
 import * as UI from '@pixelflow-org/plugin-ui';
 
 /** Hooks */
-import { useSettings } from '@/features/settings/contexts/SettingsContext.tsx';
+import { useSettingsContext } from '@/features/settings/contexts/useSettingsContext.ts';
 
 /** API */
 import { useClearDebugLogMutation, useLazyGetDebugLogQuery } from '@/features/settings/api';
@@ -34,7 +34,7 @@ export function AdvancedSettings() {
     updateGeneralOption,
     isWooCommerceActive,
     wooDebugLogUrl,
-  } = useSettings();
+  } = useSettingsContext();
   const excludedRoles = generalOptions.excluded_user_roles || [];
 
   const handleRoleToggle = async (roleKey: string) => {

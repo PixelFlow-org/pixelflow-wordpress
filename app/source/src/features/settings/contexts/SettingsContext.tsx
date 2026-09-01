@@ -4,15 +4,13 @@
  */
 
 /** External libraries */
-import { createContext, useContext, ReactNode } from 'react';
+import { ReactNode } from 'react';
+
+/** Context */
+import { SettingsContext } from '@/features/settings/contexts/settings-context.ts';
 
 /** Hooks */
 import { useSettings as useSettingsInternal } from '@/features/settings/hooks/useSettings.ts';
-
-/** Types */
-import type { UseSettingsReturn } from '@/features/settings/hooks/useSettings.ts';
-
-const SettingsContext = createContext<UseSettingsReturn | null>(null);
 
 /**
  * Settings provider component
@@ -24,19 +22,4 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const settings = useSettingsInternal();
 
   return <SettingsContext.Provider value={settings}>{children}</SettingsContext.Provider>;
-}
-
-/**
- * Hook to access settings from context
- * @description Must be used within SettingsProvider. Returns shared settings state
- * to prevent concurrent save operations across multiple components.
- * @returns Settings state and mutation functions
- * @throws Error if used outside of SettingsProvider
- */
-export function useSettings(): UseSettingsReturn {
-  const context = useContext(SettingsContext);
-  if (!context) {
-    throw new Error('useSettings must be used within SettingsProvider');
-  }
-  return context;
 }

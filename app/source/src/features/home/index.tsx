@@ -50,7 +50,7 @@ import {
   AdvancedSettings,
   WooCommerceSettings,
 } from '@/features/settings';
-import { useSettings } from '@/features/settings/contexts/SettingsContext';
+import { useSettingsContext } from '@/features/settings/contexts/useSettingsContext.ts';
 import TopControls from '@/shared/components/TopControls/TopControls.tsx';
 import Notification from '@/shared/components/Notification/Notification.tsx';
 import Header from '@/shared/components/Header/Header.tsx';
@@ -122,7 +122,7 @@ const Home = ({ adapter }: HomeProps): ReactElement => {
   });
 
   // Get settings save function to disable integration on logout
-  const { saveSettings, isWooCommerceActive } = useSettings();
+  const { saveSettings, isWooCommerceActive } = useSettingsContext();
 
   useEffect(() => {
     if (user) {

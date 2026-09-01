@@ -11,7 +11,7 @@ import * as UI from '@pixelflow-org/plugin-ui';
 import { Dropdown } from '@pixelflow-org/plugin-ui';
 
 /** Hooks */
-import { useSettings } from '@/features/settings/contexts/SettingsContext.tsx';
+import { useSettingsContext } from '@/features/settings/contexts/useSettingsContext.ts';
 import { PixelFlowGeneralOptions } from '@/features/settings';
 
 /**
@@ -28,7 +28,7 @@ export function WooCommerceSettings() {
     saveSettings,
     error,
     isSaving,
-  } = useSettings();
+  } = useSettingsContext();
 
   const [skuInput, setSkuInput] = React.useState('');
 
