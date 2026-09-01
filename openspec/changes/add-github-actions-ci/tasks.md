@@ -41,7 +41,7 @@ own commit. `eslint-disable` is not an option.
 Same branch.
 
 - [x] 4.1 Run `pnpm format` (`prettier --write`) and commit the result **as a separate cosmetic commit**, so the reformat noise is not mixed with the logic changes above. Expect ~10 files
-- [x] 4.2 Rewrite the `= 1.1.17 =` entry in `readme.txt` and the matching `### 1.1.17` in `README.md` to mention the static-analysis fixes and the CI pipeline, shortening the existing wording so each entry stays roughly its current length. **No version bump** — the version stays `1.1.17` in all five declaration sites
+- [x] 4.2 Keep the `= 1.1.17 =` entry in `readme.txt` and the matching `### 1.1.17` in `README.md` **user-facing only**. The changelog is read by plugin users, so it carries functional changes and nothing else — no test tooling, no linting, no CI. Everything in PR 1 and PR 2 is invisible to a plugin user, so the entry keeps only the Debug Log Refresh button. **No version bump** — the version stays `1.1.17` in all five declaration sites
 - [x] 4.3 Verify locally, all from `app/source/` unless noted: `pnpm lint` exits 0 with no output, `pnpm typecheck` exits 0, `pnpm format:check` exits 0, `pnpm test` reports 10/10, `pnpm build` succeeds, and from the plugin root `php tests/test-woo-add-to-cart-null-variation.php` exits 0
 - [ ] 4.4 **[M]** Push the branch, open PR 1 against the still-unprotected `main`, merge it
 
@@ -68,7 +68,7 @@ Same branch as group 6.
 
 - [ ] 7.1 Write `.github/BRANCH_PROTECTION.md` with the exact ruleset for `main`: block direct pushes **including for administrators** (no bypass list), require a pull request, **require zero approvals** (single maintainer — GitHub forbids self-approval, so requiring one would make every pull request unmergeable), require status checks, require the branch to be up to date. Include how to temporarily disable the ruleset — with administrators blocked, the maintainer has no other hotfix path
 - [ ] 7.2 Document in the same file: the `GH_PACKAGES_TOKEN` secret, where its expiry date is recorded, and the four status-check names (filled in at 8.1 from a real run)
-- [ ] 7.3 Add a CI section to `README.md` listing each check and the local command that reproduces it (`pnpm lint`, `pnpm typecheck`, `pnpm format:check`, `pnpm test`, `pnpm build`, `php tests/test-*.php`)
+- [ ] 7.3 Add a CI section to `README.md` (a developer section — **not** the changelog, which stays user-facing per 4.2) listing each check and the local command that reproduces it (`pnpm lint`, `pnpm typecheck`, `pnpm format:check`, `pnpm test`, `pnpm build`, `php tests/test-*.php`)
 - [ ] 7.4 **[M]** Merge PR 2 while `main` is still unprotected — its own green run is the evidence the pipeline works
 
 ## 8. Manual step — enable protection
