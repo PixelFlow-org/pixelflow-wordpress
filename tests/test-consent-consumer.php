@@ -78,7 +78,8 @@ function pf_run_consent_case(string $label, callable $fn, array &$failures, int 
 
 pf_run_consent_case(
     'WP Consent API maps marketing grant to consent block',
-    function (): bool|string {
+    /** @return bool|string */
+    function () {
         $GLOBALS['__pf_test_consent_type']      = 'optin';
         $GLOBALS['__pf_test_marketing_consent'] = true;
         $_COOKIE                                = [];
@@ -99,7 +100,8 @@ pf_run_consent_case(
 
 pf_run_consent_case(
     'WP Consent API maps marketing deny to denied consent block',
-    function (): bool|string {
+    /** @return bool|string */
+    function () {
         $GLOBALS['__pf_test_consent_type']      = 'optin';
         $GLOBALS['__pf_test_marketing_consent'] = false;
         $_COOKIE                                = [];
@@ -120,7 +122,8 @@ pf_run_consent_case(
 
 pf_run_consent_case(
     'Cookie fallback parses _pf_consent when WP Consent API inactive',
-    function (): bool|string {
+    /** @return bool|string */
+    function () {
         $GLOBALS['__pf_test_consent_type'] = '';
         $_COOKIE[PIXELFLOW_CONSENT_COOKIE_NAME] = pf_encode_consent_cookie('granted', 'cache', 1756370000000);
 
@@ -140,7 +143,8 @@ pf_run_consent_case(
 
 pf_run_consent_case(
     'No consent information leaves payload without consent block',
-    function (): bool|string {
+    /** @return bool|string */
+    function () {
         $GLOBALS['__pf_test_consent_type'] = '';
         $_COOKIE                           = [];
 
@@ -159,7 +163,8 @@ pf_run_consent_case(
 
 pf_run_consent_case(
     'Cookie with visitor identifier is rejected',
-    function (): bool|string {
+    /** @return bool|string */
+    function () {
         $GLOBALS['__pf_test_consent_type'] = '';
         $_COOKIE[PIXELFLOW_CONSENT_COOKIE_NAME] = base64_encode(
             wp_json_encode(
@@ -186,7 +191,8 @@ pf_run_consent_case(
 
 pf_run_consent_case(
     'Order meta override supplies consent when WP Consent API inactive',
-    function (): bool|string {
+    /** @return bool|string */
+    function () {
         $GLOBALS['__pf_test_consent_type'] = '';
         $_COOKIE                           = [];
 
@@ -208,7 +214,8 @@ pf_run_consent_case(
 
 pf_run_consent_case(
     'append_consent_to_payload attaches block under eventData.consent',
-    function (): bool|string {
+    /** @return bool|string */
+    function () {
         $GLOBALS['__pf_test_consent_type']      = 'optin';
         $GLOBALS['__pf_test_marketing_consent'] = true;
         $_COOKIE                                = [];
