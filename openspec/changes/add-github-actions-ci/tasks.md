@@ -31,8 +31,8 @@ Same branch. `--max-warnings 0` stays. Per design.md Decision 6, **each warning 
 presented to the maintainer with options before it is fixed**, and each lands as its
 own commit. `eslint-disable` is not an option.
 
-- [ ] 3.1 `react-refresh/only-export-components` at `src/contexts/platform.context.tsx:36` — present the fix (move `usePlatform` to a sibling module; 2 import sites: `src/App.tsx`, `src/features/bootstrap/components/index.tsx`) and the options; apply the chosen one
-- [ ] 3.2 The same warning at `src/features/settings/contexts/SettingsContext.tsx:36`. **Larger than it looks**: `useSettings` has 8 import sites, a same-named `src/features/settings/hooks/useSettings.ts` already exists, and `AdvancedSettings.test.tsx` mocks it. Present the options, apply, re-run the suite immediately
+- [x] 3.1 `react-refresh/only-export-components` at `src/contexts/platform.context.tsx:36` — present the fix (move `usePlatform` to a sibling module; 2 import sites: `src/App.tsx`, `src/features/bootstrap/components/index.tsx`) and the options; apply the chosen one
+- [x] 3.2 The same warning at `src/features/settings/contexts/SettingsContext.tsx:36`. **Larger than it looks**: `useSettings` has 8 import sites, a same-named `src/features/settings/hooks/useSettings.ts` already exists, and `AdvancedSettings.test.tsx` mocks it. Present the options, apply, re-run the suite immediately
 - [x] 3.3 `react-hooks/exhaustive-deps` at `src/features/home/index.tsx:220`. **Maintainer chose suppression over a code change** (overriding design.md Decision 6, which had ruled `eslint-disable` out): a documented `// eslint-disable-next-line react-hooks/exhaustive-deps` plus a comment recording the accepted consequence. `@ts-expect-error` does not apply — this is an ESLint rule, not a TypeScript error
 - [x] 3.4 ~~Verify 3.3 by hand in the WordPress admin~~ — **not needed**: 3.3 changed no executable code, only comments, so there is no behaviour to re-verify
 
@@ -40,9 +40,9 @@ own commit. `eslint-disable` is not an option.
 
 Same branch.
 
-- [ ] 4.1 Run `pnpm format` (`prettier --write`) and commit the result **as a separate cosmetic commit**, so the reformat noise is not mixed with the logic changes above. Expect ~10 files
-- [ ] 4.2 Rewrite the `= 1.1.17 =` entry in `readme.txt` and the matching `### 1.1.17` in `README.md` to mention the static-analysis fixes and the CI pipeline, shortening the existing wording so each entry stays roughly its current length. **No version bump** — the version stays `1.1.17` in all five declaration sites
-- [ ] 4.3 Verify locally, all from `app/source/` unless noted: `pnpm lint` exits 0 with no output, `pnpm typecheck` exits 0, `pnpm format:check` exits 0, `pnpm test` reports 10/10, `pnpm build` succeeds, and from the plugin root `php tests/test-woo-add-to-cart-null-variation.php` exits 0
+- [x] 4.1 Run `pnpm format` (`prettier --write`) and commit the result **as a separate cosmetic commit**, so the reformat noise is not mixed with the logic changes above. Expect ~10 files
+- [x] 4.2 Rewrite the `= 1.1.17 =` entry in `readme.txt` and the matching `### 1.1.17` in `README.md` to mention the static-analysis fixes and the CI pipeline, shortening the existing wording so each entry stays roughly its current length. **No version bump** — the version stays `1.1.17` in all five declaration sites
+- [x] 4.3 Verify locally, all from `app/source/` unless noted: `pnpm lint` exits 0 with no output, `pnpm typecheck` exits 0, `pnpm format:check` exits 0, `pnpm test` reports 10/10, `pnpm build` succeeds, and from the plugin root `php tests/test-woo-add-to-cart-null-variation.php` exits 0
 - [ ] 4.4 **[M]** Push the branch, open PR 1 against the still-unprotected `main`, merge it
 
 ## 5. Between the pull requests — provision the registry credential
