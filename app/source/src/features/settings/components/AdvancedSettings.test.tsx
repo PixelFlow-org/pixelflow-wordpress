@@ -8,7 +8,7 @@
  * `triggerGetDebugLog(undefined, false).unwrap()`) to control resolved /
  * rejected values across the initial load and a subsequent Refresh click.
  *
- * `useSettings` (from SettingsContext) is mocked directly rather than wrapped
+ * `useSettingsContext` is mocked directly rather than wrapped
  * in a real `SettingsProvider`, since this feature does not touch settings
  * state — only the debug log fetch/modal wiring is under test.
  */
@@ -41,8 +41,8 @@ const generalOptions: PixelFlowGeneralOptions = {
   woo_debug_enabled: 1,
 };
 
-vi.mock('@/features/settings/contexts/SettingsContext.tsx', () => ({
-  useSettings: () => ({
+vi.mock('@/features/settings/contexts/useSettingsContext.ts', () => ({
+  useSettingsContext: () => ({
     generalOptions,
     availableRoles: [],
     toggleExcludedRole: vi.fn(),

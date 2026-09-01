@@ -5,7 +5,7 @@ app/source/node_modules
 app/source/.vscode
 .cursor
 .claude
-CLAUDE.md
+.codex
 
 # Logs
 app/source/logs
@@ -33,6 +33,10 @@ app/source/*.ntvs*
 app/source/*.njsproj
 app/source/*.sln
 app/source/*.sw?
+
+# Registry credentials (generated in CI, never committed)
+.npmrc
+app/source/.npmrc
 
 # Environment
 app/source/.env.production

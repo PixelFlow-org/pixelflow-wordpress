@@ -3,15 +3,9 @@
  * @description Provides platform adapter instance throughout the application
  */
 
-import React, { createContext, useContext, ReactNode, useMemo } from 'react';
-import { PlatformAdapter } from '@pixelflow-org/plugin-core';
+import React, { ReactNode, useMemo } from 'react';
 import { wordpressAdapter } from '@/adapters';
-
-interface PlatformContextType {
-  adapter: PlatformAdapter;
-}
-
-const PlatformContext = createContext<PlatformContextType | undefined>(undefined);
+import { PlatformContext } from './platform-context';
 
 interface PlatformProviderProps {
   children: ReactNode;
@@ -25,18 +19,4 @@ export const PlatformProvider: React.FC<PlatformProviderProps> = ({ children }) 
   const adapter = useMemo(() => wordpressAdapter, []);
 
   return <PlatformContext.Provider value={{ adapter }}>{children}</PlatformContext.Provider>;
-};
-
-/**
- * Hook to access platform adapter
- * @description Use this hook to access platform-specific functionality
- * @returns Platform adapter instance
- * @throws Error if used outside PlatformProvider
- */
-export const usePlatform = (): PlatformContextType => {
-  const context = useContext(PlatformContext);
-  if (!context) {
-    throw new Error('usePlatform must be used within a PlatformProvider');
-  }
-  return context;
 };

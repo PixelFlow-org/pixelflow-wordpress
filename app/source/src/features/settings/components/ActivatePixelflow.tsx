@@ -11,7 +11,7 @@ import * as UI from '@pixelflow-org/plugin-ui';
 import { Button } from '@pixelflow-org/plugin-ui';
 
 /** Hooks */
-import { useSettings } from '@/features/settings/contexts/SettingsContext.tsx';
+import { useSettingsContext } from '@/features/settings/contexts/useSettingsContext.ts';
 
 import { User } from '@pixelflow-org/plugin-core';
 
@@ -29,7 +29,8 @@ interface ActivatePixelflowProps {
  */
 export function ActivatePixelflow(props: ActivatePixelflowProps) {
   const { onRegenerateScript, user } = props;
-  const { generalOptions, updateGeneralOption, saveSettings, isSaving, scriptCode } = useSettings();
+  const { generalOptions, updateGeneralOption, saveSettings, isSaving, scriptCode } =
+    useSettingsContext();
 
   const isScriptInserted = Boolean(scriptCode);
 

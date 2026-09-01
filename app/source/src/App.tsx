@@ -17,7 +17,8 @@ import { LoadingScreen, ThemeProvider, TooltipProvider } from '@pixelflow-org/pl
 import '@pixelflow-org/plugin-ui/dist/styles.css';
 
 /** Contexts */
-import { PlatformProvider, usePlatform } from './contexts/platform.context';
+import { PlatformProvider } from './contexts/platform.context';
+import { usePlatform } from './contexts/use-platform';
 
 /** Components */
 import Bootstrap from './features/bootstrap/components';
