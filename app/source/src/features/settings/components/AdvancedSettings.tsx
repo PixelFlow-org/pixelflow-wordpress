@@ -74,8 +74,7 @@ export function AdvancedSettings() {
   const [isFetchingLog, setIsFetchingLog] = useState(false);
   const [logFetchError, setLogFetchError] = useState<string | undefined>(undefined);
 
-  const handleSeeLogs = async () => {
-    setIsLogModalOpen(true);
+  const fetchDebugLog = async () => {
     setIsFetchingLog(true);
     setLogFetchError(undefined);
     setLogContent('');
@@ -91,6 +90,15 @@ export function AdvancedSettings() {
     } finally {
       setIsFetchingLog(false);
     }
+  };
+
+  const handleSeeLogs = async () => {
+    setIsLogModalOpen(true);
+    await fetchDebugLog();
+  };
+
+  const handleRefreshLog = async () => {
+    await fetchDebugLog();
   };
 
   const handleClearLog = async () => {
@@ -258,6 +266,7 @@ export function AdvancedSettings() {
       content={logContent}
       isLoading={isFetchingLog}
       error={logFetchError}
+      onRefresh={handleRefreshLog}
     />
     </>
   );
