@@ -55,7 +55,7 @@ const wordpressSettingsApi = authApi.injectEndpoints({
               error: data.data?.message || 'Failed to load settings',
             } as FetchBaseQueryError,
           };
-        } catch (error) {
+        } catch {
           return {
             error: {
               status: 'FETCH_ERROR',
@@ -102,7 +102,7 @@ const wordpressSettingsApi = authApi.injectEndpoints({
               error: data.data?.message || 'Failed to save settings',
             } as FetchBaseQueryError,
           };
-        } catch (error) {
+        } catch {
           return {
             error: {
               status: 'FETCH_ERROR',
@@ -171,7 +171,7 @@ const wordpressSettingsApi = authApi.injectEndpoints({
               error: data.data?.message || 'Failed to clear log file',
             } as FetchBaseQueryError,
           };
-        } catch (error) {
+        } catch {
           return {
             error: {
               status: 'FETCH_ERROR',

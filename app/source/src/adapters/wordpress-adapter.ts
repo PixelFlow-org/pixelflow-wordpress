@@ -156,7 +156,7 @@ export class WordpressAdapter implements PlatformAdapter {
     if (typeof document === 'undefined') return 'light';
 
     const storedTheme = localStorage.getItem('pixelflow_theme');
-    let theme: 'light' | 'dark' = 'light';
+    let theme: 'light' | 'dark';
 
     if (storedTheme === 'dark' || storedTheme === 'light') {
       theme = storedTheme;
