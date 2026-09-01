@@ -146,7 +146,7 @@ We offer documentation, video tutorials, and email support on all plans. Most us
 == Changelog ==
 
 = 1.1.17 =
-Added Refresh button to Debug Log popup in Advanced Settings, enabling log re-fetch without closing the modal. Introduced frontend test tooling (vitest, @testing-library/react) and Playwright e2e test suite for improved code quality.
+Added Refresh button to Debug Log popup in Advanced Settings. Introduced frontend test tooling (vitest, Playwright). Cleared all ESLint and TypeScript errors and split the React contexts for Fast Refresh, ahead of the GitHub Actions CI pipeline.
 
 = 1.1.16 =
 Fixed a fatal error (HTTP 500) on WooCommerce add-to-cart when a third-party integration (e.g. CheckoutWC Order Bumps) calls the add-to-cart hook with null instead of an int/array for the variation arguments.
