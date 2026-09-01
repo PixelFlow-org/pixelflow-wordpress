@@ -24,6 +24,9 @@ app/*.local
 build/
 *.zip
 
+# Where CI unpacks the built zip for Plugin Check
+tmp/
+
 # Editor directories and files
 app/source/.vscode/*
 app/source/!.vscode/extensions.json

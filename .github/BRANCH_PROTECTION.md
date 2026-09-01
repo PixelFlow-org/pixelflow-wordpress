@@ -57,6 +57,49 @@ reports, not what this file predicts.
 > If `ci` is ever renamed or removed from the workflow, update this ruleset in the
 > same pull request. A required check that no longer reports blocks every merge.
 
+### What `frontend` covers
+
+`frontend` is not only the admin bundle. It also packages the plugin with
+`build_plugin.sh` and runs WordPress's own Plugin Check against the unpacked
+`build/pixelflow.zip`. **The required-checks list does not change for that** — the
+job keeps its name, so `ci` still covers it.
+
+The cost of keeping the name is cosmetic: a Plugin Check failure reads as
+`frontend` failing until you open the log. That was preferred over renaming the
+job, which would invalidate the required-checks list documented above.
+
+Plugin Check errors fail the job; warnings are emitted as annotations on the diff
+and do not. Since the pull request's checks box renders only pass/fail and never
+surfaces a warning, the job holds `pull-requests: write` so the action can post
+its report as a comment, refreshed on every push. The complete report is attached
+to every run as the `plugin-check-results` artifact as well, whatever the outcome.
+
+That permission is set on the `frontend` job rather than on the workflow. Job-level
+permissions replace the workflow-level block instead of extending it, so the job
+restates `contents: read` and `packages: read` alongside it.
+
+> The zip that CI builds is for checking only. `.env.production` is untracked, so
+> the build runs with empty environment values and the resulting plugin is not
+> functionally configured. **Never publish a CI-built zip as a release artifact.**
+> Releases are built locally, where `.env.production` exists.
+
+## The workflow that must NOT be required
+
+`.github/workflows/wordpress-version-check.yml` opens an issue when WordPress
+ships a release the plugin has not declared compatibility with. It runs on a daily
+schedule, on pushes to `main`, and on demand — **never on pull requests**.
+
+Do not add it to the required-checks list. A required check that never reports on
+a pull request leaves that pull request permanently unmergeable.
+
+It exists so that a WordPress release cannot block a merge. The matching Plugin
+Check rule, `outdated_tested_upto_header`, is ignored in `ci.yml` for the same
+reason: it compares `readme.txt` against the live WordPress release feed, so as a
+gating check it would turn `main` red with no commit in this repository.
+
+It is also the only workflow here that needs `issues: write`, which is why it is a
+separate file rather than extra permissions on `ci.yml`.
+
 ## Emergency: releasing when CI itself is broken
 
 With an empty bypass list, nobody can push to `main` directly — including the

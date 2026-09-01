@@ -1,8 +1,8 @@
 === PixelFlow ===
 Contributors: pixelflow
 Tags: facebook pixel, conversions api, meta pixel, woocommerce tracking, ecommerce
-Requires at least: 5.0
-Tested up to: 7.0
+Requires at least: 6.5
+Tested up to: 7.1
 Requires PHP: 7.4
 Stable tag: 1.1.17
 License: GPLv2 or later
@@ -258,7 +258,7 @@ For more information:
 * [Support](https://pixelflow.so/contact)
 
 **Requirements:**
-* WordPress 5.0 or higher
+* WordPress 6.5 or higher
 * PHP 7.4 or higher
 * WooCommerce 4.0+ (optional, for e-commerce features)
 
