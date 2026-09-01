@@ -131,3 +131,31 @@ jobs:
             php "$file" || { echo "::error file=${file}::failed on PHP ${{ matrix.php-version }}"; status=1; }
           done
           exit $status
+
+  # Single required status check. Everything above stays visible on the pull
+  # request, but the ruleset only has to name this one job — so adding or
+  # removing a PHP version from the matrix no longer invalidates the required
+  # checks list.
+  #
+  # `if: always()` is load-bearing: without it this job is skipped whenever a
+  # dependency fails, and a skipped required check never reports, which blocks
+  # the merge permanently instead of failing it.
+  ci:
+    name: ci
+    if: always()
+    needs: [frontend, php]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Verify every job succeeded
+        env:
+          FRONTEND: ${{ needs.frontend.result }}
+          PHP: ${{ needs.php.result }}
+        run: |
+          echo "frontend: $FRONTEND"
+          echo "php:      $PHP"
+          if [ "$FRONTEND" != "success" ] || [ "$PHP" != "success" ]; then
+            echo "::error::At least one CI job did not succeed. Open the failing job above for the actual error."
+            exit 1
+          fi

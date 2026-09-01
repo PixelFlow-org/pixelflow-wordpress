@@ -75,7 +75,7 @@ Same branch as group 6.
 
 Maintainer action in the GitHub UI, after group 7 has merged.
 
-- [x] 8.1 Read the four status-check names off the completed PR 2 run — done before merging rather than after, since the first run was green: `CI / frontend`, `CI / php (7.4)`, `CI / php (8.1)`, `CI / php (8.3)`. Recorded in `.github/BRANCH_PROTECTION.md`, together with the note that the ruleset picker lists the bare job name
+- [x] 8.1 Status-check names read off the completed PR 2 run (`CI / frontend`, `CI / php (7.4)`, `CI / php (8.1)`, `CI / php (8.3)`). **Superseded by an aggregating `ci` job**: the ruleset now names one check instead of four, so a change to the PHP matrix can no longer invalidate the required-checks list. Recorded in `.github/BRANCH_PROTECTION.md`
 - [ ] 8.2 **[M]** Apply the ruleset from `.github/BRANCH_PROTECTION.md`
 - [ ] 8.3 **[M]** Verify protection: a direct push to `main` is rejected, and a pull request carrying a deliberate lint error cannot be merged
 - [ ] 8.4 **[M]** Verify the escape hatch: confirm the documented disable procedure in 7.1 matches the UI

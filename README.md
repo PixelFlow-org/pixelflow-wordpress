@@ -188,6 +188,9 @@ Every pull request to `main`, and every push to `main`, runs
 `.github/workflows/ci.yml`. All six checks below must pass before a pull request
 can be merged; each one is reproducible locally with a single command.
 
+The single required status check is `ci`, an aggregating job that fails unless
+every job below succeeded. Individual results still show on the pull request.
+
 | Check | Reproduce locally | Run from |
 |---|---|---|
 | Lint (ESLint, warnings are fatal) | `pnpm lint` | `app/source` |

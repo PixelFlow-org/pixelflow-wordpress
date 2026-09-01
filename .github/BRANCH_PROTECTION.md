@@ -34,27 +34,28 @@ permanently unmergeable. The gate here is the status checks, not a second person
 
 ### Required status checks
 
-Add all four. Search for them by name in the "Add checks" box — they appear only
-after a run has reported them at least once.
+Add exactly one:
 
-- `frontend`
-- `php (7.4)`
-- `php (8.1)`
-- `php (8.3)`
+- `ci`
 
-Confirmed against the first green run (pull request adding the workflow,
-2026-09-01), where the pull-request page renders them with the workflow name in
-front: `CI / frontend`, `CI / php (7.4)`, `CI / php (8.1)`, `CI / php (8.3)`. The
-ruleset's check picker lists the bare job name — `frontend`, not `CI / frontend`.
-If the picker offers the prefixed form instead, select whatever it offers: the
-names must match what the run reports, not what this file predicts.
+That is deliberate. `ci` is an aggregating job: it waits for `frontend` and the
+whole `php` matrix and fails unless every one of them succeeded. The individual
+results stay visible on the pull request — you still see which job broke — but the
+ruleset only has to name this one.
 
-> Read these off a completed run, not off the YAML. A matrix expands one job into
-> one check per matrix value, so `php` alone is **not** a check name and selecting
-> it would block every merge on a check that never reports.
->
-> Adding or removing a PHP version from the matrix changes this list. Update the
-> ruleset in the same pull request that changes the matrix, or merges stop working.
+Why not name the individual checks: a matrix expands one job into one check per
+matrix value (`php (7.4)`, `php (8.1)`, `php (8.3)`), so every change to the PHP
+matrix would silently invalidate the required-checks list here. Requiring `ci`
+alone is immune to that.
+
+Verified on the first green run (2026-09-01): `frontend` 26s, `php (7.4)` 21s,
+`php (8.1)` 15s, `php (8.3)` 7s. The pull-request page renders check names with
+the workflow in front (`CI / ci`); the ruleset's picker lists the bare job name
+(`ci`). Select whatever the picker offers — the name has to match what the run
+reports, not what this file predicts.
+
+> If `ci` is ever renamed or removed from the workflow, update this ruleset in the
+> same pull request. A required check that no longer reports blocks every merge.
 
 ## Emergency: releasing when CI itself is broken
 
