@@ -5,6 +5,7 @@ app/source/node_modules
 app/source/.vscode
 .cursor
 .claude
+.codex
 CLAUDE.md
 
 # Logs
@@ -43,3 +44,9 @@ app/source/.env.*.local
 svn/
 
 .DS_Store
+
+openspec/
+
+# Playwright e2e artifacts
+e2e/test-results/
+e2e/screenshots/

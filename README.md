@@ -341,6 +341,9 @@ For more information:
 
 ## Changelog
 
+### 1.1.18
+Filtered out bot and duplicate AddToCart events that were inflating reported conversion counts.
+
 ### 1.1.17
 Added Refresh button to Debug Log popup in Advanced Settings, enabling log re-fetch without closing the modal. Introduced frontend test tooling (vitest, @testing-library/react) and Playwright e2e test suite for improved code quality.
 

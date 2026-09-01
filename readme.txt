@@ -4,7 +4,7 @@ Tags: facebook pixel, conversions api, meta pixel, woocommerce tracking, ecommer
 Requires at least: 5.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.1.17
+Stable tag: 1.1.18
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -143,7 +143,19 @@ We offer documentation, video tutorials, and email support on all plans. Most us
 6. Advanced Settings
 7. Events in the Pixelflow dashboard
 
+== Upgrade Notice ==
+
+= 1.1.18 =
+This release stops sending AddToCart events from automated clients and from
+repeated requests to the same `?add-to-cart=` URL. Reported AddToCart volume
+will therefore drop after upgrading — on the site this was measured against,
+roughly half of all recorded AddToCart events came from those two sources.
+The lower number is a correction, not a tracking regression.
+
 == Changelog ==
+
+= 1.1.18 =
+Filtered out bot and duplicate AddToCart events that were inflating reported conversion counts.
 
 = 1.1.17 =
 Added Refresh button to Debug Log popup in Advanced Settings, enabling log re-fetch without closing the modal. Introduced frontend test tooling (vitest, @testing-library/react) and Playwright e2e test suite for improved code quality.

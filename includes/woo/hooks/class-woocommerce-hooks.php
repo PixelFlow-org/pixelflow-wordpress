@@ -779,7 +779,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $this->sent_in_request[$key] = 1;
 
         if ( ! function_exists('WC') || ! WC()->session) {
-            return true;
+            return $this->should_send_event_without_session($key, $ttl_seconds);
         }
 
         $session_key = 'pf_dedupe_' . md5($key);
@@ -793,6 +793,45 @@ class PixelFlow_WooCommerce_Cart_Hooks
         }
 
         WC()->session->set($session_key, $now);
+
+        return true;
+    }
+
+    /**
+     * De-duplication fallback for requests that carry no WooCommerce session.
+     *
+     * Session-less requests are the bot / prefetch / reload case: WooCommerce's
+     * non-AJAX `?add-to-cart=<id>` URL re-adds the product on any GET of that
+     * URL, so a crawler or link prefetcher produces a fresh event per hit. With
+     * no session there is nowhere to keep the timestamp the session branch uses,
+     * and the per-request guard cannot see a repeat that arrives as a separate
+     * request — so this falls back to a transient keyed on the event plus the
+     * requesting client's identity.
+     *
+     * The IP and user agent are hashed together with the key rather than stored,
+     * so no personal data is persisted by de-duplication. The transient's own
+     * expiry is the suppression window, which is why its presence alone is the
+     * signal and no timestamp comparison is needed here.
+     *
+     * @return bool True if the event should be sent.
+     */
+    private function should_send_event_without_session(string $key, int $ttl_seconds): bool
+    {
+        // Mirrors the session branch, where ($now - $last_ts) < 0 is never
+        // satisfied. Returning before the write also avoids WordPress treating
+        // a non-positive expiration as "never expires".
+        if ($ttl_seconds <= 0) {
+            return true;
+        }
+
+        $client_id     = pixelflow_get_client_ip_address() . '|' . pixelflow_get_client_user_agent();
+        $transient_key = 'pf_dedupe_' . md5($key . '|' . $client_id);
+
+        if (get_transient($transient_key) !== false) {
+            return false;
+        }
+
+        set_transient($transient_key, 1, max(1, $ttl_seconds));
 
         return true;
     }
