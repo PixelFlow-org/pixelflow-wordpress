@@ -2,7 +2,7 @@
 Contributors: pixelflow
 Tags: facebook pixel, conversions api, meta pixel, woocommerce tracking, ecommerce
 Requires at least: 5.0
-Tested up to: 7.0
+Tested up to: 7.1
 Requires PHP: 7.4
 Stable tag: 1.1.17
 License: GPLv2 or later

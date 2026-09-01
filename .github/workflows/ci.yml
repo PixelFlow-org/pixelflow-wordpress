@@ -21,7 +21,9 @@ jobs:
   frontend:
     name: frontend
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 30, not 15: Plugin Check starts WordPress in Docker via wp-env,
+    # retrying up to three times with a 10-minute ceiling per attempt.
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: app/source
@@ -84,9 +86,49 @@ jobs:
         if: always() && steps.install.outcome == 'success'
         run: pnpm test
 
-      - name: Production build
+      # `build_plugin.sh` runs the production frontend build itself, so this step
+      # *is* the pipeline's production build. There is deliberately no separate
+      # `pnpm build` step: keeping both would bundle twice per run.
+      #
+      # The script also owns the list of files the plugin actually ships, which is
+      # why Plugin Check below is pointed at its output rather than at the
+      # repository. Checking the working tree reports dozens of findings against
+      # sources, tests, planning documents and tooling that never reach a user.
+      #
+      # `.env.production` is untracked, so the script warns and builds with empty
+      # environment values. That is sufficient for static and activation checks,
+      # and is exactly why this zip must never be published as a release artifact.
+      - name: Build and package the plugin
+        id: package
         if: always() && steps.install.outcome == 'success'
-        run: pnpm build
+        working-directory: .
+        run: |
+          ./build_plugin.sh prod
+          unzip -q build/pixelflow.zip -d tmp/
+
+      # Guarded on the packaging step, not on the install: this step consumes
+      # `tmp/pixelflow`, which does not exist if packaging failed.
+      #
+      # Plugin Check derives the plugin slug from the directory name, so it is
+      # pointed at `tmp/pixelflow` and not at `tmp` or at the zip itself.
+      #
+      # Errors fail this step; warnings are emitted as annotations on the diff
+      # without failing it. That is the action's default behaviour and needs no
+      # input — `ignore-warnings` would drop warnings from the output entirely
+      # rather than merely un-gate them.
+      #
+      # `outdated_tested_upto_header` is ignored because it compares readme.txt
+      # against the live WordPress release feed. Left enabled, a WordPress release
+      # would turn `main` red with no commit here and block every open pull
+      # request until someone bumped the readme. That gap is tracked instead by
+      # wordpress-version-check.yml, which opens an issue rather than blocking a
+      # merge.
+      - name: Plugin Check
+        if: always() && steps.package.outcome == 'success'
+        uses: wordpress/plugin-check-action@v1.1.9
+        with:
+          build-dir: ${{ github.workspace }}/tmp/pixelflow
+          ignore-codes: outdated_tested_upto_header
 
   php:
     name: php
