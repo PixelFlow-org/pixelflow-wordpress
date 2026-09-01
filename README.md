@@ -231,6 +231,12 @@ Notes:
 
   The exclusions stand in for what `build_plugin.sh` leaves out; CI needs no such
   list because it checks the real zip.
+
+  **Keep your local `plugin-check` current** (`wp plugin update plugin-check`).
+  CI installs the latest from wordpress.org on every run, so an older local copy
+  reports fewer findings and will tell you a branch is clean when CI disagrees.
+  The 2.x line, for one, added the check that compares API usage against the
+  plugin's `Requires at least` version.
 - `outdated_tested_upto_header` is ignored in CI on purpose. It compares
   `readme.txt` against the live WordPress release feed, so as a gating check a
   WordPress release would turn `main` red with no commit here. That gap is tracked
