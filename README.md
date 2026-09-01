@@ -384,7 +384,7 @@ We offer documentation, video tutorials, and email support on all plans. Most us
 
 ## Requirements
 
-- WordPress 5.0 or higher
+- WordPress 6.5 or higher
 - PHP 7.4 or higher
 - WooCommerce 4.0+ (optional, for e-commerce features)
 

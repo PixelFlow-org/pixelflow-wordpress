@@ -258,7 +258,7 @@ For more information:
 * [Support](https://pixelflow.so/contact)
 
 **Requirements:**
-* WordPress 5.0 or higher
+* WordPress 6.5 or higher
 * PHP 7.4 or higher
 * WooCommerce 4.0+ (optional, for e-commerce features)
 
