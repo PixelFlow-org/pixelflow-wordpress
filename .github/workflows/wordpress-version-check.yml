@@ -1,0 +1,56 @@
+name: WordPress version check
+
+# This workflow MUST NOT be marked as a required status check. It does not run on
+# pull requests at all, and a required check that never reports leaves every pull
+# request permanently unmergeable. The single required check remains `ci`, in
+# ci.yml.
+#
+# It exists so that a WordPress release cannot block a merge. The equivalent
+# Plugin Check rule, `outdated_tested_upto_header`, is ignored in ci.yml precisely
+# because it compares readme.txt against the live WordPress release feed: as a
+# gating check it would turn `main` red with no commit here. Detecting the same
+# gap belongs on a schedule, reported as an issue.
+#
+# The schedule is the point: the triggering event happens outside this repository.
+# WordPress ships a release whether or not anyone commits here, so waiting for
+# repository activity would mean finding out late.
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# The only workflow in this repository that needs write access to issues. It is
+# kept separate from ci.yml rather than widening that workflow's permissions,
+# since ci.yml is also where the private registry token is handled.
+permissions:
+  issues: write
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  wordpress-version-check:
+    name: wordpress-version-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Reads `Tested up to` from readme.txt, which the action finds at the
+      # repository root by default. `.wordpress-version-checker.json` pins the
+      # release channel to `stable`; the action's own default is `rc`, and
+      # declaring compatibility with a version users cannot yet install would be
+      # a false claim.
+      #
+      # It tracks a single issue rather than opening one per run: it looks for an
+      # open issue labelled `wpvc` opened by github-actions[bot], updates that one
+      # if the gap has changed, and closes it once readme.txt catches up. So leave
+      # the `wpvc` label alone — removing it makes the next run open a duplicate.
+      - name: WordPress version checker
+        uses: skaut/wordpress-version-checker@v2.2.3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
