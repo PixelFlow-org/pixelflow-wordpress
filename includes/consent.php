@@ -24,6 +24,7 @@ const PIXELFLOW_CONSENT_SOURCES = [
     'api',
     'gpc',
     'cache',
+    'consent_mode_disabled',
 ];
 
 /**
@@ -35,7 +36,18 @@ function pixelflow_register_wp_consent_api_consumer(): void
 {
     $plugin = PIXELFLOW_PLUGIN_BASENAME;
     add_filter("wp_consent_api_registered_{$plugin}", '__return_true');
+}
 
+/**
+ * Declares the consent-state cookie to the WP Consent API cookie register.
+ *
+ * Runs on init, not on plugins_loaded: the strings below are translated, and
+ * WordPress 6.7+ reports translation loading before init as _doing_it_wrong.
+ *
+ * @return void
+ */
+function pixelflow_register_consent_cookie_info(): void
+{
     if (function_exists('wp_add_cookie_info')) {
         wp_add_cookie_info(
             PIXELFLOW_CONSENT_COOKIE_NAME,
@@ -49,6 +61,26 @@ function pixelflow_register_wp_consent_api_consumer(): void
             'HTTP'
         );
     }
+}
+
+/**
+ * Returns the visitor's consent decision from the live cookie on this request.
+ *
+ * Its presence is what tells a server-side event that the visitor is actually
+ * here: background requests (cron, order-status changes, gateway callbacks)
+ * carry no cookies at all.
+ *
+ * @return array{state: string, source: string, timestamp: int}|null
+ */
+function pixelflow_get_live_consent_cookie_decision(): ?array
+{
+    if ( ! isset($_COOKIE[PIXELFLOW_CONSENT_COOKIE_NAME]) || ! is_string($_COOKIE[PIXELFLOW_CONSENT_COOKIE_NAME])) {
+        return null;
+    }
+
+    $raw = wp_unslash($_COOKIE[PIXELFLOW_CONSENT_COOKIE_NAME]); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded and field-sanitized in pixelflow_decode_consent_cookie()
+
+    return pixelflow_decode_consent_cookie($raw);
 }
 
 /**
@@ -72,12 +104,21 @@ function pixelflow_get_consent_from_wp_api(): ?array
         return null;
     }
 
+    // wp_has_consent() answers from the current request's cookies and has no
+    // "unknown" return: with an opt-in consent type and no visitor present it
+    // reports false, which is absence of data rather than a refusal. Only speak
+    // for a visitor whose own decision is on this request.
+    $live = pixelflow_get_live_consent_cookie_decision();
+    if ($live === null) {
+        return null;
+    }
+
     $granted = wp_has_consent('marketing');
 
     return [
         'state'     => $granted ? 'granted' : 'denied',
         'source'    => 'api',
-        'timestamp' => (int) round(microtime(true) * 1000),
+        'timestamp' => $live['timestamp'],
     ];
 }
 
@@ -148,21 +189,6 @@ function pixelflow_decode_consent_cookie(string $value): ?array
 }
 
 /**
- * Formats a decoded cookie decision as the event ingest consent block.
- *
- * @param array{state: string, source: string, timestamp: int} $decision Decoded cookie payload
- * @return array{state: string, source: string, timestamp: int}
- */
-function pixelflow_format_consent_block(array $decision): array
-{
-    return [
-        'state'     => $decision['state'],
-        'source'    => $decision['source'],
-        'timestamp' => $decision['timestamp'],
-    ];
-}
-
-/**
  * Resolves consent for a server-side event: WP Consent API, then cookie override, then live cookie.
  *
  * @param string|null $cookie_raw_override Saved cookie from order meta for async purchase hooks
@@ -178,21 +204,11 @@ function pixelflow_resolve_event_consent_block(?string $cookie_raw_override = nu
     if ($cookie_raw_override !== null && $cookie_raw_override !== '') {
         $from_override = pixelflow_decode_consent_cookie($cookie_raw_override);
         if ($from_override !== null) {
-            return pixelflow_format_consent_block($from_override);
+            return $from_override;
         }
     }
 
-    if (isset($_COOKIE[PIXELFLOW_CONSENT_COOKIE_NAME]) && is_string($_COOKIE[PIXELFLOW_CONSENT_COOKIE_NAME])) {
-        $raw = wp_unslash($_COOKIE[PIXELFLOW_CONSENT_COOKIE_NAME]); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded and field-sanitized below
-        if ($raw !== '') {
-            $from_cookie = pixelflow_decode_consent_cookie($raw);
-            if ($from_cookie !== null) {
-                return pixelflow_format_consent_block($from_cookie);
-            }
-        }
-    }
-
-    return null;
+    return pixelflow_get_live_consent_cookie_decision();
 }
 
 /**
