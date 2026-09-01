@@ -10,20 +10,20 @@ are marked **[M]** where the maintainer acts.
 
 Branch: new, from `main`.
 
-- [ ] 1.1 `.gitignore`: add `.codex/` and `.npmrc`; **remove** the `CLAUDE.md` line so the file becomes trackable. Leave `.claude/` ignored
-- [ ] 1.2 `git add` `openspec/` and `CLAUDE.md` — the specs behind this change ship with it
-- [ ] 1.3 Add `.nvmrc` at the repository root containing `22.18.0`, and `engines.node` in `app/source/package.json` pinning the same (satisfies `eslint@10`'s `^22.13.0` and `vite@8`'s `>=22.12.0`)
-- [ ] 1.4 Add a `typecheck` script (`tsc --noEmit`) to `app/source/package.json`, so CI and developers invoke the same command
-- [ ] 1.5 Add `app/source/.prettierignore` excluding `pnpm-lock.yaml`, `node_modules`, `dist` and `../dist`. Verify `pnpm format:check` no longer lists `pnpm-lock.yaml`
+- [x] 1.1 `.gitignore`: add `.codex/` and `.npmrc`; **remove** the `CLAUDE.md` line so the file becomes trackable. Leave `.claude/` ignored
+- [x] 1.2 `git add` `openspec/` and `CLAUDE.md` — the specs behind this change ship with it
+- [x] 1.3 Add `.nvmrc` at the repository root containing `22.18.0`, and `engines.node` in `app/source/package.json` pinning the same (satisfies `eslint@10`'s `^22.13.0` and `vite@8`'s `>=22.12.0`)
+- [x] 1.4 Add a `typecheck` script (`tsc --noEmit`) to `app/source/package.json`, so CI and developers invoke the same command
+- [x] 1.5 Add `app/source/.prettierignore` excluding `pnpm-lock.yaml`, `node_modules`, `dist` and `../dist`. Verify `pnpm format:check` no longer lists `pnpm-lock.yaml`
 
 ## 2. PR 1 — the four ESLint errors and the TypeScript error
 
 Same branch as group 1.
 
-- [ ] 2.1 Fix `no-useless-assignment` at `app/source/src/adapters/wordpress-adapter.ts:159` — the value assigned to `theme` is never read afterwards
-- [ ] 2.2 Fix the three `@typescript-eslint/no-unused-vars` errors at `src/features/settings/api/index.ts:58,105,174` — unused `error` bindings in `catch` clauses. Preserve the existing behaviour: do not start swallowing, and do not start logging something that was not logged before
-- [ ] 2.3 Implement `getIsPixelFlowActive(): Promise<boolean>` on `WordpressAdapter`, returning the state of the **Activate PixelFlow** toggle: `Number(window.pixelflowSettings?.general_options?.enabled) === 1`. Match the file's existing pattern for reading `window.pixelflowSettings` (see `removeScript`, `wordpress-adapter.ts:38`). Add a short comment recording that this is the toggle at `ActivatePixelflow.tsx:45` / the `general_options.enabled` option, and that the value is read as baked into the page at load
-- [ ] 2.4 In the same commit, remove the now-stale `// @ts-expect-error TS2420` above `export class WordpressAdapter` — once the method exists the directive is unused, which is itself an error. Verify `npx tsc --noEmit` exits 0
+- [x] 2.1 Fix `no-useless-assignment` at `app/source/src/adapters/wordpress-adapter.ts:159` — the value assigned to `theme` is never read afterwards
+- [x] 2.2 Fix the three `@typescript-eslint/no-unused-vars` errors at `src/features/settings/api/index.ts:58,105,174` — unused `error` bindings in `catch` clauses. Preserve the existing behaviour: do not start swallowing, and do not start logging something that was not logged before
+- [x] 2.3 Implement `getIsPixelFlowActive(): Promise<boolean>` on `WordpressAdapter`, returning the state of the **Activate PixelFlow** toggle: `Number(window.pixelflowSettings?.general_options?.enabled) === 1`. Match the file's existing pattern for reading `window.pixelflowSettings` (see `removeScript`, `wordpress-adapter.ts:38`). Add a short comment recording that this is the toggle at `ActivatePixelflow.tsx:45` / the `general_options.enabled` option, and that the value is read as baked into the page at load
+- [x] 2.4 In the same commit, remove the now-stale `// @ts-expect-error TS2420` above `export class WordpressAdapter` — once the method exists the directive is unused, which is itself an error. Verify `npx tsc --noEmit` exits 0
 
 ## 3. PR 1 — the three ESLint warnings (one decision at a time)
 
@@ -33,8 +33,8 @@ own commit. `eslint-disable` is not an option.
 
 - [ ] 3.1 `react-refresh/only-export-components` at `src/contexts/platform.context.tsx:36` — present the fix (move `usePlatform` to a sibling module; 2 import sites: `src/App.tsx`, `src/features/bootstrap/components/index.tsx`) and the options; apply the chosen one
 - [ ] 3.2 The same warning at `src/features/settings/contexts/SettingsContext.tsx:36`. **Larger than it looks**: `useSettings` has 8 import sites, a same-named `src/features/settings/hooks/useSettings.ts` already exists, and `AdvancedSettings.test.tsx` mocks it. Present the options, apply, re-run the suite immediately
-- [ ] 3.3 `react-hooks/exhaustive-deps` at `src/features/home/index.tsx:220`. **Behaviour change**: the effect governs script generation and no test covers it. Present what re-running would change and the options (stabilise `getHashedApiKey` / `saveScriptCode` with `useCallback` vs. narrow the effect), apply the chosen one, own commit
-- [ ] 3.4 **[M]** Verify 3.3 by hand: load the settings page in the local WordPress admin and confirm the script-generation flow still works
+- [x] 3.3 `react-hooks/exhaustive-deps` at `src/features/home/index.tsx:220`. **Maintainer chose suppression over a code change** (overriding design.md Decision 6, which had ruled `eslint-disable` out): a documented `// eslint-disable-next-line react-hooks/exhaustive-deps` plus a comment recording the accepted consequence. `@ts-expect-error` does not apply — this is an ESLint rule, not a TypeScript error
+- [x] 3.4 ~~Verify 3.3 by hand in the WordPress admin~~ — **not needed**: 3.3 changed no executable code, only comments, so there is no behaviour to re-verify
 
 ## 4. PR 1 — formatting, changelog, verification
 
@@ -89,4 +89,5 @@ proposal — see design.md Decision 5 and proposal.md for why none belongs here.
 - [ ] 9.2 Plugin-version consistency check across the five declaration sites
 - [ ] 9.3 Packaged `pixelflow.zip` artifact via `build_plugin.sh`, needing `VITE_API_BASE_URL`, `VITE_UI_BASE_URL` and `VITE_CDN_URL` as secrets. The packaging step must **not** carry `if: always()`, or it will package a stale bundle from a failed build
 - [ ] 9.4 Decide whether Playwright e2e runs in CI at all — it needs a provisioned WordPress + MySQL service, since the suite targets a live site at `http://localhost`
+- [ ] 9.6 Fix the stale `isGeneratingScript` guard at `src/features/home/index.tsx:186`. It is a re-entrancy guard read from the render that created the effect, so it can be stale and let a second script generation start. Suggested shape: hold the flag in a `useRef` (not in `useState`) so the guard is always current, and stabilise `getHashedApiKey` in `useUsersData` with `useCallback`. Needs a test for the effect, which none of the current 10 cover
 - [ ] 9.5 Reconcile `CLAUDE.md`'s "Frontend Testing Setup" section, which says `npm run test`, with the project's actual pnpm toolchain

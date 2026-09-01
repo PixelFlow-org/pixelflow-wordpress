@@ -216,7 +216,12 @@ const Home = ({ adapter }: HomeProps): ReactElement => {
 
     generateAndSaveScript();
     // Note: getHashedApiKey and getSite are intentionally NOT in dependencies
-    // to avoid infinite loops - they're stable functions from hooks
+    // to avoid infinite loops - they're stable functions from hooks.
+    // isGeneratingScript is likewise omitted: adding it would re-run the effect
+    // on every generation. Consequence, accepted for now: the guard above reads
+    // the value from the render that created this effect, so it can be stale.
+    // Tracked as a follow-up (openspec add-github-actions-ci, task 9.6).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [siteExternalId, pixels, siteId, selectedCurrency, urlTriggers, user]);
 
   // Automatically associate tracking data with the current site on component mount
