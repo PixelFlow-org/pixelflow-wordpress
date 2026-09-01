@@ -50,7 +50,7 @@
 - [x] 5.2 Confirm the run is green and that the short-description finding appears as
       a warning annotation, not an error
 - [x] 5.3 Confirm `plugin-check-results.txt` is attached to the run as an artifact
-- [ ] 5.4 Trigger `wordpress-version-check.yml` via `workflow_dispatch` and confirm
+- [x] 5.4 Trigger `wordpress-version-check.yml` via `workflow_dispatch` and confirm
       it reports no gap now that `Tested up to` is 7.1
 - [x] 5.5 Confirm the aggregating `ci` job still reports and that merging is
       possible with no ruleset change
