@@ -12,7 +12,7 @@ const Notification: React.FC<NotificationProps> = ({ message, type }) => {
     'flex items-center gap-3 p-4 rounded-2xl shadow-lg text-sm font-medium transition-all duration-300 border';
 
   let customStyle: React.CSSProperties = {};
-  
+
   if (type === 'success') {
     customStyle = {
       backgroundColor: '#f0fdf4',

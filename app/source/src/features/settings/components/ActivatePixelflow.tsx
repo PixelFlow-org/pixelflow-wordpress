@@ -29,7 +29,8 @@ interface ActivatePixelflowProps {
  */
 export function ActivatePixelflow(props: ActivatePixelflowProps) {
   const { onRegenerateScript, user } = props;
-  const { generalOptions, updateGeneralOption, saveSettings, isSaving, scriptCode } = useSettingsContext();
+  const { generalOptions, updateGeneralOption, saveSettings, isSaving, scriptCode } =
+    useSettingsContext();
 
   const isScriptInserted = Boolean(scriptCode);
 

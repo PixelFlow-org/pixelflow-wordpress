@@ -12,5 +12,3 @@ import { platformConfig } from '@/config/platform.config';
  * Can be used in both React components (via context) and non-React code (direct import)
  */
 export const wordpressAdapter = new WordpressAdapter(platformConfig);
-
-

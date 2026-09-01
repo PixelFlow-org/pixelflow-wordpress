@@ -24,7 +24,7 @@ describe('LogViewerModal — Refresh button (T-002)', () => {
         content="some log content"
         isLoading={false}
         onRefresh={onRefresh}
-      />,
+      />
     );
 
     fireEvent.click(screen.getByText('Refresh'));
@@ -40,7 +40,7 @@ describe('LogViewerModal — Refresh button (T-002)', () => {
         content="some log content"
         isLoading={false}
         onRefresh={vi.fn()}
-      />,
+      />
     );
 
     // The header's icon-only close button has no text content ("✕"), so
@@ -55,15 +55,7 @@ describe('LogViewerModal — Refresh button (T-002)', () => {
   });
 
   it('AC-5: the "Refresh" button is disabled while a fetch is in progress (isLoading=true)', () => {
-    render(
-      <LogViewerModal
-        open
-        onOpenChange={vi.fn()}
-        content=""
-        isLoading
-        onRefresh={vi.fn()}
-      />,
-    );
+    render(<LogViewerModal open onOpenChange={vi.fn()} content="" isLoading onRefresh={vi.fn()} />);
 
     expect(screen.getByText('Refresh')).toBeDisabled();
   });
@@ -79,7 +71,7 @@ describe('LogViewerModal — Refresh button (T-002)', () => {
         content="some log content"
         isLoading={false}
         onRefresh={vi.fn()}
-      />,
+      />
     );
 
     fireEvent.click(screen.getByText('Close'));
