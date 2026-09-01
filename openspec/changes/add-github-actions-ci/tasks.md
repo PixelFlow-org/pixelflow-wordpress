@@ -60,7 +60,7 @@ Branch: new, from the updated `main`.
 - [x] 6.4 Add `pnpm install --frozen-lockfile`, with an explicit failure message naming `GH_PACKAGES_TOKEN`. An unauthenticated GitHub Packages request returns 404, not 401, so the default output misleads
 - [x] 6.5 Add the `lint`, `typecheck`, `format:check`, `test` and `build` steps, each with `if: always()` so one failure does not mask the others. Build once — do not add a second build step
 - [x] 6.6 Job `php`: matrix `[7.4, 8.1, 8.3]`, `shivammathur/setup-php`, running `php -l` over the tracked `.php` files and executing each `tests/test-*.php`. No composer, no PHPUnit. If 7.4 proves unavailable or the codebase already needs 8.x syntax, drop to `[8.1, 8.3]` and record why in `.github/BRANCH_PROTECTION.md`
-- [ ] 6.7 **[M]** Push the branch, open PR 2, paste the run log back. Iterate until all four checks are green — expect the registry credential to be the first thing that fails
+- [x] 6.7 **[M]** Pushed, opened, all four checks green on the **first** run: frontend 26s, php (7.4) 21s, php (8.1) 15s, php (8.3) 7s. The registry credential worked immediately and PHP 7.4 needed no code changes — neither anticipated risk materialised
 
 ## 7. PR 2 — documentation
 
@@ -75,7 +75,7 @@ Same branch as group 6.
 
 Maintainer action in the GitHub UI, after group 7 has merged.
 
-- [ ] 8.1 **[M]** Read the four status-check names off the completed PR 2 run — from the run, not from the YAML — and append them to `.github/BRANCH_PROTECTION.md`
+- [x] 8.1 Read the four status-check names off the completed PR 2 run — done before merging rather than after, since the first run was green: `CI / frontend`, `CI / php (7.4)`, `CI / php (8.1)`, `CI / php (8.3)`. Recorded in `.github/BRANCH_PROTECTION.md`, together with the note that the ruleset picker lists the bare job name
 - [ ] 8.2 **[M]** Apply the ruleset from `.github/BRANCH_PROTECTION.md`
 - [ ] 8.3 **[M]** Verify protection: a direct push to `main` is rejected, and a pull request carrying a deliberate lint error cannot be merged
 - [ ] 8.4 **[M]** Verify the escape hatch: confirm the documented disable procedure in 7.1 matches the UI

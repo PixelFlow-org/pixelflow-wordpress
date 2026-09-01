@@ -42,6 +42,13 @@ after a run has reported them at least once.
 - `php (8.1)`
 - `php (8.3)`
 
+Confirmed against the first green run (pull request adding the workflow,
+2026-09-01), where the pull-request page renders them with the workflow name in
+front: `CI / frontend`, `CI / php (7.4)`, `CI / php (8.1)`, `CI / php (8.3)`. The
+ruleset's check picker lists the bare job name — `frontend`, not `CI / frontend`.
+If the picker offers the prefixed form instead, select whatever it offers: the
+names must match what the run reports, not what this file predicts.
+
 > Read these off a completed run, not off the YAML. A matrix expands one job into
 > one check per matrix value, so `php` alone is **not** a check name and selecting
 > it would block every merge on a check that never reports.
@@ -69,6 +76,8 @@ there is no back door, by design. Lift the protection deliberately instead:
 
 The built-in `GITHUB_TOKEN` is not used for the registry: it is scoped to this
 repository, while the packages live elsewhere in the `PixelFlow-org` organisation.
+A classic PAT with `read:packages` was verified to work on the first run — the
+`frontend` job installed all `@pixelflow-org/*` packages in 26 seconds.
 
 **Expiry is the failure mode to watch.** A PAT that expires takes the whole
 `frontend` job down, and — because the install failure surfaces as a 404 — it reads
