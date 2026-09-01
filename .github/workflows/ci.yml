@@ -1,0 +1,133 @@
+name: CI
+
+# No `paths:` filters anywhere in this file. A required status check that is
+# skipped never reports, and a pull request waiting on a check that will never
+# arrive cannot be merged. Both jobs run on every pull request.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: app/source
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Reads the version from `packageManager` in app/source/package.json.
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: app/source/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: app/source/pnpm-lock.yaml
+
+      # The @pixelflow-org/* packages are private and live on GitHub Packages.
+      # The file is written, never echoed, and there is no `set -x` in this job.
+      - name: Configure the private registry
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "::error::Repository secret GH_PACKAGES_TOKEN is not set. The @pixelflow-org/* packages come from npm.pkg.github.com and cannot be installed without it. See .github/BRANCH_PROTECTION.md."
+            exit 1
+          fi
+          cat > .npmrc <<NPMRC
+          @pixelflow-org:registry=https://npm.pkg.github.com
+          //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
+          NPMRC
+
+      # An unauthenticated GitHub Packages request answers 404, not 401, so the
+      # bare pnpm output reads as "no such package" and sends you hunting a typo.
+      - name: Install dependencies
+        id: install
+        run: |
+          if ! pnpm install --frozen-lockfile; then
+            echo "::error::pnpm install failed. If the log shows a 404 for an @pixelflow-org/* package, that is an authentication failure, not a missing package: check that GH_PACKAGES_TOKEN is present and still carries read:packages. A lockfile carrying yalc 'link:' paths fails here too."
+            exit 1
+          fi
+
+      # Each check reports independently, so one red step does not hide the
+      # others — but none runs on a failed install, which would only produce
+      # noise about missing modules.
+      - name: Lint
+        if: always() && steps.install.outcome == 'success'
+        run: pnpm lint
+
+      - name: Typecheck
+        if: always() && steps.install.outcome == 'success'
+        run: pnpm typecheck
+
+      - name: Format check
+        if: always() && steps.install.outcome == 'success'
+        run: pnpm format:check
+
+      - name: Unit tests
+        if: always() && steps.install.outcome == 'success'
+        run: pnpm test
+
+      - name: Production build
+        if: always() && steps.install.outcome == 'success'
+        run: pnpm build
+
+  php:
+    name: php
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        # 7.4 is the floor readme.txt promises users; 8.3 is what the plugin is
+        # developed on; 8.1 is the common middle on real hosting.
+        php-version: ['7.4', '8.1', '8.3']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          coverage: none
+
+      - name: Syntax check every tracked PHP file
+        run: |
+          status=0
+          while IFS= read -r file; do
+            php -l "$file" > /dev/null || { echo "::error file=${file}::PHP syntax error on ${{ matrix.php-version }}"; status=1; }
+          done < <(git ls-files '*.php')
+          exit $status
+
+      # Plain php-runnable scripts: the project has no composer and no PHPUnit.
+      # Each exits 0 on pass, non-zero on failure.
+      - name: Run the standalone PHP tests
+        run: |
+          shopt -s nullglob
+          files=(tests/test-*.php)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "::error::No tests/test-*.php found — the test step would otherwise pass on an empty run."
+            exit 1
+          fi
+          status=0
+          for file in "${files[@]}"; do
+            echo "--- $file"
+            php "$file" || { echo "::error file=${file}::failed on PHP ${{ matrix.php-version }}"; status=1; }
+          done
+          exit $status

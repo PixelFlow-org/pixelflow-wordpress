@@ -182,6 +182,35 @@ cd app/source
 npm run build
 ```
 
+## Continuous Integration
+
+Every pull request to `main`, and every push to `main`, runs
+`.github/workflows/ci.yml`. All six checks below must pass before a pull request
+can be merged; each one is reproducible locally with a single command.
+
+| Check | Reproduce locally | Run from |
+|---|---|---|
+| Lint (ESLint, warnings are fatal) | `pnpm lint` | `app/source` |
+| Types | `pnpm typecheck` | `app/source` |
+| Formatting (Prettier) | `pnpm format:check` — `pnpm format` fixes it | `app/source` |
+| Unit tests (vitest) | `pnpm test` | `app/source` |
+| Production build (Vite) | `pnpm build` | `app/source` |
+| PHP syntax + tests, on 7.4 / 8.1 / 8.3 | `php -l <file>` and `php tests/test-*.php` | plugin root |
+
+Notes:
+
+- Node is pinned to the version in `.nvmrc` (also `engines.node`); pnpm to
+  `packageManager` in `app/source/package.json`. CI reads both, so it runs what
+  you run.
+- The `@pixelflow-org/*` packages are private. CI authenticates with the
+  `GH_PACKAGES_TOKEN` secret; locally you need credentials for
+  `npm.pkg.github.com` in your own `~/.npmrc`. A 404 on one of those packages is
+  an authentication failure, not a missing package.
+- Playwright e2e (`e2e/`) does **not** run in CI — it needs a live WordPress.
+  Run it locally.
+- Branch protection settings and the exact required check names live in
+  `.github/BRANCH_PROTECTION.md`.
+
 ## Deployment
 
 ### Quick Build (Recommended)
