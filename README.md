@@ -408,7 +408,7 @@ For more information:
 ## Changelog
 
 ### 1.1.17
-Added Refresh button to Debug Log popup in Advanced Settings, enabling log re-fetch without closing the modal.
+Added GDPR consent gating: WooCommerce events now carry the visitor's consent state, resolved from the WP Consent API or the _pf_consent cookie. Raised the minimum supported WordPress version to 6.5, which the admin settings page requires. Added Refresh button to Debug Log popup in Advanced Settings, enabling log re-fetch without closing the modal.
 
 ### 1.1.16
 Fixed a fatal error (HTTP 500) on WooCommerce add-to-cart when a third-party integration (e.g. CheckoutWC Order Bumps) calls the add-to-cart hook with null instead of an int/array for the variation arguments.

@@ -59,6 +59,8 @@ class PixelFlow
     private function __construct()
     {
         $this->load_dependencies();
+        add_action('plugins_loaded', 'pixelflow_register_wp_consent_api_consumer');
+        add_action('init', 'pixelflow_register_consent_cookie_info');
         add_action('init', array($this, 'init'));
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'register_settings'));
@@ -85,6 +87,7 @@ class PixelFlow
     {
         // Load WooCommerce integration
         require_once PIXELFLOW_PLUGIN_PATH . 'includes/helpers.php';
+        require_once PIXELFLOW_PLUGIN_PATH . 'includes/consent.php';
         require_once PIXELFLOW_PLUGIN_PATH . 'includes/woo/class-woocommerce-integration.php';
     }
 

@@ -1,0 +1,233 @@
+<?php
+/**
+ * Consent resolution for server-side WooCommerce events (WP Consent API + cookie fallback).
+ *
+ * @package PixelFlow
+ */
+
+// Prevent direct access
+if ( ! defined('ABSPATH')) {
+    exit;
+}
+
+/** First-party consent-state cookie name (matches script CONSENT_COOKIE_NAME). */
+const PIXELFLOW_CONSENT_COOKIE_NAME = '_pf_consent';
+
+/** Consent sources accepted by the PixelFlow API ingest contract. */
+const PIXELFLOW_CONSENT_SOURCES = [
+    'gcm',
+    'cookieyes',
+    'cookiebot',
+    'complianz',
+    'squarespace',
+    'onetrust',
+    'api',
+    'gpc',
+    'cache',
+    'consent_mode_disabled',
+];
+
+/**
+ * Registers PixelFlow as a WP Consent API consumer on plugins_loaded.
+ *
+ * @return void
+ */
+function pixelflow_register_wp_consent_api_consumer(): void
+{
+    $plugin = PIXELFLOW_PLUGIN_BASENAME;
+    add_filter("wp_consent_api_registered_{$plugin}", '__return_true');
+}
+
+/**
+ * Declares the consent-state cookie to the WP Consent API cookie register.
+ *
+ * Runs on init, not on plugins_loaded: the strings below are translated, and
+ * WordPress 6.7+ reports translation loading before init as _doing_it_wrong.
+ *
+ * @return void
+ */
+function pixelflow_register_consent_cookie_info(): void
+{
+    if (function_exists('wp_add_cookie_info')) {
+        wp_add_cookie_info(
+            PIXELFLOW_CONSENT_COOKIE_NAME,
+            'PixelFlow',
+            'marketing',
+            __('183 days', 'pixelflow'),
+            __('Stores the visitor consent decision for PixelFlow tracking (no visitor identifiers).', 'pixelflow'),
+            '',
+            false,
+            false,
+            'HTTP'
+        );
+    }
+}
+
+/**
+ * Returns the visitor's consent decision from the live cookie on this request.
+ *
+ * Its presence is what tells a server-side event that the visitor is actually
+ * here: background requests (cron, order-status changes, gateway callbacks)
+ * carry no cookies at all.
+ *
+ * @return array{state: string, source: string, timestamp: int}|null
+ */
+function pixelflow_get_live_consent_cookie_decision(): ?array
+{
+    if ( ! isset($_COOKIE[PIXELFLOW_CONSENT_COOKIE_NAME]) || ! is_string($_COOKIE[PIXELFLOW_CONSENT_COOKIE_NAME])) {
+        return null;
+    }
+
+    $raw = wp_unslash($_COOKIE[PIXELFLOW_CONSENT_COOKIE_NAME]); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded and field-sanitized in pixelflow_decode_consent_cookie()
+
+    return pixelflow_decode_consent_cookie($raw);
+}
+
+/**
+ * Whether a CMP has registered a consent type via the WP Consent API.
+ *
+ * @return bool
+ */
+function pixelflow_is_wp_consent_api_active(): bool
+{
+    return function_exists('wp_get_consent_type') && wp_get_consent_type() !== '';
+}
+
+/**
+ * Maps WP Consent API marketing category to the ingest consent block.
+ *
+ * @return array{state: string, source: string, timestamp: int}|null
+ */
+function pixelflow_get_consent_from_wp_api(): ?array
+{
+    if ( ! function_exists('wp_has_consent') || ! pixelflow_is_wp_consent_api_active()) {
+        return null;
+    }
+
+    // wp_has_consent() answers from the current request's cookies and has no
+    // "unknown" return: with an opt-in consent type and no visitor present it
+    // reports false, which is absence of data rather than a refusal. Only speak
+    // for a visitor whose own decision is on this request.
+    $live = pixelflow_get_live_consent_cookie_decision();
+    if ($live === null) {
+        return null;
+    }
+
+    $granted = wp_has_consent('marketing');
+
+    return [
+        'state'     => $granted ? 'granted' : 'denied',
+        'source'    => 'api',
+        'timestamp' => $live['timestamp'],
+    ];
+}
+
+/**
+ * Validates a consent source string against the API ingest enum.
+ *
+ * @param string $source Wire source value
+ * @return bool
+ */
+function pixelflow_is_valid_consent_source(string $source): bool
+{
+    return in_array($source, PIXELFLOW_CONSENT_SOURCES, true);
+}
+
+/**
+ * Decodes a consent-state cookie value; rejects payloads carrying visitor identifiers.
+ *
+ * @param string $value Raw cookie value (base64 JSON)
+ * @return array{state: string, source: string, timestamp: int}|null
+ */
+function pixelflow_decode_consent_cookie(string $value): ?array
+{
+    $value = trim($value);
+    if ($value === '') {
+        return null;
+    }
+
+    $decoded_json = base64_decode($value, true);
+    if ($decoded_json === false) {
+        return null;
+    }
+
+    $parsed = json_decode($decoded_json, true);
+    if ( ! is_array($parsed)) {
+        return null;
+    }
+
+    $visitor_id_keys = ['visitorId', 'visitor_id', 'uid', 'userId', 'user_id'];
+    foreach ($visitor_id_keys as $key) {
+        if (array_key_exists($key, $parsed)) {
+            return null;
+        }
+    }
+
+    $state           = $parsed['s'] ?? $parsed['state'] ?? null;
+    $timestamp       = $parsed['t'] ?? $parsed['timestamp'] ?? null;
+    $source          = $parsed['src'] ?? $parsed['source'] ?? null;
+    $policy_version  = $parsed['v'] ?? $parsed['policyVersion'] ?? null;
+
+    if ($state !== 'granted' && $state !== 'denied') {
+        return null;
+    }
+    if ( ! is_numeric($timestamp) || ! is_finite((float) $timestamp)) {
+        return null;
+    }
+    if ( ! is_string($source) || $source === '' || ! pixelflow_is_valid_consent_source($source)) {
+        return null;
+    }
+    if ( ! is_numeric($policy_version) || ! is_finite((float) $policy_version)) {
+        return null;
+    }
+
+    return [
+        'state'     => $state,
+        'source'    => $source,
+        'timestamp' => (int) $timestamp,
+    ];
+}
+
+/**
+ * Resolves consent for a server-side event: WP Consent API, then cookie override, then live cookie.
+ *
+ * @param string|null $cookie_raw_override Saved cookie from order meta for async purchase hooks
+ * @return array{state: string, source: string, timestamp: int}|null
+ */
+function pixelflow_resolve_event_consent_block(?string $cookie_raw_override = null): ?array
+{
+    $from_wp = pixelflow_get_consent_from_wp_api();
+    if ($from_wp !== null) {
+        return $from_wp;
+    }
+
+    if ($cookie_raw_override !== null && $cookie_raw_override !== '') {
+        $from_override = pixelflow_decode_consent_cookie($cookie_raw_override);
+        if ($from_override !== null) {
+            return $from_override;
+        }
+    }
+
+    return pixelflow_get_live_consent_cookie_decision();
+}
+
+/**
+ * Appends the optional consent block to an event payload when a decision is knowable.
+ *
+ * @param array       $payload             Event payload passed by reference
+ * @param string|null $cookie_raw_override Saved consent cookie from order meta
+ * @return void
+ */
+function pixelflow_append_consent_to_payload(array &$payload, ?string $cookie_raw_override = null): void
+{
+    if ( ! isset($payload['eventData']) || ! is_array($payload['eventData'])) {
+        return;
+    }
+
+    $consent = pixelflow_resolve_event_consent_block($cookie_raw_override);
+    if ($consent === null) {
+        return;
+    }
+
+    $payload['eventData']['consent'] = $consent;
+}

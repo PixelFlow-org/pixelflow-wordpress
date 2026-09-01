@@ -552,7 +552,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return;
         }
 
-        $cookie_keys = ['_fbp', 'pf_fbc', '_fbc', 'pf_clkid', 'pf_loc', '_pf_utm', '_pf_attribution'];
+        $cookie_keys = ['_fbp', 'pf_fbc', '_fbc', 'pf_clkid', 'pf_loc', '_pf_utm', '_pf_attribution', '_pf_consent'];
 
         foreach ($cookie_keys as $key) {
             if (isset($_COOKIE[$key]) && is_string($_COOKIE[$key]) && $_COOKIE[$key] !== '') {
@@ -665,7 +665,10 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $this->append_cookie_params_for_order($payload, $order);
         $this->append_attribution_for_order($payload, $order);
 
-        $this->post_event($payload);
+        $consent_raw = $order->get_meta('_pf_cookie__pf_consent', true);
+        $consent_override = is_string($consent_raw) && $consent_raw !== '' ? $consent_raw : null;
+
+        $this->post_event($payload, $consent_override);
     }
 
     /**
@@ -1248,8 +1251,17 @@ class PixelFlow_WooCommerce_Cart_Hooks
         pixelflow_write_debug_log_entry($log_file, wp_json_encode($entry, JSON_PRETTY_PRINT) . "\n---\n");
     }
 
-    private function post_event(array $payload): void
+    /**
+     * Posts a server-side event to the PixelFlow API.
+     *
+     * @param array       $payload             Event payload
+     * @param string|null $consent_cookie_raw  Saved _pf_consent from order meta for async purchase hooks
+     * @return void
+     */
+    private function post_event(array $payload, ?string $consent_cookie_raw = null): void
     {
+        pixelflow_append_consent_to_payload($payload, $consent_cookie_raw);
+
         $url = $this->api_url . '/event';
         $event_skipped_message = __('EVENT SENDING SKIPPED BECAUSE USER AGENT MATCHED BOT SIGNATURE', 'pixelflow');
 
