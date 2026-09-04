@@ -88,6 +88,7 @@ class PixelFlow
         // Load WooCommerce integration
         require_once PIXELFLOW_PLUGIN_PATH . 'includes/helpers.php';
         require_once PIXELFLOW_PLUGIN_PATH . 'includes/consent.php';
+        require_once PIXELFLOW_PLUGIN_PATH . 'includes/blocked-events.php';
         require_once PIXELFLOW_PLUGIN_PATH . 'includes/woo/class-woocommerce-integration.php';
     }
 

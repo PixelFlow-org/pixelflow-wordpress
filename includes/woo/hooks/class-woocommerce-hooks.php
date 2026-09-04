@@ -1258,7 +1258,26 @@ class PixelFlow_WooCommerce_Cart_Hooks
     }
 
     /**
-     * Posts a server-side event to the PixelFlow API.
+     * POSTs one anonymous blocked-events row when a Woo send is skipped for bot, hold, or deny.
+     *
+     * @param string $event_name Catalog event name
+     * @param array  $row        Reason row from pixelflow_resolve_blocked_event_reason()
+     * @return void
+     */
+    private function post_blocked_event(string $event_name, array $row): void
+    {
+        $blocked_payload = pixelflow_build_blocked_events_payload($this->site_external_id, $event_name, $row);
+        if ($blocked_payload === null) {
+            return;
+        }
+
+        add_filter('http_request_args', [$this, 'tune_connect_timeout_for_pixelflow'], 10, 2);
+        pixelflow_post_blocked_events($this->api_url, $this->api_key, $blocked_payload);
+        remove_filter('http_request_args', [$this, 'tune_connect_timeout_for_pixelflow'], 10);
+    }
+
+    /**
+     * Posts a server-side event to the PixelFlow API, or a blocked-events beacon when skipped.
      *
      * @param array       $payload             Event payload
      * @param string|null $consent_cookie_raw  Saved _pf_consent from order meta for async purchase hooks
@@ -1269,20 +1288,25 @@ class PixelFlow_WooCommerce_Cart_Hooks
     {
         pixelflow_append_consent_to_payload($payload, $consent_cookie_raw);
 
-        if ( ! pixelflow_should_send_event_for_consent($consent_cookie_raw, $no_decision_raw)) {
-            $event_name = isset($payload['eventData']['eventName']) ? (string) $payload['eventData']['eventName'] : 'unknown';
+        $event_name = isset($payload['eventData']['eventName']) ? (string) $payload['eventData']['eventName'] : 'unknown';
+        $ua         = pixelflow_get_client_user_agent();
+        $bot_detail = pixelflow_get_bot_detail_pattern($ua);
+        $blocked    = pixelflow_resolve_blocked_event_reason($consent_cookie_raw, $no_decision_raw, $bot_detail);
+
+        if ($blocked !== null) {
+            $this->post_blocked_event($event_name, $blocked);
+            if ($blocked['reason'] === 'bot') {
+                $event_skipped_message = __('EVENT SENDING SKIPPED BECAUSE USER AGENT MATCHED BOT SIGNATURE', 'pixelflow');
+                $this->debug_log($event_name . ' ' . $event_skipped_message, $payload, $event_skipped_message . ' (BOT_UA)');
+                return;
+            }
+
             $this->debug_log($event_name, $payload, 'EVENT SENDING SKIPPED BECAUSE CONSENT IS PENDING OR DENIED');
             return;
         }
 
         $url = $this->api_url . '/event';
         $event_skipped_message = __('EVENT SENDING SKIPPED BECAUSE USER AGENT MATCHED BOT SIGNATURE', 'pixelflow');
-
-        // Resolve UA early so the bot check always has a value
-        $ua = pixelflow_get_client_user_agent();
-
-        // Bot check before any further processing
-        $is_bot = pixelflow_if_is_bot($ua);
 
         // Also skip if the resolved IP is private (server-to-server / cache warmer)
         $resolved_ip = pixelflow_get_client_ip_address();
@@ -1338,25 +1362,23 @@ class PixelFlow_WooCommerce_Cart_Hooks
         // Make connect stage fast, so it truly doesn’t slow the user down much
         add_filter('http_request_args', [$this, 'tune_connect_timeout_for_pixelflow'], 10, 2);
 
-        if ( ! $is_bot && ! $is_private_ip) {
+        if ( ! $is_private_ip) {
             $response = wp_remote_post($url, $args);
         } else {
-            $skip_reason = $is_bot ? 'BOT_UA' : 'PRIVATE_IP';
-            $response = $event_skipped_message . ' (' . $skip_reason . ')';
+            $response = $event_skipped_message . ' (PRIVATE_IP)';
         }
 
         remove_filter('http_request_args', [$this, 'tune_connect_timeout_for_pixelflow'], 10);
 
-        $event_name = isset($payload['eventData']['eventName']) ? (string) $payload['eventData']['eventName'] : 'unknown';
-        if ($is_bot || $is_private_ip) {
-            $event_name .= " " . $event_skipped_message;
+        if ($is_private_ip) {
+            $event_name .= ' ' . $event_skipped_message;
         }
         $this->debug_log($event_name, $payload, $response);
     }
 
     public function tune_connect_timeout_for_pixelflow(array $args, string $url): array
     {
-        if ($url === $this->api_url . '/event') {
+        if ($url === $this->api_url . '/event' || $url === $this->api_url . '/blocked-events') {
             $args['connect_timeout'] = 1;
         }
 

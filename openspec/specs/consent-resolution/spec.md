@@ -90,6 +90,29 @@ The plugin SHALL NOT POST a server-side event when the session hold cookie `_pf_
 - **WHEN** a purchase event is sent from a background request and the order has neither a hold cookie nor a denied consent decision
 - **THEN** the event is POSTed
 
+### Requirement: Skipped sends report anonymous blocked events
+The plugin SHALL POST an anonymous `blocked_events` payload to `/blocked-events` when it skips a server-side send for a bot user agent, an unanswered opt-in hold, or a denied consent decision. The payload SHALL contain only `siteId` and `blocked` rows (`eventType`, `reason`, optional `detail` on bot, optional `consentSource` on denied and no_decision). The plugin SHALL NOT beacon for a private or reserved IP skip, for GPC, or when the event is sent.
+
+#### Scenario: Unanswered opt-in banner
+- **WHEN** the plugin skips a send because `_pf_no_consent_decision` is the literal value `true`
+- **THEN** it POSTs `/blocked-events` with `reason` `no_decision` and omits `consentSource` unless a consent source is already knowable
+
+#### Scenario: Visitor declined
+- **WHEN** the plugin skips a send because the resolved consent decision is `denied`
+- **THEN** it POSTs `/blocked-events` with `reason` `denied` and `consentSource` from the resolved decision when that source is allow-listed
+
+#### Scenario: Bot user agent
+- **WHEN** the client user agent matches a bot pattern
+- **THEN** the plugin skips the event POST and POSTs `/blocked-events` with `reason` `bot` and `detail` set to the matched pattern, not the raw user agent
+
+#### Scenario: Bot wins over hold or deny
+- **WHEN** the request is both a bot and a consent hold or deny
+- **THEN** the blocked row reason is `bot`
+
+#### Scenario: Private IP and cookie-less Purchase
+- **WHEN** the plugin skips because the client IP is private, or sends a cookie-less Purchase with no hold or deny snapshot
+- **THEN** it does not POST `/blocked-events`
+
 ### Requirement: Rejection of untrustworthy consent cookies
 The plugin SHALL treat a consent-state cookie as absent unless it decodes to a decision with a recognised state, a recognised source, a numeric decision time and a numeric policy version, and SHALL reject any consent-state cookie that carries a visitor identifier.
 

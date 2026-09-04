@@ -739,21 +739,7 @@ define('PIXELFLOW_BOT_PATTERNS', [
     'pricefinder',
 ]);
 function pixelflow_if_is_bot($userAgent) {
-    $bot_patterns = apply_filters('pixelflow_useragent_bot_patterns', PIXELFLOW_BOT_PATTERNS);
-
-    if (!is_array($bot_patterns)) {
-        return false;
-    }
-
-    $lowerUA = strtolower((string)$userAgent);
-
-    foreach ($bot_patterns as $pattern) {
-        if (strpos($lowerUA, (string)$pattern) !== false) {
-            return true;
-        }
-    }
-
-    return false;
+    return pixelflow_get_bot_detail_pattern((string) $userAgent) !== null;
 }
 
 /**
