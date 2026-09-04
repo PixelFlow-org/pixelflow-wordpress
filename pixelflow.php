@@ -69,6 +69,7 @@ class PixelFlow
         add_action('admin_notices', array($this, 'display_debug_notice'));
         add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
         add_action('wp_print_scripts', array($this, 'inject_script'));
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_held_events_script'));
         add_filter('plugin_action_links_' . PIXELFLOW_PLUGIN_BASENAME, array($this, 'add_plugin_action_links'));
 
         // AJAX handlers
@@ -78,6 +79,8 @@ class PixelFlow
         add_action('wp_ajax_pixelflow_remove_script_params', array($this, 'ajax_remove_script_params'));
         add_action('wp_ajax_pixelflow_clear_debug_log', array($this, 'ajax_clear_debug_log'));
         add_action('wp_ajax_pixelflow_get_debug_log', array($this, 'ajax_get_debug_log'));
+        add_action('wp_ajax_pixelflow_resolve_held_events', array($this, 'ajax_resolve_held_events'));
+        add_action('wp_ajax_nopriv_pixelflow_resolve_held_events', array($this, 'ajax_resolve_held_events'));
     }
 
     /**
@@ -88,6 +91,8 @@ class PixelFlow
         // Load WooCommerce integration
         require_once PIXELFLOW_PLUGIN_PATH . 'includes/helpers.php';
         require_once PIXELFLOW_PLUGIN_PATH . 'includes/consent.php';
+        require_once PIXELFLOW_PLUGIN_PATH . 'includes/blocked-events.php';
+        require_once PIXELFLOW_PLUGIN_PATH . 'includes/held-events.php';
         require_once PIXELFLOW_PLUGIN_PATH . 'includes/woo/class-woocommerce-integration.php';
     }
 
@@ -294,6 +299,73 @@ class PixelFlow
                 }
             }
         }
+    }
+
+    /**
+     * Storefront script that flushes the Woo hold queue after a same-page grant or deny.
+     *
+     * @return void
+     */
+    public function enqueue_held_events_script()
+    {
+        if (is_admin()) {
+            return;
+        }
+
+        $general = get_option('pixelflow_general_options', array());
+        if (empty($general['enabled']) || empty($general['woo_enabled'])) {
+            return;
+        }
+        if ($this->should_exclude_current_user($general)) {
+            return;
+        }
+
+        $params = get_option('pixelflow_script_params', array());
+        if (empty($params['siteExternalId']) || empty($params['apiKey'])) {
+            return;
+        }
+
+        $handle = 'pixelflow-held-events';
+        wp_register_script(
+            $handle,
+            PIXELFLOW_PLUGIN_URL . 'assets/js/held-events.js',
+            array(),
+            PIXELFLOW_VERSION,
+            true
+        );
+        wp_localize_script(
+            $handle,
+            'pixelflowHeldEvents',
+            array(
+                'ajaxUrl'     => admin_url('admin-ajax.php'),
+                'nonce'       => wp_create_nonce('pixelflow_held_events'),
+                'holdCookie'  => PIXELFLOW_NO_CONSENT_DECISION_COOKIE_NAME,
+                'holdValue'   => PIXELFLOW_NO_CONSENT_DECISION_COOKIE_VALUE,
+                'heldCookie'  => PIXELFLOW_HELD_WOO_EVENTS_COOKIE_NAME,
+            )
+        );
+        wp_enqueue_script($handle);
+    }
+
+    /**
+     * Same-page grant or deny: flush or beacon the Woo session queue.
+     *
+     * @return void
+     */
+    public function ajax_resolve_held_events()
+    {
+        check_ajax_referer('pixelflow_held_events', 'nonce');
+        if (class_exists('PixelFlow_WooCommerce_Cart_Hooks')) {
+            $hooks = PixelFlow_WooCommerce_Cart_Hooks::instance();
+            if ($hooks !== null) {
+                $session = pixelflow_woo_session();
+                if ($session !== null && method_exists($session, 'init_session_cookie')) {
+                    $session->init_session_cookie();
+                }
+                $hooks->resolve_held_events();
+            }
+        }
+        wp_send_json_success();
     }
 
 

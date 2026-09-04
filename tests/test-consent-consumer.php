@@ -146,6 +146,102 @@ pf_run_consent_case(
 );
 
 pf_run_consent_case(
+    'Source cookie without a decision attaches unknown plus CMP source',
+    /** @return bool|string */
+    function () {
+        $GLOBALS['__pf_test_consent_type'] = '';
+        $_COOKIE                           = [
+            PIXELFLOW_CONSENT_SOURCE_COOKIE_NAME => 'cookieyes',
+        ];
+
+        $payload = ['siteId' => 'site', 'eventData' => ['eventName' => 'AddToCart']];
+        pixelflow_append_consent_to_payload($payload);
+
+        $consent = $payload['eventData']['consent'] ?? null;
+        if ( ! is_array($consent)) {
+            return 'expected unknown consent block from source cookie';
+        }
+        if (($consent['state'] ?? '') !== 'unknown' || ($consent['source'] ?? '') !== 'cookieyes') {
+            return 'expected unknown/cookieyes, got ' . wp_json_encode($consent);
+        }
+        if (isset($consent['timestamp'])) {
+            return 'unknown block must not invent a decision timestamp';
+        }
+
+        return true;
+    },
+    $failures,
+    $passes
+);
+
+pf_run_consent_case(
+    'Grant/deny outranks the source-only cookie',
+    /** @return bool|string */
+    function () {
+        $GLOBALS['__pf_test_consent_type'] = '';
+        $_COOKIE                           = [
+            PIXELFLOW_CONSENT_COOKIE_NAME        => pf_encode_consent_cookie('granted', 'cookieyes', 1756370000000),
+            PIXELFLOW_CONSENT_SOURCE_COOKIE_NAME => 'gcm',
+        ];
+
+        $payload = ['siteId' => 'site', 'eventData' => ['eventName' => 'AddToCart']];
+        pixelflow_append_consent_to_payload($payload);
+
+        $consent = $payload['eventData']['consent'] ?? null;
+        if ( ! is_array($consent) || ($consent['state'] ?? '') !== 'granted' || ($consent['source'] ?? '') !== 'cookieyes') {
+            return 'decision cookie must win, got ' . wp_json_encode($consent);
+        }
+
+        return true;
+    },
+    $failures,
+    $passes
+);
+
+pf_run_consent_case(
+    'Order-meta source cookie stamps unknown when no decision exists',
+    /** @return bool|string */
+    function () {
+        $GLOBALS['__pf_test_consent_type'] = '';
+        $_COOKIE                           = [];
+
+        $payload = ['siteId' => 'site', 'eventData' => ['eventName' => 'Purchase']];
+        pixelflow_append_consent_to_payload($payload, null, 'cookiebot');
+
+        $consent = $payload['eventData']['consent'] ?? null;
+        if ( ! is_array($consent) || ($consent['state'] ?? '') !== 'unknown' || ($consent['source'] ?? '') !== 'cookiebot') {
+            return 'expected unknown/cookiebot from order meta, got ' . wp_json_encode($consent);
+        }
+
+        return true;
+    },
+    $failures,
+    $passes
+);
+
+pf_run_consent_case(
+    'Unrecognized source cookie is ignored',
+    /** @return bool|string */
+    function () {
+        $GLOBALS['__pf_test_consent_type'] = '';
+        $_COOKIE                           = [
+            PIXELFLOW_CONSENT_SOURCE_COOKIE_NAME => 'not-a-source',
+        ];
+
+        $payload = ['siteId' => 'site', 'eventData' => ['eventName' => 'AddToCart']];
+        pixelflow_append_consent_to_payload($payload);
+
+        if (isset($payload['eventData']['consent'])) {
+            return 'invalid source must not produce a consent block';
+        }
+
+        return true;
+    },
+    $failures,
+    $passes
+);
+
+pf_run_consent_case(
     'No consent information leaves payload without consent block',
     /** @return bool|string */
     function () {
@@ -231,6 +327,27 @@ pf_run_consent_case(
 
         if ( ! isset($payload['eventData']['consent']['state'])) {
             return 'eventData.consent.state missing';
+        }
+
+        return true;
+    },
+    $failures,
+    $passes
+);
+
+pf_run_consent_case(
+    'Live grant cookie outranks a persisted order-meta deny',
+    /** @return bool|string */
+    function () {
+        $GLOBALS['__pf_test_consent_type'] = '';
+        $_COOKIE                           = [
+            PIXELFLOW_CONSENT_COOKIE_NAME => pf_encode_consent_cookie('granted', 'cookieyes', 1756370004000),
+        ];
+
+        $raw   = pf_encode_consent_cookie('denied', 'gcm', 1756370001000);
+        $block = pixelflow_resolve_event_consent_block($raw);
+        if ($block === null || ($block['state'] ?? '') !== 'granted' || ($block['source'] ?? '') !== 'cookieyes') {
+            return 'live grant must beat persisted deny, got ' . wp_json_encode($block);
         }
 
         return true;
