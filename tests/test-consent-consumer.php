@@ -336,6 +336,27 @@ pf_run_consent_case(
 );
 
 pf_run_consent_case(
+    'Live grant cookie outranks a persisted order-meta deny',
+    /** @return bool|string */
+    function () {
+        $GLOBALS['__pf_test_consent_type'] = '';
+        $_COOKIE                           = [
+            PIXELFLOW_CONSENT_COOKIE_NAME => pf_encode_consent_cookie('granted', 'cookieyes', 1756370004000),
+        ];
+
+        $raw   = pf_encode_consent_cookie('denied', 'gcm', 1756370001000);
+        $block = pixelflow_resolve_event_consent_block($raw);
+        if ($block === null || ($block['state'] ?? '') !== 'granted' || ($block['source'] ?? '') !== 'cookieyes') {
+            return 'live grant must beat persisted deny, got ' . wp_json_encode($block);
+        }
+
+        return true;
+    },
+    $failures,
+    $passes
+);
+
+pf_run_consent_case(
     'Order meta override wins when the request carries no visitor cookie',
     /** @return bool|string */
     function () {

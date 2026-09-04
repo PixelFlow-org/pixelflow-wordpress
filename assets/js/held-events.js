@@ -7,13 +7,21 @@
   }
 
   var resolving = false;
+  var pollMs = 1000;
+  var delayMs = 2000;
+  var maxDelayMs = 16000;
+  var timer = null;
 
   function readCookie(name) {
-    var parts = ("; " + document.cookie).split("; " + name + "=");
-    if (parts.length < 2) {
+    try {
+      var parts = ("; " + document.cookie).split("; " + name + "=");
+      if (parts.length < 2) {
+        return "";
+      }
+      return decodeURIComponent(parts.pop().split(";").shift() || "");
+    } catch (e) {
       return "";
     }
-    return decodeURIComponent(parts.pop().split(";").shift() || "");
   }
 
   function hasHeldEvents() {
@@ -23,6 +31,13 @@
 
   function isHold() {
     return readCookie(config.holdCookie) === config.holdValue;
+  }
+
+  function schedule(ms) {
+    if (timer !== null) {
+      window.clearTimeout(timer);
+    }
+    timer = window.setTimeout(tick, ms);
   }
 
   function resolveHeldEvents() {
@@ -43,13 +58,29 @@
       keepalive: true,
     }).finally(function () {
       resolving = false;
+      if (hasHeldEvents() && !isHold()) {
+        delayMs = Math.min(delayMs * 2, maxDelayMs);
+      } else {
+        delayMs = 2000;
+      }
+      schedule(delayMs);
     });
   }
 
-  window.setInterval(resolveHeldEvents, 400);
+  function tick() {
+    if (!hasHeldEvents() || isHold()) {
+      delayMs = 2000;
+      schedule(pollMs);
+      return;
+    }
+    resolveHeldEvents();
+  }
+
+  schedule(pollMs);
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "visible") {
-      resolveHeldEvents();
+      delayMs = 2000;
+      tick();
     }
   });
 })();

@@ -209,13 +209,13 @@ function pixelflow_held_events_disposition(?string $consent_cookie_raw = null, ?
  * Appends a recipe to the Woo session and mirrors event names to a JS-readable cookie.
  *
  * @param array $recipe Compact recipe from pixelflow_held_event_recipe_from_payload()
- * @return void
+ * @return bool True when the recipe was stored; false when no Woo session exists
  */
-function pixelflow_enqueue_held_woo_event(array $recipe): void
+function pixelflow_enqueue_held_woo_event(array $recipe): bool
 {
     $session = pixelflow_woo_session();
     if ($session === null) {
-        return;
+        return false;
     }
 
     $queue = pixelflow_get_held_woo_events();
@@ -226,6 +226,8 @@ function pixelflow_enqueue_held_woo_event(array $recipe): void
 
     $session->set(PIXELFLOW_HELD_WOO_EVENTS_SESSION_KEY, array_values($queue));
     pixelflow_sync_held_events_cookie($queue);
+
+    return true;
 }
 
 /**

@@ -90,6 +90,10 @@ The plugin SHALL NOT POST a server-side event when the session hold cookie `_pf_
 - **WHEN** a purchase event is sent from a background request and the order persisted `_pf_no_consent_decision=true`
 - **THEN** the plugin does not POST the purchase event
 
+#### Scenario: Live grant after a held checkout
+- **WHEN** a purchase hook runs on a browser request whose live consent decision is `granted`, even if the order persisted `_pf_no_consent_decision=true`
+- **THEN** the plugin POSTs the purchase event, writes `_pf_purchase_sent` only after that POST, and persists the grant and `_pf_uid` on the order
+
 #### Scenario: Cookie-less Purchase with no snapshot
 - **WHEN** a purchase event is sent from a background request and the order has neither a hold cookie nor a denied consent decision
 - **THEN** the event is POSTed
@@ -119,6 +123,10 @@ The plugin SHALL POST an anonymous `blocked_events` payload to `/blocked-events`
 #### Scenario: Unanswered opt-in banner
 - **WHEN** the plugin skips AddToCart or InitiateCheckout because `_pf_no_consent_decision` is the literal value `true`
 - **THEN** it does not POST `/blocked-events` on that request; it queues a recipe instead
+
+#### Scenario: Hold with no Woo session
+- **WHEN** AddToCart or InitiateCheckout should queue but the WooCommerce session is unavailable
+- **THEN** the plugin POSTs `/blocked-events` with `reason` `no_decision` instead of dropping the event silently
 
 #### Scenario: Visitor declined
 - **WHEN** the plugin skips a send because the resolved consent decision is `denied`

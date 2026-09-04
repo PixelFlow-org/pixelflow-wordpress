@@ -306,6 +306,40 @@ pf_run_held_case(
 );
 
 pf_run_held_case(
+    'Persisted hold plus live grant flushes rather than keeping',
+    /** @return bool|string */
+    function () {
+        $_COOKIE[PIXELFLOW_CONSENT_COOKIE_NAME] = pf_encode_held_consent_cookie('granted', 'cookieyes', 1756370000000);
+        if (pixelflow_held_events_disposition(null, 'true') !== 'send') {
+            return 'live grant must flush even when order-meta hold is true';
+        }
+
+        return true;
+    },
+    $failures,
+    $passes
+);
+
+pf_run_held_case(
+    'Enqueue returns false when the Woo session is missing',
+    /** @return bool|string */
+    function () {
+        $GLOBALS['__pf_test_wc']->session = null;
+        $recipe = pixelflow_held_event_recipe_from_payload(pf_held_add_to_cart_payload(), 99, 0);
+        if ($recipe === null) {
+            return 'expected a recipe';
+        }
+        if (pixelflow_enqueue_held_woo_event($recipe) !== false) {
+            return 'missing session must return false';
+        }
+
+        return true;
+    },
+    $failures,
+    $passes
+);
+
+pf_run_held_case(
     'Flush overlay keeps the stored value over a live rebuild',
     /** @return bool|string */
     function () {

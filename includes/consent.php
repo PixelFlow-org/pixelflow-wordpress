@@ -233,26 +233,41 @@ function pixelflow_decode_consent_cookie(string $value): ?array
 }
 
 /**
- * Resolves consent for a server-side event: WP Consent API, then cookie override, then live cookie.
+ * Live marketing decision on this request (WP Consent API, then the consent cookie).
  *
- * @param string|null $cookie_raw_override Saved cookie from order meta for async purchase hooks
  * @return array{state: string, source: string, timestamp: int}|null
  */
-function pixelflow_resolve_event_consent_block(?string $cookie_raw_override = null): ?array
+function pixelflow_live_consent_decision(): ?array
 {
     $from_wp = pixelflow_get_consent_from_wp_api();
     if ($from_wp !== null) {
         return $from_wp;
     }
 
-    if ($cookie_raw_override !== null && $cookie_raw_override !== '') {
-        $from_override = pixelflow_decode_consent_cookie($cookie_raw_override);
-        if ($from_override !== null) {
-            return $from_override;
-        }
+    return pixelflow_get_live_consent_cookie_decision();
+}
+
+/**
+ * Resolves consent for a server-side event: live request first, then order-meta override.
+ *
+ * A thank-you grant must beat a hold/deny snapshot saved at checkout. Background
+ * hooks (webhooks) have no live cookies and still use the override.
+ *
+ * @param string|null $cookie_raw_override Saved cookie from order meta for async purchase hooks
+ * @return array{state: string, source: string, timestamp: int}|null
+ */
+function pixelflow_resolve_event_consent_block(?string $cookie_raw_override = null): ?array
+{
+    $live = pixelflow_live_consent_decision();
+    if ($live !== null) {
+        return $live;
     }
 
-    return pixelflow_get_live_consent_cookie_decision();
+    if ($cookie_raw_override !== null && $cookie_raw_override !== '') {
+        return pixelflow_decode_consent_cookie($cookie_raw_override);
+    }
+
+    return null;
 }
 
 /**
@@ -329,12 +344,18 @@ function pixelflow_append_consent_to_payload(array &$payload, ?string $cookie_ra
 
 /**
  * Whether the hold cookie (live or persisted on the order) is the literal true value.
+ * A live grant on this request wins so thank-you can send after a held checkout.
  *
  * @param string|null $raw_override Saved `_pf_no_consent_decision` from order meta
  * @return bool
  */
 function pixelflow_has_no_consent_decision_hold(?string $raw_override = null): bool
 {
+    $live = pixelflow_live_consent_decision();
+    if ($live !== null && ($live['state'] ?? '') === 'granted') {
+        return false;
+    }
+
     $raw = null;
     if ($raw_override !== null && $raw_override !== '') {
         $raw = $raw_override;

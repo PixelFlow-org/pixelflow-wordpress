@@ -10,11 +10,14 @@ if ( ! defined('ABSPATH')) {
     exit;
 }
 
+require_once __DIR__ . '/trait-held-woo-events.php';
+
 /**
  * WooCommerce Cart Hooks class
  */
 class PixelFlow_WooCommerce_Cart_Hooks
 {
+    use PixelFlow_Held_Woo_Events_Trait;
 
     /**
      * Plugin options
@@ -199,7 +202,10 @@ class PixelFlow_WooCommerce_Cart_Hooks
             $payload['eventData']['customerData'] = $customer;
         }
 
-        $this->post_event($payload, null, null, (int) $product_id, (int) $variation_id);
+        $this->post_event($payload, [
+            'product_id'   => (int) $product_id,
+            'variation_id' => (int) $variation_id,
+        ]);
     }
 
     /**
@@ -298,7 +304,10 @@ class PixelFlow_WooCommerce_Cart_Hooks
             $payload['eventData']['customerData'] = $customer;
         }
 
-        $this->post_event($payload, null, null, $product_id, $variation_id);
+        $this->post_event($payload, [
+            'product_id'   => $product_id,
+            'variation_id' => $variation_id,
+        ]);
     }
 
     /**
@@ -644,19 +653,16 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return;
         }
 
-        // Avoid duplicate sends (works across thankyou page refresh AND status change hooks)
-        $meta_key = '_pf_purchase_sent';
-        $sent     = $order->get_meta($meta_key, true);
-
-        if ( ! empty($sent)) {
+        $guard_key = 'purchase_' . $order_id;
+        if ( ! empty($order->get_meta('_pf_purchase_sent', true))) {
             return;
         }
+        if (isset($this->sent_in_request[$guard_key])) {
+            return;
+        }
+        $this->sent_in_request[$guard_key] = 1;
 
-        $order->update_meta_data($meta_key, '1');
-        $order->save();
-
-        // Reset checkout guard after successful purchase
-        $this->pf_reset_checkout_guard();
+        $this->sync_live_grant_onto_order($order);
 
         $event_time = time();
 
@@ -689,7 +695,38 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $source_raw = $order->get_meta('_pf_cookie__pf_consent_source', true);
         $source_override = is_string($source_raw) && $source_raw !== '' ? $source_raw : null;
 
-        $this->post_event($payload, $consent_override, $no_decision_override, 0, 0, $source_override);
+        $outcome = $this->post_event($payload, [
+            'consent'     => $consent_override,
+            'no_decision' => $no_decision_override,
+            'source'      => $source_override,
+        ]);
+        if ($outcome === 'sent') {
+            $order->update_meta_data('_pf_purchase_sent', '1');
+            $order->save();
+            $this->pf_reset_checkout_guard();
+        }
+    }
+
+    /**
+     * Writes a live grant (and uid) onto the order so a later webhook can send.
+     *
+     * @param WC_Order $order Order created while the banner was still unanswered
+     * @return void
+     */
+    private function sync_live_grant_onto_order(WC_Order $order): void
+    {
+        $consent = pixelflow_live_consent_decision();
+        if ($consent === null || ($consent['state'] ?? '') !== 'granted') {
+            return;
+        }
+
+        $order->delete_meta_data('_pf_cookie__pf_no_consent_decision');
+        foreach (['_pf_consent', '_pf_consent_source', '_pf_uid', '_pf_attribution'] as $key) {
+            if (isset($_COOKIE[$key]) && is_string($_COOKIE[$key]) && $_COOKIE[$key] !== '') {
+                $order->update_meta_data('_pf_cookie_' . $key, sanitize_text_field(wp_unslash($_COOKIE[$key])));
+            }
+        }
+        $order->save();
     }
 
     /**
@@ -1296,293 +1333,96 @@ class PixelFlow_WooCommerce_Cart_Hooks
     }
 
     /**
-     * wc-ajax entry so a same-page grant or deny can flush the session queue.
-     *
-     * @return void
-     */
-    public function ajax_resolve_held_events(): void
-    {
-        check_ajax_referer('pixelflow_held_events', 'nonce');
-        $session = pixelflow_woo_session();
-        if ($session !== null && method_exists($session, 'init_session_cookie')) {
-            $session->init_session_cookie();
-        }
-        $this->resolve_held_events();
-        wp_send_json_success();
-    }
-
-    /**
-     * Sends, denies, or abandons queued storefront events once the hold cookie is gone.
-     *
-     * @return void
-     */
-    public function resolve_held_events(): void
-    {
-        $queue = pixelflow_get_held_woo_events();
-        if ($queue === [] || $this->flushing_held) {
-            return;
-        }
-
-        $disposition = pixelflow_held_events_disposition();
-        if ($disposition === 'keep') {
-            return;
-        }
-        if ($disposition === 'send') {
-            $this->flush_held_events($queue);
-            return;
-        }
-
-        $this->beacon_held_events($queue, $disposition === 'deny' ? 'denied' : 'no_decision');
-        pixelflow_clear_held_woo_events();
-    }
-
-    /**
-     * Rebuilds queued recipes and POSTs them as /event with grant-time cookies.
-     *
-     * @param array<int, array<string, mixed>> $queue Held recipes
-     * @return void
-     */
-    private function flush_held_events(array $queue): void
-    {
-        $this->flushing_held = true;
-        pixelflow_clear_held_woo_events();
-        foreach ($queue as $recipe) {
-            $payload = $this->rebuild_held_event_payload($recipe);
-            if ($payload === null) {
-                continue;
-            }
-            $this->post_event($payload);
-        }
-        $this->flushing_held = false;
-    }
-
-    /**
-     * Reports queued event types as denied or no_decision after the visit ends without a grant.
-     *
-     * @param array<int, array<string, mixed>> $queue  Held recipes
-     * @param string                           $reason denied|no_decision
-     * @return void
-     */
-    private function beacon_held_events(array $queue, string $reason): void
-    {
-        $row = pixelflow_blocked_event_row_with_source($reason, null);
-        if ($reason === 'denied') {
-            $denied = pixelflow_resolve_blocked_event_reason();
-            if ($denied !== null && ($denied['reason'] ?? '') === 'denied') {
-                $row = $denied;
-            }
-        }
-        foreach (pixelflow_held_event_names($queue) as $event_name) {
-            $this->post_blocked_event($event_name, $row);
-        }
-    }
-
-    /**
-     * Rebuilds a full /event payload from a compact recipe at flush time.
-     *
-     * @param array $recipe Held recipe
-     * @return array|null
-     */
-    private function rebuild_held_event_payload(array $recipe): ?array
-    {
-        $event_name = isset($recipe['eventName']) ? (string) $recipe['eventName'] : '';
-        $event_id   = isset($recipe['event_id']) ? trim((string) $recipe['event_id']) : '';
-        if ($event_id === '' || ! in_array($event_name, PIXELFLOW_HELD_WOO_EVENT_NAMES, true)) {
-            return null;
-        }
-
-        $additional = $event_name === 'AddToCart'
-            ? $this->rebuild_held_add_to_cart_additional($recipe)
-            : $this->rebuild_held_checkout_additional($recipe);
-
-        $payload = [
-            'siteId'    => (string) $this->site_external_id,
-            'eventData' => [
-                'event_id'       => $event_id,
-                'eventName'      => $event_name,
-                'eventTime'      => isset($recipe['eventTime']) ? (int) $recipe['eventTime'] : time(),
-                'actionSource'   => 'website',
-                'siteURL'        => pixelflow_get_site_url(),
-                'additionalData' => $additional,
-            ],
-        ];
-        pixelflow_append_cookie_params($payload);
-        pixelflow_append_attribution_from_cookie($payload);
-        $this->apply_held_customer_data($payload, $recipe);
-
-        return $payload;
-    }
-
-    /**
-     * AddToCart additionalData from the live product, with stored value winning.
-     *
-     * @param array $recipe Held recipe
-     * @return array
-     */
-    private function rebuild_held_add_to_cart_additional(array $recipe): array
-    {
-        $qty          = max(1, (int) ($recipe['qty'] ?? 1));
-        $variation_id = (int) ($recipe['variation_id'] ?? 0);
-        $product_id   = (int) ($recipe['product_id'] ?? 0);
-        $wc_id        = $variation_id > 0 ? $variation_id : $product_id;
-        $product      = $wc_id > 0 && function_exists('wc_get_product') ? wc_get_product($wc_id) : null;
-        if ($product instanceof WC_Product) {
-            return pixelflow_apply_held_recipe_to_additional_data($this->build_additional_data($product, $qty), $recipe);
-        }
-
-        $value = (float) ($recipe['value'] ?? 0);
-        $data  = [
-            'contentType' => 'product',
-            'currency'    => (string) ($recipe['currency'] ?? 'USD'),
-            'value'       => $value,
-        ];
-        if (($this->options['woo_product_id_format'] ?? 'product_id') !== 'off' && $wc_id > 0) {
-            $data['contents'] = [
-                [
-                    'id'         => (string) $wc_id,
-                    'quantity'   => $qty,
-                    'item_price' => $value / $qty,
-                ],
-            ];
-        }
-
-        return pixelflow_apply_held_recipe_to_additional_data($data, $recipe);
-    }
-
-    /**
-     * InitiateCheckout additionalData from the live cart, with stored value winning.
-     *
-     * @param array $recipe Held recipe
-     * @return array
-     */
-    private function rebuild_held_checkout_additional(array $recipe): array
-    {
-        if (function_exists('WC') && WC() && WC()->cart && method_exists(WC()->cart, 'is_empty') && ! WC()->cart->is_empty()) {
-            return pixelflow_apply_held_recipe_to_additional_data(
-                $this->build_checkout_additional_data_from_cart(WC()->cart),
-                $recipe
-            );
-        }
-
-        return pixelflow_apply_held_recipe_to_additional_data(
-            [
-                'contentType' => 'product',
-                'currency'    => (string) ($recipe['currency'] ?? 'USD'),
-                'num_items'   => (int) ($recipe['qty'] ?? 0),
-                'value'       => (float) ($recipe['value'] ?? 0),
-            ],
-            $recipe
-        );
-    }
-
-    /**
-     * Restores hashed customer match keys stored on the recipe.
-     *
-     * @param array $payload Event payload
-     * @param array $recipe  Held recipe
-     * @return void
-     */
-    private function apply_held_customer_data(array &$payload, array $recipe): void
-    {
-        $customer = isset($recipe['customerData']) && is_array($recipe['customerData'])
-            ? pixelflow_sanitize_held_customer_data($recipe['customerData'])
-            : [];
-        if ($customer === []) {
-            return;
-        }
-        $payload['eventData']['customerData'] = $customer;
-    }
-
-    /**
      * Posts a server-side event to the PixelFlow API, or a blocked-events beacon when skipped.
      *
-     * @param array       $payload             Event payload
-     * @param string|null $consent_cookie_raw  Saved _pf_consent from order meta for async purchase hooks
-     * @param string|null $no_decision_raw     Saved _pf_no_consent_decision from order meta
-     * @param int         $product_id          Parent product id when queueing AddToCart
-     * @param int         $variation_id        Variation id when queueing AddToCart
-     * @param string|null $source_cookie_raw   Saved _pf_consent_source from order meta
-     * @return void
+     * @param array $payload Event payload
+     * @param array{consent?: ?string, no_decision?: ?string, source?: ?string, product_id?: int, variation_id?: int} $context
+     * @return string sent|held|blocked|skipped
      */
-    private function post_event(
-        array $payload,
-        ?string $consent_cookie_raw = null,
-        ?string $no_decision_raw = null,
-        int $product_id = 0,
-        int $variation_id = 0,
-        ?string $source_cookie_raw = null
-    ): void {
+    private function post_event(array $payload, array $context = []): string
+    {
+        $consent_cookie_raw = isset($context['consent']) && is_string($context['consent']) ? $context['consent'] : null;
+        $no_decision_raw    = isset($context['no_decision']) && is_string($context['no_decision']) ? $context['no_decision'] : null;
+        $source_cookie_raw  = isset($context['source']) && is_string($context['source']) ? $context['source'] : null;
+        $product_id         = isset($context['product_id']) ? (int) $context['product_id'] : 0;
+        $variation_id       = isset($context['variation_id']) ? (int) $context['variation_id'] : 0;
+
         pixelflow_append_consent_to_payload($payload, $consent_cookie_raw, $source_cookie_raw);
 
         $event_name = isset($payload['eventData']['eventName']) ? (string) $payload['eventData']['eventName'] : 'unknown';
         $ua         = pixelflow_get_client_user_agent();
-        $bot_detail = pixelflow_get_bot_detail_pattern($ua);
-        $blocked    = pixelflow_resolve_blocked_event_reason($consent_cookie_raw, $no_decision_raw, $bot_detail, $source_cookie_raw);
+        $blocked    = pixelflow_resolve_blocked_event_reason(
+            $consent_cookie_raw,
+            $no_decision_raw,
+            pixelflow_get_bot_detail_pattern($ua),
+            $source_cookie_raw
+        );
 
-        if ($blocked !== null) {
-            if (pixelflow_should_queue_held_event($blocked, $event_name)) {
-                $recipe = pixelflow_held_event_recipe_from_payload($payload, $product_id, $variation_id);
-                if ($recipe !== null) {
-                    pixelflow_enqueue_held_woo_event($recipe);
-                }
-                $this->debug_log($event_name, $payload, 'EVENT SENDING HELD UNTIL CONSENT IS GRANTED OR THE VISIT ENDS');
-                return;
-            }
-            $this->post_blocked_event($event_name, $blocked);
-            if ($blocked['reason'] === 'bot') {
-                $event_skipped_message = __('EVENT SENDING SKIPPED BECAUSE USER AGENT MATCHED BOT SIGNATURE', 'pixelflow');
-                $this->debug_log($event_name . ' ' . $event_skipped_message, $payload, $event_skipped_message . ' (BOT_UA)');
-                return;
-            }
-
-            $this->debug_log($event_name, $payload, 'EVENT SENDING SKIPPED BECAUSE CONSENT IS PENDING OR DENIED');
-            return;
+        $gate = $this->hold_or_block_event($payload, $event_name, $blocked, $product_id, $variation_id);
+        if ($gate !== null) {
+            return $gate;
         }
 
         if ( ! $this->flushing_held) {
             $this->resolve_held_events();
         }
 
-        $url = $this->api_url . '/event';
-        $event_skipped_message = __('EVENT SENDING SKIPPED BECAUSE USER AGENT MATCHED BOT SIGNATURE', 'pixelflow');
+        return $this->dispatch_event_post($payload, $event_name, $ua);
+    }
 
-        // Also skip if the resolved IP is private (server-to-server / cache warmer)
-        $resolved_ip = pixelflow_get_client_ip_address();
+    /**
+     * Queues a storefront hold, or beacons, when the consent/bot gate refuses the send.
+     *
+     * @param array      $payload      Event payload
+     * @param string     $event_name   Catalog event name
+     * @param array|null $blocked      Reason row, or null to send
+     * @param int        $product_id   Parent product id when queueing AddToCart
+     * @param int        $variation_id Variation id when queueing AddToCart
+     * @return string|null held|blocked, or null to continue the send
+     */
+    private function hold_or_block_event(array $payload, string $event_name, ?array $blocked, int $product_id, int $variation_id): ?string
+    {
+        if ($blocked === null) {
+            return null;
+        }
+
+        if (pixelflow_should_queue_held_event($blocked, $event_name)) {
+            $recipe = pixelflow_held_event_recipe_from_payload($payload, $product_id, $variation_id);
+            if ($recipe !== null && pixelflow_enqueue_held_woo_event($recipe)) {
+                $this->debug_log($event_name, $payload, 'EVENT SENDING HELD UNTIL CONSENT IS GRANTED OR THE VISIT ENDS');
+
+                return 'held';
+            }
+        }
+
+        $this->post_blocked_event($event_name, $blocked);
+        if (($blocked['reason'] ?? '') === 'bot') {
+            $message = __('EVENT SENDING SKIPPED BECAUSE USER AGENT MATCHED BOT SIGNATURE', 'pixelflow');
+            $this->debug_log($event_name . ' ' . $message, $payload, $message . ' (BOT_UA)');
+
+            return 'blocked';
+        }
+
+        $this->debug_log($event_name, $payload, 'EVENT SENDING SKIPPED BECAUSE CONSENT IS PENDING OR DENIED');
+
+        return 'blocked';
+    }
+
+    /**
+     * POSTs /event unless the client IP is private.
+     *
+     * @param array  $payload    Event payload
+     * @param string $event_name Catalog event name
+     * @param string $ua         Client user agent
+     * @return string sent|skipped
+     */
+    private function dispatch_event_post(array $payload, string $event_name, string $ua): string
+    {
+        $resolved_ip   = pixelflow_get_client_ip_address();
         $is_private_ip = pixelflow_is_private_ip($resolved_ip);
+        $this->append_request_customer_fields($payload, $ua, $resolved_ip, $is_private_ip);
 
-        // add loc from cookies
-        $cookie_pf_loc = filter_input(INPUT_COOKIE, 'pf_loc', FILTER_UNSAFE_RAW);
-
-        if (is_string($cookie_pf_loc) && $cookie_pf_loc !== '') {
-            if ( ! isset($payload['eventData']['customerData']) || ! is_array($payload['eventData']['customerData'])) {
-                $payload['eventData']['customerData'] = [];
-            }
-            $cd = &$payload['eventData']['customerData'];
-
-            $raw = wp_unslash($cookie_pf_loc);
-
-            $decoded = json_decode($raw, true);
-            if (is_array($decoded)) {
-                foreach (['st', 'zp', 'ct', 'country'] as $loc_key) {
-                    if ( ! isset($cd[$loc_key]) && ! empty($decoded[$loc_key])) {
-                        $cd[$loc_key] = sanitize_text_field($decoded[$loc_key]);
-                    }
-                }
-            }
-        }
-
-        // add ua and ip to customerData
-        if ( ! isset($payload['eventData']['customerData']) || ! is_array($payload['eventData']['customerData'])) {
-            $payload['eventData']['customerData'] = [];
-        }
-        $cd = &$payload['eventData']['customerData'];
-        if ( ! isset($cd['client_user_agent']) && $ua !== '') {
-                $cd['client_user_agent'] = $ua;
-            }
-        if ( ! isset($cd['client_ip_address']) && $resolved_ip !== '' && ! $is_private_ip) {
-            $cd['client_ip_address'] = $resolved_ip;
-        }
-
+        $private_skip_message = __('EVENT SENDING SKIPPED BECAUSE CLIENT IP IS PRIVATE', 'pixelflow');
         $args = [
             'method'      => 'POST',
             'timeout'     => $this->timeout,
@@ -1597,21 +1437,56 @@ class PixelFlow_WooCommerce_Cart_Hooks
             'data_format' => 'body',
         ];
 
-        // Make connect stage fast, so it truly doesn’t slow the user down much
         add_filter('http_request_args', [$this, 'tune_connect_timeout_for_pixelflow'], 10, 2);
-
         if ( ! $is_private_ip) {
-            $response = wp_remote_post($url, $args);
+            $response = wp_remote_post($this->api_url . '/event', $args);
+            $outcome  = 'sent';
         } else {
-            $response = $event_skipped_message . ' (PRIVATE_IP)';
+            $response = $private_skip_message . ' (PRIVATE_IP)';
+            $outcome  = 'skipped';
+            $event_name .= ' ' . $private_skip_message;
         }
-
         remove_filter('http_request_args', [$this, 'tune_connect_timeout_for_pixelflow'], 10);
 
-        if ($is_private_ip) {
-            $event_name .= ' ' . $event_skipped_message;
-        }
         $this->debug_log($event_name, $payload, $response);
+
+        return $outcome;
+    }
+
+    /**
+     * Adds location, UA, and public IP onto customerData for this request.
+     *
+     * @param array  $payload       Event payload
+     * @param string $ua            Client user agent
+     * @param string $resolved_ip   Client IP
+     * @param bool   $is_private_ip Whether the IP must stay off the payload
+     * @return void
+     */
+    private function append_request_customer_fields(array &$payload, string $ua, string $resolved_ip, bool $is_private_ip): void
+    {
+        if ( ! isset($payload['eventData']['customerData']) || ! is_array($payload['eventData']['customerData'])) {
+            $payload['eventData']['customerData'] = [];
+        }
+        $cd = &$payload['eventData']['customerData'];
+
+        $cookie_pf_loc = filter_input(INPUT_COOKIE, 'pf_loc', FILTER_UNSAFE_RAW);
+        if (is_string($cookie_pf_loc) && $cookie_pf_loc !== '') {
+            $decoded = json_decode(wp_unslash($cookie_pf_loc), true);
+            if (is_array($decoded)) {
+                foreach (['st', 'zp', 'ct', 'country'] as $loc_key) {
+                    if ( ! isset($cd[$loc_key]) && ! empty($decoded[$loc_key])) {
+                        $cd[$loc_key] = sanitize_text_field($decoded[$loc_key]);
+                    }
+                }
+            }
+        }
+
+        if ( ! isset($cd['client_user_agent']) && $ua !== '') {
+            $cd['client_user_agent'] = $ua;
+        }
+        if ( ! isset($cd['client_ip_address']) && $resolved_ip !== '' && ! $is_private_ip) {
+            $cd['client_ip_address'] = $resolved_ip;
+        }
     }
 
     public function tune_connect_timeout_for_pixelflow(array $args, string $url): array

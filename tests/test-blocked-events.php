@@ -217,6 +217,21 @@ pf_run_blocked_case(
 );
 
 pf_run_blocked_case(
+    'Live grant plus persisted hold does not beacon',
+    /** @return bool|string */
+    function () {
+        $_COOKIE[PIXELFLOW_CONSENT_COOKIE_NAME] = pf_encode_consent_cookie_for_blocked('granted', 'cookieyes', 1756370000000);
+        if (pixelflow_resolve_blocked_event_reason(null, 'true') !== null) {
+            return 'live grant must beat a persisted hold';
+        }
+
+        return true;
+    },
+    $failures,
+    $passes
+);
+
+pf_run_blocked_case(
     'Granted consent does not beacon',
     /** @return bool|string */
     function () {

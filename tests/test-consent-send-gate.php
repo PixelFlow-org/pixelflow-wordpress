@@ -188,6 +188,21 @@ pf_run_send_gate_case(
 );
 
 pf_run_send_gate_case(
+    'Live grant wins over a persisted order-meta hold',
+    /** @return bool|string */
+    function () {
+        $_COOKIE[PIXELFLOW_CONSENT_COOKIE_NAME] = pf_encode_consent_cookie_for_gate('granted', 'cookieyes', 1756370000000);
+        if ( ! pixelflow_should_send_event_for_consent(null, 'true')) {
+            return 'thank-you grant must send even when the order saved a hold';
+        }
+
+        return true;
+    },
+    $failures,
+    $passes
+);
+
+pf_run_send_gate_case(
     'Cookie-less Purchase with no snapshot still sends',
     /** @return bool|string */
     function () {
