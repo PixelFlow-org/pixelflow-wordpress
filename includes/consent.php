@@ -16,6 +16,9 @@ const PIXELFLOW_CONSENT_COOKIE_NAME = '_pf_consent';
 /** Session hold cookie the script writes while an opt-in banner is unanswered. */
 const PIXELFLOW_NO_CONSENT_DECISION_COOKIE_NAME = '_pf_no_consent_decision';
 
+/** Session cookie: detected CMP/GCM/API source while no grant/deny exists yet. */
+const PIXELFLOW_CONSENT_SOURCE_COOKIE_NAME = '_pf_consent_source';
+
 /** Literal value that means "do not send server events yet". Any other value is ignored. */
 const PIXELFLOW_NO_CONSENT_DECISION_COOKIE_VALUE = 'true';
 
@@ -72,6 +75,17 @@ function pixelflow_register_consent_cookie_info(): void
             'functional',
             __('Session', 'pixelflow'),
             __('Coordinates a hold on server-side events while a consent banner is unanswered (no visitor identifiers).', 'pixelflow'),
+            '',
+            false,
+            false,
+            'HTTP'
+        );
+        wp_add_cookie_info(
+            PIXELFLOW_CONSENT_SOURCE_COOKIE_NAME,
+            'PixelFlow',
+            'functional',
+            __('Session', 'pixelflow'),
+            __('Names the consent banner PixelFlow detected while no accept/decline exists yet (source only, no visitor identifiers).', 'pixelflow'),
             '',
             false,
             false,
@@ -242,19 +256,70 @@ function pixelflow_resolve_event_consent_block(?string $cookie_raw_override = nu
 }
 
 /**
- * Appends the optional consent block to an event payload when a decision is knowable.
+ * Reads the session CMP-source cookie (live or persisted on the order).
  *
- * @param array       $payload             Event payload passed by reference
- * @param string|null $cookie_raw_override Saved consent cookie from order meta
+ * @param string|null $raw_override Saved `_pf_consent_source` from order meta
+ * @return string|null Allow-listed source, or null when absent
+ */
+function pixelflow_get_consent_source_from_cookie(?string $raw_override = null): ?string
+{
+    $raw = null;
+    if ($raw_override !== null && $raw_override !== '') {
+        $raw = $raw_override;
+    } elseif (isset($_COOKIE[PIXELFLOW_CONSENT_SOURCE_COOKIE_NAME]) && is_string($_COOKIE[PIXELFLOW_CONSENT_SOURCE_COOKIE_NAME])) {
+        $raw = wp_unslash($_COOKIE[PIXELFLOW_CONSENT_SOURCE_COOKIE_NAME]);
+    }
+
+    if ( ! is_string($raw)) {
+        return null;
+    }
+
+    $source = sanitize_text_field($raw);
+    if ($source === '' || ! pixelflow_is_valid_consent_source($source)) {
+        return null;
+    }
+
+    return $source;
+}
+
+/**
+ * Unknown consent block when a CMP was detected but no grant/deny exists yet.
+ *
+ * @param string|null $source_raw_override Saved `_pf_consent_source` from order meta
+ * @return array{state: string, source: string}|null
+ */
+function pixelflow_unknown_consent_block_from_source(?string $source_raw_override = null): ?array
+{
+    $source = pixelflow_get_consent_source_from_cookie($source_raw_override);
+    if ($source === null) {
+        return null;
+    }
+
+    return [
+        'state'  => 'unknown',
+        'source' => $source,
+    ];
+}
+
+/**
+ * Appends the optional consent block to an event payload when a decision is knowable,
+ * or when a detected CMP source is present without a grant/deny yet.
+ *
+ * @param array       $payload              Event payload passed by reference
+ * @param string|null $cookie_raw_override  Saved consent cookie from order meta
+ * @param string|null $source_raw_override  Saved `_pf_consent_source` from order meta
  * @return void
  */
-function pixelflow_append_consent_to_payload(array &$payload, ?string $cookie_raw_override = null): void
+function pixelflow_append_consent_to_payload(array &$payload, ?string $cookie_raw_override = null, ?string $source_raw_override = null): void
 {
     if ( ! isset($payload['eventData']) || ! is_array($payload['eventData'])) {
         return;
     }
 
     $consent = pixelflow_resolve_event_consent_block($cookie_raw_override);
+    if ($consent === null) {
+        $consent = pixelflow_unknown_consent_block_from_source($source_raw_override);
+    }
     if ($consent === null) {
         return;
     }

@@ -12,22 +12,26 @@ The plugin SHALL register itself as a WP Consent API consumer on every request, 
 
 #### Scenario: Cookie disclosure carries no visitor identifier
 - **WHEN** the plugin declares its cookies to the WP Consent API
-- **THEN** the declaration names `_pf_consent` (marketing, 183 days), `_pf_no_consent_decision` (functional, session), and `_pf_held_woo_events` (functional, session, event type names only), and states that none of them store a visitor identifier
+- **THEN** the declaration names `_pf_consent` (marketing, 183 days), `_pf_no_consent_decision` (functional, session), `_pf_consent_source` (functional, session, detected banner source only), and `_pf_held_woo_events` (functional, session, event type names only), and states that none of them store a visitor identifier
 
 #### Scenario: Registration emits no notices
 - **WHEN** the plugin registers on a WordPress version that reports early translation loading
 - **THEN** no `_doing_it_wrong` notice is produced by the registration
 
 ### Requirement: Consent block attached to server-side events
-The plugin SHALL attach an optional consent block of `state`, `source` and `timestamp` to a server-side event when, and only when, the visitor's marketing-consent decision is knowable for that event. When no decision is knowable the event SHALL be sent with no consent block rather than with a fabricated decision.
+The plugin SHALL attach an optional consent block of `state`, `source` and `timestamp` to a server-side event when the visitor's marketing-consent decision is knowable, or when a detected banner source is present without a grant or deny. When neither a decision nor a source is knowable the event SHALL be sent with no consent block rather than with a fabricated decision.
 
 #### Scenario: Decision is knowable
 - **WHEN** the plugin resolves a marketing-consent decision for an event
 - **THEN** the event payload carries a consent block whose `state` is `granted` or `denied` and whose `source` is one of the values accepted by the ingest contract
 
+#### Scenario: Banner detected but unanswered
+- **WHEN** `_pf_consent_source` is present and no grant or deny is knowable
+- **THEN** the event payload carries a consent block whose `state` is `unknown` and whose `source` is the cookie value, with no timestamp
+
 #### Scenario: No decision is knowable
-- **WHEN** neither a consent management platform nor a stored consent decision can supply a decision for the event
-- **THEN** the event is sent with no consent block, matching what the browser tracking script sends in the same situation
+- **WHEN** neither a consent management platform, a stored consent decision, nor `_pf_consent_source` can supply a source for the event
+- **THEN** the event is sent with no consent block, matching what the browser tracking script sends when no banner is detected
 
 #### Scenario: Consent block timestamp is the moment of the decision
 - **WHEN** a consent block is attached and the visitor's recorded decision time is available

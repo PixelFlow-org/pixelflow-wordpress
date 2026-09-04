@@ -68,9 +68,10 @@ function pixelflow_get_bot_detail_pattern(string $user_agent): ?string
  * @param string|null $consent_cookie_raw Saved `_pf_consent` from order meta
  * @param string|null $no_decision_raw    Saved `_pf_no_consent_decision` from order meta
  * @param string|null $bot_detail         Matched bot pattern, or null when not a bot
+ * @param string|null $source_cookie_raw  Saved `_pf_consent_source` from order meta
  * @return array{reason: string, detail?: string, consentSource?: string}|null
  */
-function pixelflow_resolve_blocked_event_reason(?string $consent_cookie_raw = null, ?string $no_decision_raw = null, ?string $bot_detail = null): ?array
+function pixelflow_resolve_blocked_event_reason(?string $consent_cookie_raw = null, ?string $no_decision_raw = null, ?string $bot_detail = null, ?string $source_cookie_raw = null): ?array
 {
     if ($bot_detail !== null && $bot_detail !== '') {
         return [
@@ -80,7 +81,7 @@ function pixelflow_resolve_blocked_event_reason(?string $consent_cookie_raw = nu
     }
 
     if (pixelflow_has_no_consent_decision_hold($no_decision_raw)) {
-        return pixelflow_blocked_event_row_with_source('no_decision', $consent_cookie_raw);
+        return pixelflow_blocked_event_row_with_source('no_decision', $consent_cookie_raw, $source_cookie_raw);
     }
 
     $consent = pixelflow_resolve_event_consent_block($consent_cookie_raw);
@@ -104,12 +105,13 @@ function pixelflow_resolve_blocked_event_reason(?string $consent_cookie_raw = nu
  *
  * @param string      $reason             Blocked-event reason
  * @param string|null $consent_cookie_raw Cookie used to look up an optional source
+ * @param string|null $source_cookie_raw  Saved `_pf_consent_source` from order meta
  * @return array{reason: string, consentSource?: string}
  */
-function pixelflow_blocked_event_row_with_source(string $reason, ?string $consent_cookie_raw): array
+function pixelflow_blocked_event_row_with_source(string $reason, ?string $consent_cookie_raw, ?string $source_cookie_raw = null): array
 {
     $row    = [ 'reason' => $reason ];
-    $source = pixelflow_blocked_event_consent_source($consent_cookie_raw);
+    $source = pixelflow_blocked_event_consent_source($consent_cookie_raw, $source_cookie_raw);
     if ($source !== null) {
         $row['consentSource'] = $source;
     }
@@ -118,19 +120,25 @@ function pixelflow_blocked_event_row_with_source(string $reason, ?string $consen
 }
 
 /**
- * Consent source for a blocked row when a decision block is already knowable.
+ * Consent source for a blocked row: decision cookie first, then CMP source cookie.
  *
  * @param string|null $consent_cookie_raw Saved `_pf_consent` from order meta
+ * @param string|null $source_cookie_raw  Saved `_pf_consent_source` from order meta
  * @return string|null Wire source, or null when unknown or not allow-listed
  */
-function pixelflow_blocked_event_consent_source(?string $consent_cookie_raw): ?string
+function pixelflow_blocked_event_consent_source(?string $consent_cookie_raw, ?string $source_cookie_raw = null): ?string
 {
     $consent = pixelflow_resolve_event_consent_block($consent_cookie_raw);
-    if ($consent === null || ! isset($consent['source']) || ! is_string($consent['source'])) {
-        return null;
+    if ($consent !== null && isset($consent['source']) && is_string($consent['source'])) {
+        $from_decision = pixelflow_sanitize_blocked_consent_source($consent['source']);
+        if ($from_decision !== null) {
+            return $from_decision;
+        }
     }
 
-    return pixelflow_sanitize_blocked_consent_source($consent['source']);
+    $from_source = pixelflow_get_consent_source_from_cookie($source_cookie_raw);
+
+    return $from_source !== null ? pixelflow_sanitize_blocked_consent_source($from_source) : null;
 }
 
 /**
@@ -154,7 +162,7 @@ function pixelflow_sanitize_blocked_consent_source(string $source): ?string
  * @param string $site_id    External site id
  * @param string $event_type Catalog event name (AddToCart, InitiateCheckout, Purchase)
  * @param array  $row        Reason row from pixelflow_resolve_blocked_event_reason()
- * @return array{siteId: string, blocked: array<int, array<string, string>>}|null
+ * @return array{siteId: string, blocked: array<int, array<string, string>>, client_ip_address?: string}|null
  */
 function pixelflow_build_blocked_events_payload(string $site_id, string $event_type, array $row): ?array
 {
@@ -189,10 +197,19 @@ function pixelflow_build_blocked_events_payload(string $site_id, string $event_t
         }
     }
 
-    return [
+    $payload = [
         'siteId'  => $site_id,
         'blocked' => [ $entry ],
     ];
+
+    $ip = function_exists('pixelflow_get_client_ip_address')
+        ? pixelflow_get_client_ip_address()
+        : '';
+    if ($ip !== '' && function_exists('pixelflow_is_private_ip') && ! pixelflow_is_private_ip($ip)) {
+        $payload['client_ip_address'] = $ip;
+    }
+
+    return $payload;
 }
 
 /**

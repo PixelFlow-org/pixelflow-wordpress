@@ -87,6 +87,26 @@ function pf_run_blocked_case(string $label, callable $fn, array &$failures, int 
 }
 
 pf_run_blocked_case(
+    'Hold plus source cookie maps to no_decision with consentSource',
+    /** @return bool|string */
+    function () {
+        $_COOKIE[PIXELFLOW_NO_CONSENT_DECISION_COOKIE_NAME] = 'true';
+        $_COOKIE[PIXELFLOW_CONSENT_SOURCE_COOKIE_NAME]      = 'cookieyes';
+        $row = pixelflow_resolve_blocked_event_reason();
+        if ($row === null || ($row['reason'] ?? '') !== 'no_decision') {
+            return 'expected no_decision';
+        }
+        if (($row['consentSource'] ?? '') !== 'cookieyes') {
+            return 'expected consentSource cookieyes, got ' . (string) ($row['consentSource'] ?? 'null');
+        }
+
+        return true;
+    },
+    $failures,
+    $passes
+);
+
+pf_run_blocked_case(
     'Hold cookie maps to no_decision without consentSource',
     /** @return bool|string */
     function () {

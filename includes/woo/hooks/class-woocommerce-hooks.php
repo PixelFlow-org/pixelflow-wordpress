@@ -569,7 +569,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return;
         }
 
-        $cookie_keys = ['_fbp', 'pf_fbc', '_fbc', 'pf_clkid', 'pf_loc', '_pf_utm', '_pf_attribution', '_pf_consent', '_pf_no_consent_decision', '_pf_uid'];
+        $cookie_keys = ['_fbp', 'pf_fbc', '_fbc', 'pf_clkid', 'pf_loc', '_pf_utm', '_pf_attribution', '_pf_consent', '_pf_no_consent_decision', '_pf_consent_source', '_pf_uid'];
 
         foreach ($cookie_keys as $key) {
             if (isset($_COOKIE[$key]) && is_string($_COOKIE[$key]) && $_COOKIE[$key] !== '') {
@@ -686,8 +686,10 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $consent_override = is_string($consent_raw) && $consent_raw !== '' ? $consent_raw : null;
         $no_decision_raw = $order->get_meta('_pf_cookie__pf_no_consent_decision', true);
         $no_decision_override = is_string($no_decision_raw) && $no_decision_raw !== '' ? $no_decision_raw : null;
+        $source_raw = $order->get_meta('_pf_cookie__pf_consent_source', true);
+        $source_override = is_string($source_raw) && $source_raw !== '' ? $source_raw : null;
 
-        $this->post_event($payload, $consent_override, $no_decision_override);
+        $this->post_event($payload, $consent_override, $no_decision_override, 0, 0, $source_override);
     }
 
     /**
@@ -1499,6 +1501,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
      * @param string|null $no_decision_raw     Saved _pf_no_consent_decision from order meta
      * @param int         $product_id          Parent product id when queueing AddToCart
      * @param int         $variation_id        Variation id when queueing AddToCart
+     * @param string|null $source_cookie_raw   Saved _pf_consent_source from order meta
      * @return void
      */
     private function post_event(
@@ -1506,14 +1509,15 @@ class PixelFlow_WooCommerce_Cart_Hooks
         ?string $consent_cookie_raw = null,
         ?string $no_decision_raw = null,
         int $product_id = 0,
-        int $variation_id = 0
+        int $variation_id = 0,
+        ?string $source_cookie_raw = null
     ): void {
-        pixelflow_append_consent_to_payload($payload, $consent_cookie_raw);
+        pixelflow_append_consent_to_payload($payload, $consent_cookie_raw, $source_cookie_raw);
 
         $event_name = isset($payload['eventData']['eventName']) ? (string) $payload['eventData']['eventName'] : 'unknown';
         $ua         = pixelflow_get_client_user_agent();
         $bot_detail = pixelflow_get_bot_detail_pattern($ua);
-        $blocked    = pixelflow_resolve_blocked_event_reason($consent_cookie_raw, $no_decision_raw, $bot_detail);
+        $blocked    = pixelflow_resolve_blocked_event_reason($consent_cookie_raw, $no_decision_raw, $bot_detail, $source_cookie_raw);
 
         if ($blocked !== null) {
             if (pixelflow_should_queue_held_event($blocked, $event_name)) {
