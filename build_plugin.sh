@@ -85,6 +85,7 @@ echo "📋 Copying files to staging directory..."
 mkdir -p "$PLUGIN_STAGING_DIR/app"
 cp -r app/dist "$PLUGIN_STAGING_DIR/app/" 2>/dev/null || true
 cp -r includes "$PLUGIN_STAGING_DIR/" 2>/dev/null || true
+[ -d "assets" ] && cp -r assets "$PLUGIN_STAGING_DIR/" || true
 [ -d "admin" ] && cp -r admin "$PLUGIN_STAGING_DIR/" || true
 cp pixelflow.php "$PLUGIN_STAGING_DIR/"
 cp uninstall.php "$PLUGIN_STAGING_DIR/"
@@ -113,6 +114,7 @@ echo ""
 echo "Files included:"
 echo "  ✅ app/dist/"
 echo "  ✅ includes/"
+[ -d "assets" ] && echo "  ✅ assets/" || echo "  ⚠️  assets/ (not found, skipped)"
 [ -d "admin" ] && echo "  ✅ admin/" || echo "  ⚠️  admin/ (not found, skipped)"
 echo "  ✅ pixelflow.php"
 echo "  ✅ uninstall.php"

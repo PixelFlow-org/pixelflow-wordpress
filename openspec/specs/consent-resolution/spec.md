@@ -12,7 +12,7 @@ The plugin SHALL register itself as a WP Consent API consumer on every request, 
 
 #### Scenario: Cookie disclosure carries no visitor identifier
 - **WHEN** the plugin declares its cookies to the WP Consent API
-- **THEN** the declaration names `_pf_consent` (marketing, 183 days) and `_pf_no_consent_decision` (functional, session), and states that neither stores a visitor identifier
+- **THEN** the declaration names `_pf_consent` (marketing, 183 days), `_pf_no_consent_decision` (functional, session), and `_pf_held_woo_events` (functional, session, event type names only), and states that none of them store a visitor identifier
 
 #### Scenario: Registration emits no notices
 - **WHEN** the plugin registers on a WordPress version that reports early translation loading
@@ -90,12 +90,31 @@ The plugin SHALL NOT POST a server-side event when the session hold cookie `_pf_
 - **WHEN** a purchase event is sent from a background request and the order has neither a hold cookie nor a denied consent decision
 - **THEN** the event is POSTed
 
+### Requirement: Storefront holds wait for a decision
+The plugin SHALL NOT POST `/blocked-events` at the moment it skips AddToCart or InitiateCheckout because of a live hold. It SHALL store a compact recipe in the WooCommerce session (event name, product ids, quantity, original event time, value, currency, hashed customer data when present), capped at 20 recipes. On grant it SHALL POST `/event` with the rebuilt payload and the original event time. On deny it SHALL POST `/blocked-events` with `reason` `denied`. When the hold cookie is gone and no grant or deny is present it SHALL POST `/blocked-events` with `reason` `no_decision` and clear the queue. Purchase skipped for a hold SHALL still POST `/blocked-events` immediately.
+
+#### Scenario: Unanswered banner then accept
+- **WHEN** AddToCart or InitiateCheckout is skipped because `_pf_no_consent_decision=true`, and the visitor later grants
+- **THEN** the plugin POSTs `/event` for the held recipe with its original `eventTime`, stored value, and stored hashed customer data, and does not POST `/blocked-events` for that event
+
+#### Scenario: Unanswered banner then decline
+- **WHEN** AddToCart or InitiateCheckout is queued on a live hold, and the visitor later denies
+- **THEN** the plugin POSTs `/blocked-events` with `reason` `denied` for each queued event type and does not POST `/event`
+
+#### Scenario: Hold cookie gone without a decision
+- **WHEN** queued recipes remain after `_pf_no_consent_decision` is absent and no grant or deny is knowable
+- **THEN** the plugin POSTs `/blocked-events` with `reason` `no_decision` and clears the queue
+
+#### Scenario: Purchase during a hold
+- **WHEN** a Purchase is skipped because of a live or persisted hold
+- **THEN** the plugin POSTs `/blocked-events` with `reason` `no_decision` immediately and does not store a recipe
+
 ### Requirement: Skipped sends report anonymous blocked events
-The plugin SHALL POST an anonymous `blocked_events` payload to `/blocked-events` when it skips a server-side send for a bot user agent, an unanswered opt-in hold, or a denied consent decision. The payload SHALL contain only `siteId` and `blocked` rows (`eventType`, `reason`, optional `detail` on bot, optional `consentSource` on denied and no_decision). The plugin SHALL NOT beacon for a private or reserved IP skip, for GPC, or when the event is sent.
+The plugin SHALL POST an anonymous `blocked_events` payload to `/blocked-events` when it skips a server-side send for a bot user agent, a denied consent decision, a Purchase skipped for a hold, or a storefront hold queue that ends without a grant. The payload SHALL contain only `siteId` and `blocked` rows (`eventType`, `reason`, optional `detail` on bot, optional `consentSource` on denied and no_decision). The plugin SHALL NOT beacon for a private or reserved IP skip, for GPC, or when the event is sent.
 
 #### Scenario: Unanswered opt-in banner
-- **WHEN** the plugin skips a send because `_pf_no_consent_decision` is the literal value `true`
-- **THEN** it POSTs `/blocked-events` with `reason` `no_decision` and omits `consentSource` unless a consent source is already knowable
+- **WHEN** the plugin skips AddToCart or InitiateCheckout because `_pf_no_consent_decision` is the literal value `true`
+- **THEN** it does not POST `/blocked-events` on that request; it queues a recipe instead
 
 #### Scenario: Visitor declined
 - **WHEN** the plugin skips a send because the resolved consent decision is `denied`
