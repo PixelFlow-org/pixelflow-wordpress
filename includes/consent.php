@@ -13,6 +13,12 @@ if ( ! defined('ABSPATH')) {
 /** First-party consent-state cookie name (matches script CONSENT_COOKIE_NAME). */
 const PIXELFLOW_CONSENT_COOKIE_NAME = '_pf_consent';
 
+/** Session hold cookie the script writes while an opt-in banner is unanswered. */
+const PIXELFLOW_NO_CONSENT_DECISION_COOKIE_NAME = '_pf_no_consent_decision';
+
+/** Literal value that means "do not send server events yet". Any other value is ignored. */
+const PIXELFLOW_NO_CONSENT_DECISION_COOKIE_VALUE = 'true';
+
 /** Consent sources accepted by the PixelFlow API ingest contract. */
 const PIXELFLOW_CONSENT_SOURCES = [
     'gcm',
@@ -55,6 +61,17 @@ function pixelflow_register_consent_cookie_info(): void
             'marketing',
             __('183 days', 'pixelflow'),
             __('Stores the visitor consent decision for PixelFlow tracking (no visitor identifiers).', 'pixelflow'),
+            '',
+            false,
+            false,
+            'HTTP'
+        );
+        wp_add_cookie_info(
+            PIXELFLOW_NO_CONSENT_DECISION_COOKIE_NAME,
+            'PixelFlow',
+            'functional',
+            __('Session', 'pixelflow'),
+            __('Coordinates a hold on server-side events while a consent banner is unanswered (no visitor identifiers).', 'pixelflow'),
             '',
             false,
             false,
@@ -230,4 +247,47 @@ function pixelflow_append_consent_to_payload(array &$payload, ?string $cookie_ra
     }
 
     $payload['eventData']['consent'] = $consent;
+}
+
+/**
+ * Whether the hold cookie (live or persisted on the order) is the literal true value.
+ *
+ * @param string|null $raw_override Saved `_pf_no_consent_decision` from order meta
+ * @return bool
+ */
+function pixelflow_has_no_consent_decision_hold(?string $raw_override = null): bool
+{
+    $raw = null;
+    if ($raw_override !== null && $raw_override !== '') {
+        $raw = $raw_override;
+    } elseif (isset($_COOKIE[PIXELFLOW_NO_CONSENT_DECISION_COOKIE_NAME]) && is_string($_COOKIE[PIXELFLOW_NO_CONSENT_DECISION_COOKIE_NAME])) {
+        $raw = wp_unslash($_COOKIE[PIXELFLOW_NO_CONSENT_DECISION_COOKIE_NAME]);
+    }
+
+    if ( ! is_string($raw)) {
+        return false;
+    }
+
+    return $raw === PIXELFLOW_NO_CONSENT_DECISION_COOKIE_VALUE;
+}
+
+/**
+ * Whether a WooCommerce server event may be POSTed given the hold cookie and consent decision.
+ *
+ * @param string|null $consent_cookie_raw Saved `_pf_consent` from order meta for async purchase hooks
+ * @param string|null $no_decision_raw    Saved `_pf_no_consent_decision` from order meta
+ * @return bool True to send; false when holding for a decision or consent is denied
+ */
+function pixelflow_should_send_event_for_consent(?string $consent_cookie_raw = null, ?string $no_decision_raw = null): bool
+{
+    if (pixelflow_has_no_consent_decision_hold($no_decision_raw)) {
+        return false;
+    }
+
+    $consent = pixelflow_resolve_event_consent_block($consent_cookie_raw);
+    if ($consent !== null && $consent['state'] === 'denied') {
+        return false;
+    }
+
+    return true;
 }

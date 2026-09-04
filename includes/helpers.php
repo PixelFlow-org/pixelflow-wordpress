@@ -563,61 +563,86 @@ function pixelflow_sanitize_touch_snapshot( $snapshot ): ?array {
 }
 
 /**
+ * Resolves visitor_id from attribution JSON, then a uid override, then the live `_pf_uid` cookie.
+ *
+ * @param array       $data         Decoded attribution JSON (may be empty)
+ * @param string|null $uid_override Saved `_pf_uid` from order meta
+ * @return string|null
+ */
+function pixelflow_resolve_attribution_visitor_id( array $data, ?string $uid_override = null ): ?string {
+    if ( isset( $data['visitor_id'] ) && is_string( $data['visitor_id'] ) ) {
+        $visitor_id = substr( sanitize_text_field( $data['visitor_id'] ), 0, 64 );
+        if ( $visitor_id !== '' ) {
+            return $visitor_id;
+        }
+    }
+
+    $uid = $uid_override;
+    if ( ( $uid === null || $uid === '' ) && isset( $_COOKIE['_pf_uid'] ) && is_string( $_COOKIE['_pf_uid'] ) ) {
+        $uid = wp_unslash( $_COOKIE['_pf_uid'] );
+    }
+    if ( ! is_string( $uid ) || $uid === '' ) {
+        return null;
+    }
+
+    $visitor_id = substr( sanitize_text_field( $uid ), 0, 64 );
+
+    return $visitor_id !== '' ? $visitor_id : null;
+}
+
+/**
  * Reads and parses the _pf_attribution cookie (or an override raw string for order-meta path).
- * Returns a sanitized attribution array ready for eventData.attribution, or null on any failure.
+ * Returns a sanitized attribution array ready for eventData.attribution, or null when there is
+ * no visitor_id. Extra JSON keys are stripped. session_id is never invented.
  *
- * All four fields (visitor_id, session_id, first_touch, last_touch) must be present and valid
- * for a non-null return. Partial attribution is never returned.
- *
- * @param string|null $raw_override When provided, parses this string instead of $_COOKIE
+ * @param string|null $raw_override When provided, parses this string instead of $_COOKIE['_pf_attribution']
+ * @param string|null $uid_override Saved `_pf_uid` from order meta when live cookies are absent
  * @return array|null
  */
-function pixelflow_get_attribution_from_cookie( ?string $raw_override = null ): ?array {
+function pixelflow_get_attribution_from_cookie( ?string $raw_override = null, ?string $uid_override = null ): ?array {
     if ( $raw_override !== null ) {
         $raw = urldecode( wp_unslash( $raw_override ) );
     } elseif ( isset( $_COOKIE['_pf_attribution'] ) && is_string( $_COOKIE['_pf_attribution'] ) ) {
         $raw = urldecode( wp_unslash( $_COOKIE['_pf_attribution'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON; sanitization is applied field-by-field after json_decode()
     } else {
+        $raw = '';
+    }
+
+    $data = [];
+    if ( $raw !== '' ) {
+        $decoded = json_decode( $raw, true );
+        if ( is_array( $decoded ) ) {
+            $data = $decoded;
+        }
+    }
+
+    $visitor_id = pixelflow_resolve_attribution_visitor_id( $data, $uid_override );
+    if ( $visitor_id === null ) {
         return null;
     }
 
-    $data = json_decode( $raw, true );
-    if ( ! is_array( $data ) ) {
-        return null;
-    }
+    $attribution = [
+        'visitor_id' => $visitor_id,
+    ];
 
-    $visitor_id = null;
-    if ( isset( $data['visitor_id'] ) && is_string( $data['visitor_id'] ) ) {
-        $visitor_id = substr( sanitize_text_field( $data['visitor_id'] ), 0, 64 );
-    }
-    if ( empty( $visitor_id ) ) {
-        return null;
-    }
-
-    $session_id = null;
     if ( isset( $data['session_id'] ) && is_string( $data['session_id'] ) ) {
         $session_id = substr( sanitize_text_field( $data['session_id'] ), 0, 64 );
-    }
-    if ( empty( $session_id ) ) {
-        return null;
+        if ( $session_id !== '' ) {
+            $attribution['session_id'] = $session_id;
+        }
     }
 
     $first_touch = pixelflow_sanitize_touch_snapshot( $data['first_touch'] ?? null );
-    if ( $first_touch === null ) {
-        return null;
+    if ( $first_touch !== null ) {
+        $attribution['first_touch'] = $first_touch;
     }
 
     $last_touch = pixelflow_sanitize_touch_snapshot( $data['last_touch'] ?? null );
-    if ( $last_touch === null ) {
-        return null;
+    if ( $last_touch !== null ) {
+        $attribution['last_touch'] = $last_touch;
     }
 
-    return [
-        'visitor_id'  => $visitor_id,
-        'session_id'  => $session_id,
-        'first_touch' => $first_touch,
-        'last_touch'  => $last_touch,
-    ];
+    return $attribution;
 }
 
 /**

@@ -11,8 +11,8 @@ The plugin SHALL register itself as a WP Consent API consumer on every request, 
 - **THEN** the plugin is registered as a WP Consent API consumer before consent management platforms query the register
 
 #### Scenario: Cookie disclosure carries no visitor identifier
-- **WHEN** the plugin declares its consent-state cookie to the WP Consent API
-- **THEN** the declaration names the cookie's marketing purpose, its lifetime, and states that it stores no visitor identifier
+- **WHEN** the plugin declares its cookies to the WP Consent API
+- **THEN** the declaration names `_pf_consent` (marketing, 183 days) and `_pf_no_consent_decision` (functional, session), and states that neither stores a visitor identifier
 
 #### Scenario: Registration emits no notices
 - **WHEN** the plugin registers on a WordPress version that reports early translation loading
@@ -62,6 +62,33 @@ The plugin SHALL persist the visitor's consent-state cookie with the order when 
 #### Scenario: No consent decision was ever recorded for the order
 - **WHEN** a purchase event is sent in a background request and no consent decision was persisted with the order
 - **THEN** the event is sent with no consent block
+
+### Requirement: Hold and deny skip server-side sends
+The plugin SHALL NOT POST a server-side event when the session hold cookie `_pf_no_consent_decision` is the literal value `true` (live on the request, or persisted on the order for Purchase), or when the resolved consent decision is `denied`. When neither a hold nor a denied decision is present the event SHALL still be sent.
+
+#### Scenario: Opt-in banner still unanswered
+- **WHEN** the request carries `_pf_no_consent_decision=true`
+- **THEN** the plugin does not POST the event
+
+#### Scenario: Visitor declined
+- **WHEN** the resolved consent decision for the event is `denied`
+- **THEN** the plugin does not POST the event
+
+#### Scenario: Visitor accepted
+- **WHEN** the resolved consent decision is `granted` and the hold cookie is absent
+- **THEN** the event is POSTed with the consent block attached
+
+#### Scenario: No banner and no hold cookie
+- **WHEN** neither `_pf_no_consent_decision=true` nor a denied consent decision is present
+- **THEN** the event is POSTed (no-banner / script not loaded), with a consent block only if a decision is knowable
+
+#### Scenario: Purchase after a held checkout
+- **WHEN** a purchase event is sent from a background request and the order persisted `_pf_no_consent_decision=true`
+- **THEN** the plugin does not POST the purchase event
+
+#### Scenario: Cookie-less Purchase with no snapshot
+- **WHEN** a purchase event is sent from a background request and the order has neither a hold cookie nor a denied consent decision
+- **THEN** the event is POSTed
 
 ### Requirement: Rejection of untrustworthy consent cookies
 The plugin SHALL treat a consent-state cookie as absent unless it decodes to a decision with a recognised state, a recognised source, a numeric decision time and a numeric policy version, and SHALL reject any consent-state cookie that carries a visitor identifier.

@@ -552,7 +552,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return;
         }
 
-        $cookie_keys = ['_fbp', 'pf_fbc', '_fbc', 'pf_clkid', 'pf_loc', '_pf_utm', '_pf_attribution', '_pf_consent'];
+        $cookie_keys = ['_fbp', 'pf_fbc', '_fbc', 'pf_clkid', 'pf_loc', '_pf_utm', '_pf_attribution', '_pf_consent', '_pf_no_consent_decision', '_pf_uid'];
 
         foreach ($cookie_keys as $key) {
             if (isset($_COOKIE[$key]) && is_string($_COOKIE[$key]) && $_COOKIE[$key] !== '') {
@@ -667,8 +667,10 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
         $consent_raw = $order->get_meta('_pf_cookie__pf_consent', true);
         $consent_override = is_string($consent_raw) && $consent_raw !== '' ? $consent_raw : null;
+        $no_decision_raw = $order->get_meta('_pf_cookie__pf_no_consent_decision', true);
+        $no_decision_override = is_string($no_decision_raw) && $no_decision_raw !== '' ? $no_decision_raw : null;
 
-        $this->post_event($payload, $consent_override);
+        $this->post_event($payload, $consent_override, $no_decision_override);
     }
 
     /**
@@ -756,11 +758,15 @@ class PixelFlow_WooCommerce_Cart_Hooks
             $raw = wp_unslash( $_COOKIE['_pf_attribution'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON; field-level sanitization happens inside pixelflow_get_attribution_from_cookie()
         }
 
-        if ( empty( $raw ) ) {
-            return;
+        $uid = $order->get_meta( '_pf_cookie__pf_uid', true );
+        if ( empty( $uid ) && isset( $_COOKIE['_pf_uid'] ) && is_string( $_COOKIE['_pf_uid'] ) ) {
+            $uid = sanitize_text_field( wp_unslash( $_COOKIE['_pf_uid'] ) );
         }
 
-        $attribution = pixelflow_get_attribution_from_cookie( $raw );
+        $attribution = pixelflow_get_attribution_from_cookie(
+            is_string( $raw ) && $raw !== '' ? $raw : null,
+            is_string( $uid ) && $uid !== '' ? $uid : null
+        );
         if ( $attribution === null ) {
             return;
         }
@@ -1256,11 +1262,18 @@ class PixelFlow_WooCommerce_Cart_Hooks
      *
      * @param array       $payload             Event payload
      * @param string|null $consent_cookie_raw  Saved _pf_consent from order meta for async purchase hooks
+     * @param string|null $no_decision_raw     Saved _pf_no_consent_decision from order meta
      * @return void
      */
-    private function post_event(array $payload, ?string $consent_cookie_raw = null): void
+    private function post_event(array $payload, ?string $consent_cookie_raw = null, ?string $no_decision_raw = null): void
     {
         pixelflow_append_consent_to_payload($payload, $consent_cookie_raw);
+
+        if ( ! pixelflow_should_send_event_for_consent($consent_cookie_raw, $no_decision_raw)) {
+            $event_name = isset($payload['eventData']['eventName']) ? (string) $payload['eventData']['eventName'] : 'unknown';
+            $this->debug_log($event_name, $payload, 'EVENT SENDING SKIPPED BECAUSE CONSENT IS PENDING OR DENIED');
+            return;
+        }
 
         $url = $this->api_url . '/event';
         $event_skipped_message = __('EVENT SENDING SKIPPED BECAUSE USER AGENT MATCHED BOT SIGNATURE', 'pixelflow');
