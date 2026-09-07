@@ -710,11 +710,7 @@ function pixelflow_append_cookie_params(
 }
 
 
-/**
- * @param $userAgent
- *
- * @return bool
- */
+/** User-agent substrings treated as automated traffic; see pixelflow_get_bot_detail_pattern(). */
 define('PIXELFLOW_BOT_PATTERNS', [
     'bot', // Catches googlebot, bingbot, storebot, etc.
     'crawler',
@@ -738,9 +734,6 @@ define('PIXELFLOW_BOT_PATTERNS', [
     'shopproductfinder',
     'pricefinder',
 ]);
-function pixelflow_if_is_bot($userAgent) {
-    return pixelflow_get_bot_detail_pattern((string) $userAgent) !== null;
-}
 
 /**
  * @return string|null

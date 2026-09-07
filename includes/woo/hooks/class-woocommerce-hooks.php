@@ -30,6 +30,15 @@ class PixelFlow_WooCommerce_Cart_Hooks
     private bool  $coupon_changed  = false;
 
     private const DEFAULT_TIMEOUT = 5;
+
+    /** Floor for how long a delivery claim is honoured before it counts as abandoned. */
+    private const CLAIM_TTL_FLOOR = 300;
+
+    /** How long a blocked purchase may still be resolved by a grant before it is reported. */
+    private const BLOCKED_REPORT_DELAY = 1800;
+
+    /** Cron hook that sends a blocked purchase's row once its window has closed. */
+    private const BLOCKED_REPORT_HOOK = 'pixelflow_report_blocked_purchase';
     private int $timeout;
     private bool $flushing_held = false;
 
@@ -78,6 +87,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
      */
     private function init_hooks()
     {
+        // Registered before the guards below: the scheduler runs in neither a
+        // front-end nor an admin context, and a report that never fires would
+        // silently undercount the backend.
+        add_action(self::BLOCKED_REPORT_HOOK, [$this, 'report_blocked_purchase'], 10, 1);
+
         // Skip all hook registration if this is a cache-warmer / internal request
         if (pixelflow_is_cache_warmer_request()) {
             return;
@@ -109,6 +123,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
         add_action('wp', [$this, 'resolve_held_events'], 30);
         add_action('wc_ajax_pixelflow_resolve_held_events', [$this, 'ajax_resolve_held_events']);
+        add_action('wc_ajax_pixelflow_held_state', [$this, 'ajax_held_state']);
     }
 
     /**
@@ -397,19 +412,50 @@ class PixelFlow_WooCommerce_Cart_Hooks
     }
 
     /**
-     * Whether the cart has at least one item with price > 0.
+     * Whether a cart or order line contributes to an event's contents, count and value.
+     *
+     * The freebie option is a parameter rather than a constant, so the three
+     * per-event settings keep their separate meanings.
+     *
+     * @param WC_Product|null $product        Product behind the line, when resolvable
+     * @param string          $freebie_option Option key deciding free products for this event
+     * @param array           $excluded_skus  SKUs the store has chosen not to track
+     * @return bool
      */
-    private function cart_has_paid_items($cart): bool
+    private function line_is_reported($product, string $freebie_option, array $excluded_skus): bool
     {
+        // Nothing to test against: keep the line rather than silently dropping it.
+        if ( ! ($product instanceof WC_Product)) {
+            return true;
+        }
+
+        if ($excluded_skus !== [] && in_array((string) $product->get_sku(), $excluded_skus, true)) {
+            return false;
+        }
+
+        if ( ! empty($this->options[$freebie_option]) && (int) $this->options[$freebie_option] === 1
+            && (float) wc_get_price_to_display($product) <= 0) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Whether the cart still has a line to report once the filter has run.
+     *
+     * @param object $cart WooCommerce cart
+     * @return bool
+     */
+    private function cart_has_reported_lines($cart): bool
+    {
+        $excluded_skus = $this->get_excluded_skus();
+
         foreach ($cart->get_cart() as $cart_item) {
-            $pid           = isset($cart_item['product_id']) ? (int)$cart_item['product_id'] : 0;
-            $vid           = isset($cart_item['variation_id']) ? (int)$cart_item['variation_id'] : 0;
-            $wc_product_id = $vid > 0 ? $vid : $pid;
-            if ($wc_product_id <= 0) {
-                continue;
-            }
-            $product = wc_get_product($wc_product_id);
-            if ($product && (float)wc_get_price_to_display($product) > 0) {
+            $product = isset($cart_item['data']) && $cart_item['data'] instanceof WC_Product
+                ? $cart_item['data']
+                : null;
+            if ($this->line_is_reported($product, 'woo_disable_initiate_checkout_freebies', $excluded_skus)) {
                 return true;
             }
         }
@@ -418,16 +464,20 @@ class PixelFlow_WooCommerce_Cart_Hooks
     }
 
     /**
-     * Whether the order has at least one line item with price > 0.
+     * Whether the order still has a line to report once the filter has run.
+     *
+     * @param WC_Order $order Order being reported
+     * @return bool
      */
-    private function order_has_paid_items(WC_Order $order): bool
+    private function order_has_reported_lines(WC_Order $order): bool
     {
+        $excluded_skus = $this->get_excluded_skus();
+
         foreach ($order->get_items('line_item') as $item) {
             if ( ! ($item instanceof WC_Order_Item_Product)) {
                 continue;
             }
-            $product = $item->get_product();
-            if ($product && (float)wc_get_price_to_display($product) > 0) {
+            if ($this->line_is_reported($item->get_product(), 'woo_disable_purchase_freebies', $excluded_skus)) {
                 return true;
             }
         }
@@ -452,30 +502,14 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return;
         }
 
-        // When option is set to 1: do not send InitiateCheckout if cart has only free products
-        if ( ! empty($this->options['woo_disable_initiate_checkout_freebies']) && (int)$this->options['woo_disable_initiate_checkout_freebies'] === 1) {
-            if ( ! $this->cart_has_paid_items($cart)) {
-                return;
-            }
-        }
-
         if ( ! WC()->session) {
             return;
         }
 
-        $excluded_skus = $this->get_excluded_skus();
-        if ( ! empty($excluded_skus)) {
-            $all_excluded = true;
-            foreach ($cart->get_cart() as $cart_item) {
-                $item_product = $cart_item['data'] ?? null;
-                if ($item_product && ! in_array($item_product->get_sku(), $excluded_skus, true)) {
-                    $all_excluded = false;
-                    break;
-                }
-            }
-            if ($all_excluded) {
-                return;
-            }
+        // Excluded and free lines are filtered out of the payload, so the event is
+        // skipped only when the filter leaves nothing to report.
+        if ( ! $this->cart_has_reported_lines($cart)) {
+            return;
         }
 
         $should_send = apply_filters('pixelflow_should_send_initiate_checkout', true, $cart);
@@ -597,6 +631,17 @@ class PixelFlow_WooCommerce_Cart_Hooks
             $order->update_meta_data('_pf_client_ua', $ua);
         }
 
+        // Written once and never rewritten, so a later visitor cannot claim the
+        // order by arriving with a different session.
+        $session = pixelflow_woo_session();
+        if ($session !== null && method_exists($session, 'get_customer_id')
+            && (string) $order->get_meta('_pf_session_customer_id', true) === '') {
+            $session_customer_id = (string) $session->get_customer_id();
+            if ($session_customer_id !== '') {
+                $order->update_meta_data('_pf_session_customer_id', $session_customer_id);
+            }
+        }
+
         $order->save();
     }
 
@@ -626,26 +671,10 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return;
         }
 
-        // When option is set to 1: do not send Purchase if order has only free products
-        if ( ! empty($this->options['woo_disable_purchase_freebies']) && (int)$this->options['woo_disable_purchase_freebies'] === 1) {
-            if ( ! $this->order_has_paid_items($order)) {
-                return;
-            }
-        }
-
-        $excluded_skus = $this->get_excluded_skus();
-        if ( ! empty($excluded_skus)) {
-            $all_excluded = true;
-            foreach ($order->get_items('line_item') as $item) {
-                $item_product = $item->get_product();
-                if ($item_product && ! in_array($item_product->get_sku(), $excluded_skus, true)) {
-                    $all_excluded = false;
-                    break;
-                }
-            }
-            if ($all_excluded) {
-                return;
-            }
+        // Excluded and free lines are filtered out of the payload, so the event is
+        // skipped only when the filter leaves nothing to report.
+        if ( ! $this->order_has_reported_lines($order)) {
+            return;
         }
 
         $should_send = apply_filters('pixelflow_should_send_purchase', true, $order);
@@ -657,12 +686,24 @@ class PixelFlow_WooCommerce_Cart_Hooks
         if ( ! empty($order->get_meta('_pf_purchase_sent', true))) {
             return;
         }
+        // A reported order is closed: the backend has already counted one unit
+        // for it, and a second one would be the inflation this guards against.
+        if ( ! empty($order->get_meta('_pf_purchase_blocked_reported', true))) {
+            return;
+        }
         if (isset($this->sent_in_request[$guard_key])) {
             return;
         }
         $this->sent_in_request[$guard_key] = 1;
 
-        $this->sync_live_grant_onto_order($order);
+        $owns_order = pixelflow_request_owns_order($order);
+        if ($owns_order) {
+            $this->sync_live_consent_onto_order($order);
+        }
+
+        if ( ! $this->claim_purchase_delivery($order_id)) {
+            return;
+        }
 
         $event_time = time();
 
@@ -673,7 +714,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $payload = [
             'siteId'    => (string)$this->site_external_id,
             'eventData' => [
-                'event_id'       => uniqid('', true),
+                'event_id'       => $this->purchase_event_id($order_id, 'Purchase'),
                 'eventName'      => 'Purchase',
                 'eventTime'      => $event_time,
                 'actionSource'   => 'website',
@@ -699,33 +740,240 @@ class PixelFlow_WooCommerce_Cart_Hooks
             'consent'     => $consent_override,
             'no_decision' => $no_decision_override,
             'source'      => $source_override,
+            'allow_live'  => $owns_order,
+            'order'       => $order,
         ]);
+
+        $this->release_purchase_delivery_claim($order_id);
+
         if ($outcome === 'sent') {
             $order->update_meta_data('_pf_purchase_sent', '1');
+            // A hold that a grant has now resolved: the scheduled row would
+            // double-count an order that is being delivered for real.
+            $this->cancel_blocked_purchase_report($order);
             $order->save();
             $this->pf_reset_checkout_guard();
         }
     }
 
     /**
-     * Writes a live grant (and uid) onto the order so a later webhook can send.
+     * Deterministic event id, so a duplicate that outran the claim is recognisable
+     * in the backend's data and collapses on its own if the API ever deduplicates.
      *
-     * @param WC_Order $order Order created while the banner was still unanswered
+     * @param int    $order_id   Order the event describes
+     * @param string $event_name Catalog event name, so a second event type cannot collide
+     * @return string
+     */
+    private function purchase_event_id(int $order_id, string $event_name): string
+    {
+        return 'pf-order-' . $order_id . '-' . strtolower($event_name);
+    }
+
+    /**
+     * How long a delivery claim is honoured before another hook may take it over.
+     *
+     * The floor is two orders of magnitude over a default request; the multiple of
+     * the timeout keeps that margin when a site raises `pixelflow_request_timeout`.
+     *
+     * @return int Seconds
+     */
+    private function get_claim_ttl(): int
+    {
+        return max(self::CLAIM_TTL_FLOOR, $this->timeout * 10);
+    }
+
+    /**
+     * Claims delivery of this order's purchase before the POST.
+     *
+     * `add_option()` is atomic because `option_name` carries a unique index, so of
+     * two concurrent hooks exactly one is told it inserted the row.
+     *
+     * @param int $order_id Order being delivered
+     * @return bool True when this request owns the send
+     */
+    private function claim_purchase_delivery(int $order_id): bool
+    {
+        $key = 'pixelflow_purchase_claim_' . $order_id;
+        if (add_option($key, (string) time(), '', 'no')) {
+            return true;
+        }
+
+        $taken_at = (int) get_option($key, 0);
+        if ($taken_at > 0 && (time() - $taken_at) < $this->get_claim_ttl()) {
+            return false;
+        }
+
+        // Abandoned by a request that died before recording an outcome. Deleting it
+        // here is also the only cleanup these rows get.
+        delete_option($key);
+
+        return (bool) add_option($key, (string) time(), '', 'no');
+    }
+
+    /**
+     * Releases the delivery claim once the outcome has been recorded.
+     *
+     * @param int $order_id Order being delivered
      * @return void
      */
-    private function sync_live_grant_onto_order(WC_Order $order): void
+    private function release_purchase_delivery_claim(int $order_id): void
+    {
+        delete_option('pixelflow_purchase_claim_' . $order_id);
+    }
+
+    /**
+     * Records a skipped purchase and defers its blocked row, or sends one that is due.
+     *
+     * Nothing is beaconed at the moment of the skip: a shopper who declines at
+     * checkout and accepts on the thank-you page would otherwise cost the backend
+     * two units for one order.
+     *
+     * @param WC_Order $order   Order whose purchase was skipped
+     * @param array    $blocked Reason row from pixelflow_resolve_blocked_event_reason()
+     * @return string What happened, for the debug log
+     */
+    private function defer_blocked_purchase_report(WC_Order $order, array $blocked): string
+    {
+        if ( ! empty($order->get_meta('_pf_purchase_blocked_reported', true))) {
+            return 'ALREADY REPORTED';
+        }
+
+        $order_id = (int) $order->get_id();
+        $stored   = $order->get_meta('_pf_purchase_blocked', true);
+        $marker   = is_string($stored) && $stored !== '' ? json_decode($stored, true) : null;
+
+        if ( ! is_array($marker) || ! isset($marker['due'])) {
+            $marker = $blocked;
+            $marker['due'] = time() + self::BLOCKED_REPORT_DELAY;
+            $order->update_meta_data('_pf_purchase_blocked', (string) wp_json_encode($marker));
+            $order->save();
+
+            if ( ! wp_next_scheduled(self::BLOCKED_REPORT_HOOK, [$order_id])) {
+                wp_schedule_single_event((int) $marker['due'], self::BLOCKED_REPORT_HOOK, [$order_id]);
+            }
+
+            return 'DEFERRED UNTIL ' . gmdate('Y-m-d H:i:s', (int) $marker['due'])
+                . ' UTC UNLESS THE BUYER GRANTS FIRST';
+        }
+
+        // Overdue: either the scheduler never ran, or it ran and the order was
+        // still blocked. Either way this hook can close the order itself.
+        if ((int) $marker['due'] <= time()) {
+            $this->send_blocked_purchase_report($order, $marker);
+
+            return 'REPORTED NOW, OVERDUE SINCE ' . gmdate('Y-m-d H:i:s', (int) $marker['due']) . ' UTC';
+        }
+
+        return 'ALREADY DEFERRED UNTIL ' . gmdate('Y-m-d H:i:s', (int) $marker['due']) . ' UTC';
+    }
+
+    /**
+     * Sends the deferred blocked row for an order and closes it to further traffic.
+     *
+     * @param WC_Order $order  Order whose purchase stayed blocked
+     * @param array    $marker Stored reason row
+     * @return void
+     */
+    private function send_blocked_purchase_report(WC_Order $order, array $marker): void
+    {
+        $row = $marker;
+        unset($row['due']);
+        if (($row['reason'] ?? '') === '') {
+            return;
+        }
+
+        $this->post_blocked_event('Purchase', $row);
+
+        $order->update_meta_data('_pf_purchase_blocked_reported', '1');
+        $order->delete_meta_data('_pf_purchase_blocked');
+        $order->save();
+
+        wp_clear_scheduled_hook(self::BLOCKED_REPORT_HOOK, [(int) $order->get_id()]);
+    }
+
+    /**
+     * Drops a pending blocked report because the purchase is being delivered instead.
+     *
+     * @param WC_Order $order Order whose purchase was just sent
+     * @return void
+     */
+    private function cancel_blocked_purchase_report(WC_Order $order): void
+    {
+        if ((string) $order->get_meta('_pf_purchase_blocked', true) === '') {
+            return;
+        }
+
+        $order->delete_meta_data('_pf_purchase_blocked');
+        wp_clear_scheduled_hook(self::BLOCKED_REPORT_HOOK, [(int) $order->get_id()]);
+    }
+
+    /**
+     * Scheduler callback: reports a purchase that stayed blocked for its whole window.
+     *
+     * @param int $order_id Order to report
+     * @return void
+     */
+    public function report_blocked_purchase($order_id): void
+    {
+        $order_id = (int) $order_id;
+        if ($order_id <= 0 || ! function_exists('wc_get_order')) {
+            return;
+        }
+
+        $order = wc_get_order($order_id);
+        if ( ! $order) {
+            return;
+        }
+
+        if ( ! empty($order->get_meta('_pf_purchase_sent', true))
+            || ! empty($order->get_meta('_pf_purchase_blocked_reported', true))) {
+            return;
+        }
+
+        $stored = $order->get_meta('_pf_purchase_blocked', true);
+        $marker = is_string($stored) && $stored !== '' ? json_decode($stored, true) : null;
+        if ( ! is_array($marker)) {
+            return;
+        }
+
+        $this->send_blocked_purchase_report($order, $marker);
+    }
+
+    /**
+     * Writes the buyer's own decision onto the order so a later background hook sees it.
+     *
+     * Called only for a request that owns the order, and it moves in both directions:
+     * a grant releases a held purchase, a withdrawal stops one that has not been sent.
+     * Identity already recorded for the order is never replaced — a later request may
+     * fill a missing identifier, never overwrite the attribution the buyer arrived with.
+     *
+     * @param WC_Order $order Order the current request belongs to
+     * @return void
+     */
+    private function sync_live_consent_onto_order(WC_Order $order): void
     {
         $consent = pixelflow_live_consent_decision();
-        if ($consent === null || ($consent['state'] ?? '') !== 'granted') {
+        $state   = $consent === null ? '' : (string) ($consent['state'] ?? '');
+        if ($state !== 'granted' && $state !== 'denied') {
             return;
         }
 
         $order->delete_meta_data('_pf_cookie__pf_no_consent_decision');
-        foreach (['_pf_consent', '_pf_consent_source', '_pf_uid', '_pf_attribution'] as $key) {
-            if (isset($_COOKIE[$key]) && is_string($_COOKIE[$key]) && $_COOKIE[$key] !== '') {
-                $order->update_meta_data('_pf_cookie_' . $key, sanitize_text_field(wp_unslash($_COOKIE[$key])));
+
+        $overwritable = ['_pf_consent', '_pf_consent_source'];
+        $fill_only    = ['_pf_uid', '_pf_attribution'];
+
+        foreach (array_merge($overwritable, $fill_only) as $key) {
+            if ( ! isset($_COOKIE[$key]) || ! is_string($_COOKIE[$key]) || $_COOKIE[$key] === '') {
+                continue;
             }
+            if (in_array($key, $fill_only, true)
+                && (string) $order->get_meta('_pf_cookie_' . $key, true) !== '') {
+                continue;
+            }
+            $order->update_meta_data('_pf_cookie_' . $key, sanitize_text_field(wp_unslash($_COOKIE[$key])));
         }
+
         $order->save();
     }
 
@@ -1004,8 +1252,12 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $decimals   = wc_get_price_decimals();
         $id_format  = $this->options['woo_product_id_format'] ?? 'product_id';
 
-        $contents  = [];
-        $num_items = 0;
+        $contents      = [];
+        $num_items     = 0;
+        $excluded_skus = $this->get_excluded_skus();
+        $kept_total    = 0.0;
+        $all_total     = 0.0;
+        $omitted_any   = false;
 
         foreach ($cart->get_cart() as $cart_item) {
             $qty = isset($cart_item['quantity']) ? (int)$cart_item['quantity'] : 0;
@@ -1036,6 +1288,13 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 ? $cart_item['data']
                 : null;
 
+            $all_total += $line_total;
+            if ( ! $this->line_is_reported($product, 'woo_disable_initiate_checkout_freebies', $excluded_skus)) {
+                $omitted_any = true;
+                continue;
+            }
+            $kept_total += $line_total;
+
             if ($price <= 0 && $product !== null) {
                 $raw   = $product->get_price(); // string or ''
                 $price = $raw !== '' ? (float)wc_format_decimal($raw, $decimals) : 0.0;
@@ -1054,7 +1313,17 @@ class PixelFlow_WooCommerce_Cart_Hooks
             $num_items += $qty;
         }
 
-        $value = (float)wc_format_decimal($cart->get_cart_contents_total(), $decimals);
+        $cart_total = (float)$cart->get_cart_contents_total();
+
+        // With nothing filtered out the cart total is reported unchanged. Otherwise
+        // the same proportion the cart applies to its lines is applied to the kept
+        // ones, so the omitted product keeps its own share of any cart-level discount.
+        if ($omitted_any) {
+            $ratio      = ($all_total > 0 && $cart_total < $all_total) ? $cart_total / $all_total : 1.0;
+            $cart_total = $kept_total * $ratio;
+        }
+
+        $value = (float)wc_format_decimal($cart_total, $decimals);
 
         $data = [
             'contentType' => 'product',
@@ -1165,6 +1434,9 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $rows            = [];
         $product_names   = [];
         $sum_item_totals = 0.0;
+        $all_line_totals = 0.0;
+        $omitted_any     = false;
+        $excluded_skus   = $this->get_excluded_skus();
 
         foreach ($order->get_items('line_item') as $item) {
             if ( ! ($item instanceof WC_Order_Item_Product)) {
@@ -1184,8 +1456,6 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 continue;
             }
 
-            $product_names[] = (string)$item->get_name();
-
             // Line total after item-level discounts, excl. tax
             $line_total = (float)$item->get_total();
 
@@ -1196,6 +1466,15 @@ class PixelFlow_WooCommerce_Cart_Hooks
                     $line_total = $line_subtotal;
                 }
             }
+
+            $all_line_totals += $line_total;
+
+            if ( ! $this->line_is_reported($item->get_product(), 'woo_disable_purchase_freebies', $excluded_skus)) {
+                $omitted_any = true;
+                continue;
+            }
+
+            $product_names[] = (string)$item->get_name();
 
             $rows[]           = [
                 'tracked_id' => $tracked_id,
@@ -1212,6 +1491,17 @@ class PixelFlow_WooCommerce_Cart_Hooks
             0.0,
             (float)$order->get_total() - (float)$order->get_shipping_total() - (float)$order->get_total_tax()
         );
+
+        // With nothing filtered out this is what the shopper paid for products, as
+        // before. Otherwise the order-level discount is spread over every line first
+        // and only the kept share is reported, so the omitted product carries its own
+        // share of the discount out of the payload with it.
+        if ($omitted_any) {
+            $order_ratio          = ($all_line_totals > 0 && $order_products_value < $all_line_totals)
+                ? $order_products_value / $all_line_totals
+                : 1.0;
+            $order_products_value = $sum_item_totals * $order_ratio;
+        }
 
         // Only redistribute when there is a gap (order-level discount, bundle, subscription trial).
         // When sum_item_totals == order_products_value the ratio is 1.0 — prices unchanged.
@@ -1324,20 +1614,30 @@ class PixelFlow_WooCommerce_Cart_Hooks
     {
         $blocked_payload = pixelflow_build_blocked_events_payload($this->site_external_id, $event_name, $row);
         if ($blocked_payload === null) {
+            // Unknown reason, or no site id: nothing reaches the API, and without a
+            // line here the row would disappear with no trace at all.
+            $this->debug_log(
+                'BLOCKED_EVENTS ' . $event_name,
+                ['blocked' => [$row]],
+                'BLOCKED EVENT NOT REPORTED BECAUSE THE PAYLOAD COULD NOT BE BUILT'
+            );
+
             return;
         }
 
         add_filter('http_request_args', [$this, 'tune_connect_timeout_for_pixelflow'], 10, 2);
-        pixelflow_post_blocked_events($this->api_url, $this->api_key, $blocked_payload);
+        $response = pixelflow_post_blocked_events($this->api_url, $this->api_key, $blocked_payload);
         remove_filter('http_request_args', [$this, 'tune_connect_timeout_for_pixelflow'], 10);
+
+        $this->debug_log('BLOCKED_EVENTS ' . $event_name, $blocked_payload, $response);
     }
 
     /**
      * Posts a server-side event to the PixelFlow API, or a blocked-events beacon when skipped.
      *
      * @param array $payload Event payload
-     * @param array{consent?: ?string, no_decision?: ?string, source?: ?string, product_id?: int, variation_id?: int} $context
-     * @return string sent|held|blocked|skipped
+     * @param array{consent?: ?string, no_decision?: ?string, source?: ?string, product_id?: int, variation_id?: int, allow_live?: bool, order?: WC_Order} $context
+     * @return string sent|held|blocked|skipped|failed
      */
     private function post_event(array $payload, array $context = []): string
     {
@@ -1346,8 +1646,10 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $source_cookie_raw  = isset($context['source']) && is_string($context['source']) ? $context['source'] : null;
         $product_id         = isset($context['product_id']) ? (int) $context['product_id'] : 0;
         $variation_id       = isset($context['variation_id']) ? (int) $context['variation_id'] : 0;
+        $allow_live         = ! isset($context['allow_live']) || (bool) $context['allow_live'];
+        $order              = isset($context['order']) && $context['order'] instanceof WC_Order ? $context['order'] : null;
 
-        pixelflow_append_consent_to_payload($payload, $consent_cookie_raw, $source_cookie_raw);
+        pixelflow_append_consent_to_payload($payload, $consent_cookie_raw, $source_cookie_raw, $allow_live);
 
         $event_name = isset($payload['eventData']['eventName']) ? (string) $payload['eventData']['eventName'] : 'unknown';
         $ua         = pixelflow_get_client_user_agent();
@@ -1355,10 +1657,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
             $consent_cookie_raw,
             $no_decision_raw,
             pixelflow_get_bot_detail_pattern($ua),
-            $source_cookie_raw
+            $source_cookie_raw,
+            $allow_live
         );
 
-        $gate = $this->hold_or_block_event($payload, $event_name, $blocked, $product_id, $variation_id);
+        $gate = $this->hold_or_block_event($payload, $event_name, $blocked, $product_id, $variation_id, $order);
         if ($gate !== null) {
             return $gate;
         }
@@ -1378,12 +1681,24 @@ class PixelFlow_WooCommerce_Cart_Hooks
      * @param array|null $blocked      Reason row, or null to send
      * @param int        $product_id   Parent product id when queueing AddToCart
      * @param int        $variation_id Variation id when queueing AddToCart
+     * @param WC_Order|null $order      Order behind a Purchase, whose blocked row is deferred
      * @return string|null held|blocked, or null to continue the send
      */
-    private function hold_or_block_event(array $payload, string $event_name, ?array $blocked, int $product_id, int $variation_id): ?string
+    private function hold_or_block_event(array $payload, string $event_name, ?array $blocked, int $product_id, int $variation_id, ?WC_Order $order = null): ?string
     {
         if ($blocked === null) {
             return null;
+        }
+
+        if ($order !== null && $event_name === 'Purchase') {
+            $disposition = $this->defer_blocked_purchase_report($order, $blocked);
+            $this->debug_log(
+                $event_name,
+                $payload,
+                'EVENT SENDING SKIPPED (' . ($blocked['reason'] ?? 'unknown') . '); BLOCKED ROW ' . $disposition
+            );
+
+            return 'blocked';
         }
 
         if (pixelflow_should_queue_held_event($blocked, $event_name)) {
@@ -1414,7 +1729,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
      * @param array  $payload    Event payload
      * @param string $event_name Catalog event name
      * @param string $ua         Client user agent
-     * @return string sent|skipped
+     * @return string sent|skipped|failed
      */
     private function dispatch_event_post(array $payload, string $event_name, string $ua): string
     {
@@ -1440,7 +1755,10 @@ class PixelFlow_WooCommerce_Cart_Hooks
         add_filter('http_request_args', [$this, 'tune_connect_timeout_for_pixelflow'], 10, 2);
         if ( ! $is_private_ip) {
             $response = wp_remote_post($this->api_url . '/event', $args);
-            $outcome  = 'sent';
+            // The request is non-blocking, so there is no status to read, but the
+            // connection is still established synchronously: a refused connection,
+            // an unresolvable host or a TLS failure arrives here as a WP_Error.
+            $outcome  = is_wp_error($response) ? 'failed' : 'sent';
         } else {
             $response = $private_skip_message . ' (PRIVATE_IP)';
             $outcome  = 'skipped';

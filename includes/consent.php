@@ -250,17 +250,22 @@ function pixelflow_live_consent_decision(): ?array
 /**
  * Resolves consent for a server-side event: live request first, then order-meta override.
  *
- * A thank-you grant must beat a hold/deny snapshot saved at checkout. Background
- * hooks (webhooks) have no live cookies and still use the override.
+ * The buyer's own decision on this request wins in both directions, so a grant on
+ * the thank-you page sends a held purchase and a withdrawal there stops one. When
+ * the request is not the buyer's, `$allow_live` is false and only the decision
+ * persisted with the order is consulted.
  *
  * @param string|null $cookie_raw_override Saved cookie from order meta for async purchase hooks
+ * @param bool        $allow_live          False for an order-scoped event in a request that is not the buyer's
  * @return array{state: string, source: string, timestamp: int}|null
  */
-function pixelflow_resolve_event_consent_block(?string $cookie_raw_override = null): ?array
+function pixelflow_resolve_event_consent_block(?string $cookie_raw_override = null, bool $allow_live = true): ?array
 {
-    $live = pixelflow_live_consent_decision();
-    if ($live !== null) {
-        return $live;
+    if ($allow_live) {
+        $live = pixelflow_live_consent_decision();
+        if ($live !== null) {
+            return $live;
+        }
     }
 
     if ($cookie_raw_override !== null && $cookie_raw_override !== '') {
@@ -323,15 +328,16 @@ function pixelflow_unknown_consent_block_from_source(?string $source_raw_overrid
  * @param array       $payload              Event payload passed by reference
  * @param string|null $cookie_raw_override  Saved consent cookie from order meta
  * @param string|null $source_raw_override  Saved `_pf_consent_source` from order meta
+ * @param bool        $allow_live           False for an order-scoped event in a request that is not the buyer's
  * @return void
  */
-function pixelflow_append_consent_to_payload(array &$payload, ?string $cookie_raw_override = null, ?string $source_raw_override = null): void
+function pixelflow_append_consent_to_payload(array &$payload, ?string $cookie_raw_override = null, ?string $source_raw_override = null, bool $allow_live = true): void
 {
     if ( ! isset($payload['eventData']) || ! is_array($payload['eventData'])) {
         return;
     }
 
-    $consent = pixelflow_resolve_event_consent_block($cookie_raw_override);
+    $consent = pixelflow_resolve_event_consent_block($cookie_raw_override, $allow_live);
     if ($consent === null) {
         $consent = pixelflow_unknown_consent_block_from_source($source_raw_override);
     }
@@ -347,13 +353,16 @@ function pixelflow_append_consent_to_payload(array &$payload, ?string $cookie_ra
  * A live grant on this request wins so thank-you can send after a held checkout.
  *
  * @param string|null $raw_override Saved `_pf_no_consent_decision` from order meta
+ * @param bool        $allow_live   False for an order-scoped event in a request that is not the buyer's
  * @return bool
  */
-function pixelflow_has_no_consent_decision_hold(?string $raw_override = null): bool
+function pixelflow_has_no_consent_decision_hold(?string $raw_override = null, bool $allow_live = true): bool
 {
-    $live = pixelflow_live_consent_decision();
-    if ($live !== null && ($live['state'] ?? '') === 'granted') {
-        return false;
+    if ($allow_live) {
+        $live = pixelflow_live_consent_decision();
+        if ($live !== null && ($live['state'] ?? '') === 'granted') {
+            return false;
+        }
     }
 
     $raw = null;
@@ -371,22 +380,55 @@ function pixelflow_has_no_consent_decision_hold(?string $raw_override = null): b
 }
 
 /**
- * Whether a WooCommerce server event may be POSTed given the hold cookie and consent decision.
+ * Whether the current request belongs to the shopper who placed this order.
  *
- * @param string|null $consent_cookie_raw Saved `_pf_consent` from order meta for async purchase hooks
- * @param string|null $no_decision_raw    Saved `_pf_no_consent_decision` from order meta
- * @return bool True to send; false when holding for a decision or consent is denied
+ * Any one signal is enough. `_pf_uid` carries most of the weight: it survives a
+ * gateway redirect, a session regeneration and a login, and it is already stored
+ * on every order, so the predicate also answers for orders that predate it. A
+ * request matching nothing is a stranger's, and the order's own decision stands.
+ *
+ * @param WC_Order|object $order Order to test the current request against
+ * @return bool
  */
-function pixelflow_should_send_event_for_consent(?string $consent_cookie_raw = null, ?string $no_decision_raw = null): bool
+function pixelflow_request_owns_order($order): bool
 {
-    if (pixelflow_has_no_consent_decision_hold($no_decision_raw)) {
+    if ( ! is_object($order) || ! method_exists($order, 'get_meta')) {
         return false;
     }
 
-    $consent = pixelflow_resolve_event_consent_block($consent_cookie_raw);
-    if ($consent !== null && $consent['state'] === 'denied') {
+    $order_uid = $order->get_meta('_pf_cookie__pf_uid', true);
+    if (is_string($order_uid) && $order_uid !== ''
+        && isset($_COOKIE['_pf_uid']) && is_string($_COOKIE['_pf_uid'])) {
+        $live_uid = sanitize_text_field(wp_unslash($_COOKIE['_pf_uid']));
+        if ($live_uid !== '' && hash_equals($order_uid, $live_uid)) {
+            return true;
+        }
+    }
+
+    if (method_exists($order, 'get_customer_id') && function_exists('get_current_user_id')) {
+        $customer_id = (int) $order->get_customer_id();
+        if ($customer_id > 0 && $customer_id === (int) get_current_user_id()) {
+            return true;
+        }
+    }
+
+    $session = function_exists('pixelflow_woo_session') ? pixelflow_woo_session() : null;
+    if ($session === null) {
         return false;
     }
 
-    return true;
+    $order_id = method_exists($order, 'get_id') ? (int) $order->get_id() : 0;
+    if ($order_id > 0 && (int) $session->get('order_awaiting_payment') === $order_id) {
+        return true;
+    }
+
+    $stored = $order->get_meta('_pf_session_customer_id', true);
+    if (is_string($stored) && $stored !== '' && method_exists($session, 'get_customer_id')) {
+        $current = (string) $session->get_customer_id();
+        if ($current !== '' && hash_equals($stored, $current)) {
+            return true;
+        }
+    }
+
+    return false;
 }

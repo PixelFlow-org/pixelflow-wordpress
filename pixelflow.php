@@ -333,22 +333,45 @@ class PixelFlow
             PIXELFLOW_VERSION,
             true
         );
+        // No nonce is baked into the page: this HTML may be served from a full-page
+        // cache long after the nonce it carried expired. The script asks the state
+        // route for a fresh one at the moment it is about to flush.
         wp_localize_script(
             $handle,
             'pixelflowHeldEvents',
             array(
-                'ajaxUrl'     => admin_url('admin-ajax.php'),
-                'nonce'       => wp_create_nonce('pixelflow_held_events'),
-                'holdCookie'  => PIXELFLOW_NO_CONSENT_DECISION_COOKIE_NAME,
-                'holdValue'   => PIXELFLOW_NO_CONSENT_DECISION_COOKIE_VALUE,
-                'heldCookie'  => PIXELFLOW_HELD_WOO_EVENTS_COOKIE_NAME,
+                'stateUrl'   => $this->wc_ajax_endpoint('pixelflow_held_state'),
+                'flushUrl'   => $this->wc_ajax_endpoint('pixelflow_resolve_held_events'),
+                'holdCookie' => PIXELFLOW_NO_CONSENT_DECISION_COOKIE_NAME,
+                'holdValue'  => PIXELFLOW_NO_CONSENT_DECISION_COOKIE_VALUE,
+                'heldCookie' => PIXELFLOW_HELD_WOO_EVENTS_COOKIE_NAME,
             )
         );
         wp_enqueue_script($handle);
     }
 
     /**
+     * WooCommerce AJAX endpoint URL, which skips the admin bootstrap and is the
+     * route cache plugins already know to leave alone.
+     *
+     * @param string $action wc-ajax action name
+     *
+     * @return string
+     */
+    private function wc_ajax_endpoint($action)
+    {
+        if (class_exists('WC_AJAX')) {
+            return WC_AJAX::get_endpoint($action);
+        }
+
+        return add_query_arg('wc-ajax', $action, home_url('/'));
+    }
+
+    /**
      * Same-page grant or deny: flush or beacon the Woo session queue.
+     *
+     * Deprecated alias of the `wc-ajax` route, kept for one release so storefront
+     * pages cached before this version keep flushing. Remove in the next release.
      *
      * @return void
      */

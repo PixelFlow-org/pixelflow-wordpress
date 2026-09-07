@@ -69,9 +69,10 @@ function pixelflow_get_bot_detail_pattern(string $user_agent): ?string
  * @param string|null $no_decision_raw    Saved `_pf_no_consent_decision` from order meta
  * @param string|null $bot_detail         Matched bot pattern, or null when not a bot
  * @param string|null $source_cookie_raw  Saved `_pf_consent_source` from order meta
+ * @param bool        $allow_live         False for an order-scoped event in a request that is not the buyer's
  * @return array{reason: string, detail?: string, consentSource?: string}|null
  */
-function pixelflow_resolve_blocked_event_reason(?string $consent_cookie_raw = null, ?string $no_decision_raw = null, ?string $bot_detail = null, ?string $source_cookie_raw = null): ?array
+function pixelflow_resolve_blocked_event_reason(?string $consent_cookie_raw = null, ?string $no_decision_raw = null, ?string $bot_detail = null, ?string $source_cookie_raw = null, bool $allow_live = true): ?array
 {
     if ($bot_detail !== null && $bot_detail !== '') {
         return [
@@ -80,11 +81,11 @@ function pixelflow_resolve_blocked_event_reason(?string $consent_cookie_raw = nu
         ];
     }
 
-    if (pixelflow_has_no_consent_decision_hold($no_decision_raw)) {
+    if (pixelflow_has_no_consent_decision_hold($no_decision_raw, $allow_live)) {
         return pixelflow_blocked_event_row_with_source('no_decision', $consent_cookie_raw, $source_cookie_raw);
     }
 
-    $consent = pixelflow_resolve_event_consent_block($consent_cookie_raw);
+    $consent = pixelflow_resolve_event_consent_block($consent_cookie_raw, $allow_live);
     if ($consent !== null && $consent['state'] === 'denied') {
         $row = [ 'reason' => 'denied' ];
         $source = pixelflow_sanitize_blocked_consent_source(
@@ -218,18 +219,18 @@ function pixelflow_build_blocked_events_payload(string $site_id, string $event_t
  * @param string $api_url Event API origin (no path)
  * @param string $api_key Snippet API key (same as POST /event)
  * @param array  $payload Body from pixelflow_build_blocked_events_payload()
- * @return void
+ * @return array|WP_Error|null Transport result, or null when nothing was sent
  */
-function pixelflow_post_blocked_events(string $api_url, string $api_key, array $payload): void
+function pixelflow_post_blocked_events(string $api_url, string $api_key, array $payload)
 {
     $api_url = rtrim($api_url, '/');
     $api_key = trim($api_key);
     if ($api_url === '' || $api_key === '') {
-        return;
+        return null;
     }
 
     if ( ! isset($payload['siteId'], $payload['blocked']) || ! is_array($payload['blocked']) || $payload['blocked'] === []) {
-        return;
+        return null;
     }
 
     $timeout = (int) apply_filters('pixelflow_request_timeout', 5, $payload['siteId']);
@@ -237,7 +238,7 @@ function pixelflow_post_blocked_events(string $api_url, string $api_key, array $
         $timeout = 5;
     }
 
-    wp_remote_post(
+    return wp_remote_post(
         $api_url . '/blocked-events',
         [
             'method'      => 'POST',

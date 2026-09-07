@@ -34,6 +34,28 @@ trait PixelFlow_Held_Woo_Events_Trait
     }
 
     /**
+     * Read-only state route: whether a queue exists, and a fresh nonce to flush it.
+     *
+     * It takes no nonce of its own — it is session-scoped and reveals nothing a
+     * visitor cannot already infer — which is what lets it answer from a page served
+     * by a full-page cache, whose baked-in nonce may long since have expired.
+     *
+     * @return void
+     */
+    public function ajax_held_state(): void
+    {
+        $session = pixelflow_woo_session();
+        if ($session !== null && method_exists($session, 'init_session_cookie')) {
+            $session->init_session_cookie();
+        }
+
+        wp_send_json_success([
+            'hasQueue' => pixelflow_get_held_woo_events() !== [],
+            'nonce'    => wp_create_nonce('pixelflow_held_events'),
+        ]);
+    }
+
+    /**
      * Sends, denies, or abandons queued storefront events once the hold cookie is gone.
      *
      * @return void
@@ -113,9 +135,7 @@ trait PixelFlow_Held_Woo_Events_Trait
             return null;
         }
 
-        $additional = $event_name === 'AddToCart'
-            ? $this->rebuild_held_add_to_cart_additional($recipe)
-            : $this->rebuild_held_checkout_additional($recipe);
+        $additional = pixelflow_held_recipe_additional_data($recipe);
 
         $payload = [
             'siteId'    => (string) $this->site_external_id,
@@ -133,68 +153,6 @@ trait PixelFlow_Held_Woo_Events_Trait
         $this->apply_held_customer_data($payload, $recipe);
 
         return $payload;
-    }
-
-    /**
-     * AddToCart additionalData from the live product, with stored value winning.
-     *
-     * @param array $recipe Held recipe
-     * @return array
-     */
-    private function rebuild_held_add_to_cart_additional(array $recipe): array
-    {
-        $qty          = max(1, (int) ($recipe['qty'] ?? 1));
-        $variation_id = (int) ($recipe['variation_id'] ?? 0);
-        $product_id   = (int) ($recipe['product_id'] ?? 0);
-        $wc_id        = $variation_id > 0 ? $variation_id : $product_id;
-        $product      = $wc_id > 0 && function_exists('wc_get_product') ? wc_get_product($wc_id) : null;
-        if ($product instanceof WC_Product) {
-            return pixelflow_apply_held_recipe_to_additional_data($this->build_additional_data($product, $qty), $recipe);
-        }
-
-        $value = (float) ($recipe['value'] ?? 0);
-        $data  = [
-            'contentType' => 'product',
-            'currency'    => (string) ($recipe['currency'] ?? 'USD'),
-            'value'       => $value,
-        ];
-        if (($this->options['woo_product_id_format'] ?? 'product_id') !== 'off' && $wc_id > 0) {
-            $data['contents'] = [
-                [
-                    'id'         => (string) $wc_id,
-                    'quantity'   => $qty,
-                    'item_price' => $value / $qty,
-                ],
-            ];
-        }
-
-        return pixelflow_apply_held_recipe_to_additional_data($data, $recipe);
-    }
-
-    /**
-     * InitiateCheckout additionalData from the live cart, with stored value winning.
-     *
-     * @param array $recipe Held recipe
-     * @return array
-     */
-    private function rebuild_held_checkout_additional(array $recipe): array
-    {
-        if (function_exists('WC') && WC() && WC()->cart && method_exists(WC()->cart, 'is_empty') && ! WC()->cart->is_empty()) {
-            return pixelflow_apply_held_recipe_to_additional_data(
-                $this->build_checkout_additional_data_from_cart(WC()->cart),
-                $recipe
-            );
-        }
-
-        return pixelflow_apply_held_recipe_to_additional_data(
-            [
-                'contentType' => 'product',
-                'currency'    => (string) ($recipe['currency'] ?? 'USD'),
-                'num_items'   => (int) ($recipe['qty'] ?? 0),
-                'value'       => (float) ($recipe['value'] ?? 0),
-            ],
-            $recipe
-        );
     }
 
     /**

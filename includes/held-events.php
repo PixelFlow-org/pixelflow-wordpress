@@ -97,6 +97,9 @@ function pixelflow_held_event_recipe_from_payload(array $payload, int $product_i
         'qty'          => pixelflow_held_event_qty_from_additional($additional),
         'value'        => isset($additional['value']) ? (float) $additional['value'] : 0.0,
         'currency'     => pixelflow_held_event_currency_from_additional($additional),
+        'contentName'  => isset($additional['contentName']) ? sanitize_text_field((string) $additional['contentName']) : '',
+        'numItems'     => isset($additional['num_items']) ? max(0, (int) $additional['num_items']) : null,
+        'contents'     => pixelflow_sanitize_held_contents($additional),
         'customerData' => pixelflow_sanitize_held_customer_data($customer),
     ];
 }
@@ -162,20 +165,77 @@ function pixelflow_sanitize_held_customer_data(array $customer): array
 }
 
 /**
- * Overlays the held value and currency onto rebuilt additionalData.
+ * Cap on stored recipes per shopper, adjustable by the site.
  *
- * @param array $additional Live additionalData from product or cart
- * @param array $recipe     Stored recipe
+ * @return int
+ */
+function pixelflow_held_woo_events_cap(): int
+{
+    $cap = (int) apply_filters('pixelflow_held_events_cap', PIXELFLOW_HELD_WOO_EVENTS_CAP);
+
+    return $cap > 0 ? $cap : PIXELFLOW_HELD_WOO_EVENTS_CAP;
+}
+
+/**
+ * Copies the event's line items onto the recipe.
+ *
+ * Stored in full: a truncated recipe would silently under-report a wholesale cart,
+ * and the flush has no other source for what the shopper had at the time.
+ *
+ * @param array $additional additionalData of the event being held
+ * @return array<int, array<string, mixed>>
+ */
+function pixelflow_sanitize_held_contents(array $additional): array
+{
+    if ( ! isset($additional['contents']) || ! is_array($additional['contents'])) {
+        return [];
+    }
+
+    $lines = [];
+    foreach ($additional['contents'] as $line) {
+        if ( ! is_array($line) || ! isset($line['id'])) {
+            continue;
+        }
+        $lines[] = [
+            'id'         => sanitize_text_field((string) $line['id']),
+            'quantity'   => isset($line['quantity']) ? max(0, (int) $line['quantity']) : 0,
+            'item_price' => isset($line['item_price']) ? (float) $line['item_price'] : 0.0,
+        ];
+    }
+
+    return $lines;
+}
+
+/**
+ * Rebuilds additionalData from a stored recipe alone.
+ *
+ * The cart and the catalogue are deliberately not consulted: the flushed event
+ * replays the recipe's own `event_id` and `eventTime`, so its contents have to
+ * describe that same moment rather than the state at flush time.
+ *
+ * @param array $recipe Stored recipe
  * @return array
  */
-function pixelflow_apply_held_recipe_to_additional_data(array $additional, array $recipe): array
+function pixelflow_held_recipe_additional_data(array $recipe): array
 {
-    if (isset($recipe['value'])) {
-        $additional['value'] = (float) $recipe['value'];
+    $additional = [
+        'contentType' => 'product',
+        'currency'    => (string) ($recipe['currency'] ?? '') !== '' ? (string) $recipe['currency'] : 'USD',
+        'value'       => (float) ($recipe['value'] ?? 0),
+    ];
+
+    $content_name = isset($recipe['contentName']) ? (string) $recipe['contentName'] : '';
+    if ($content_name !== '') {
+        $additional['contentName'] = $content_name;
     }
-    $currency = isset($recipe['currency']) ? (string) $recipe['currency'] : '';
-    if ($currency !== '') {
-        $additional['currency'] = $currency;
+
+    if (isset($recipe['numItems']) && $recipe['numItems'] !== null) {
+        $additional['num_items'] = max(0, (int) $recipe['numItems']);
+    }
+
+    $contents = isset($recipe['contents']) && is_array($recipe['contents']) ? $recipe['contents'] : [];
+    if ($contents !== []) {
+        $additional['contents'] = $contents;
     }
 
     return $additional;
@@ -218,10 +278,11 @@ function pixelflow_enqueue_held_woo_event(array $recipe): bool
         return false;
     }
 
-    $queue = pixelflow_get_held_woo_events();
+    $cap     = pixelflow_held_woo_events_cap();
+    $queue   = pixelflow_get_held_woo_events();
     $queue[] = $recipe;
-    if (count($queue) > PIXELFLOW_HELD_WOO_EVENTS_CAP) {
-        $queue = array_slice($queue, -1 * PIXELFLOW_HELD_WOO_EVENTS_CAP);
+    if (count($queue) > $cap) {
+        $queue = array_slice($queue, -1 * $cap);
     }
 
     $session->set(PIXELFLOW_HELD_WOO_EVENTS_SESSION_KEY, array_values($queue));
