@@ -34,11 +34,11 @@
       exits 0. No test file may be edited to make this pass.
 - [x] 3.2 Run `npm run test` in `app/source/` and confirm it stays green (it does
       not touch these files, so a failure here means something unrelated broke).
-- [ ] 3.3 Push the branch and read the Plugin Check comment on PR #21 once the
+- [x] 3.3 Push the branch and read the Plugin Check comment on PR #21 once the
       run finishes. Expected: one warning total —
       `readme_parser_warnings_trimmed_short_description` in `readme.txt` — and
       zero in `includes/`. Any surviving plugin-code warning means the fix missed.
-- [ ] 3.4 Confirm the rest of CI is green: `frontend`, `php (7.4)`, `php (8.1)`,
+- [x] 3.4 Confirm the rest of CI is green: `frontend`, `php (7.4)`, `php (8.1)`,
       `php (8.3)`, `ci`.
 
 ## 4. Out of scope — do not do these
