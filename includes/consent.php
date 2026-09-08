@@ -321,7 +321,7 @@ function pixelflow_get_consent_source_from_cookie(?string $raw_override = null):
     if ($raw_override !== null && $raw_override !== '') {
         $raw = $raw_override;
     } elseif (isset($_COOKIE[PIXELFLOW_CONSENT_SOURCE_COOKIE_NAME]) && is_string($_COOKIE[PIXELFLOW_CONSENT_SOURCE_COOKIE_NAME])) {
-        $raw = wp_unslash($_COOKIE[PIXELFLOW_CONSENT_SOURCE_COOKIE_NAME]);
+        $raw = sanitize_text_field(wp_unslash($_COOKIE[PIXELFLOW_CONSENT_SOURCE_COOKIE_NAME]));
     }
 
     if ( ! is_string($raw)) {
@@ -403,7 +403,7 @@ function pixelflow_has_no_consent_decision_hold(?string $raw_override = null, bo
     if ($raw_override !== null && $raw_override !== '') {
         $raw = $raw_override;
     } elseif (isset($_COOKIE[PIXELFLOW_NO_CONSENT_DECISION_COOKIE_NAME]) && is_string($_COOKIE[PIXELFLOW_NO_CONSENT_DECISION_COOKIE_NAME])) {
-        $raw = wp_unslash($_COOKIE[PIXELFLOW_NO_CONSENT_DECISION_COOKIE_NAME]);
+        $raw = wp_unslash($_COOKIE[PIXELFLOW_NO_CONSENT_DECISION_COOKIE_NAME]); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- compared byte-exact to a literal below; sanitizing first would widen what counts as a match
     }
 
     if ( ! is_string($raw)) {

@@ -70,7 +70,7 @@ trait PixelFlow_Held_Woo_Events_Trait
      */
     public function resolve_held_events_on_page_view(): void
     {
-        $wc_ajax = isset($_GET['wc-ajax']) && is_string($_GET['wc-ajax'])
+        $wc_ajax = isset($_GET['wc-ajax']) && is_string($_GET['wc-ajax']) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- routing only, no state is changed on this branch
             ? sanitize_key(wp_unslash($_GET['wc-ajax'])) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- routing only, no state is changed on this branch
             : '';
 

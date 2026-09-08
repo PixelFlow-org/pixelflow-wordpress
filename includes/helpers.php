@@ -579,7 +579,7 @@ function pixelflow_resolve_attribution_visitor_id( array $data, ?string $uid_ove
 
     $uid = $uid_override;
     if ( ( $uid === null || $uid === '' ) && isset( $_COOKIE['_pf_uid'] ) && is_string( $_COOKIE['_pf_uid'] ) ) {
-        $uid = wp_unslash( $_COOKIE['_pf_uid'] );
+        $uid = sanitize_text_field( wp_unslash( $_COOKIE['_pf_uid'] ) );
     }
     if ( ! is_string( $uid ) || $uid === '' ) {
         return null;
