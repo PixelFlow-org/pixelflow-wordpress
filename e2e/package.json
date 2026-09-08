@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "test": "playwright test"
+    "test": "playwright test",
+    "test:live": "live/scripts/run.sh"
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0"
