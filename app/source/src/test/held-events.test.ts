@@ -146,7 +146,10 @@ describe('held-events storefront script', () => {
 
     loadScript();
     await advance(10000);
-    expect(fetchMock, 'the script acted while the banner was still unanswered').not.toHaveBeenCalled();
+    expect(
+      fetchMock,
+      'the script acted while the banner was still unanswered'
+    ).not.toHaveBeenCalled();
 
     // The grant lands: the hold is lifted, but nothing is dispatched to say so.
     document.cookie = `${CONFIG.holdCookie}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
