@@ -56,6 +56,32 @@ trait PixelFlow_Held_Woo_Events_Trait
     }
 
     /**
+     * Page-view entry point for the flush.
+     *
+     * `wc-ajax` is dispatched on `template_redirect`, which runs after `wp`, so an
+     * unguarded flush here would fire on the plugin's own AJAX routes before their
+     * handlers get a say. On the read-only state route that turned "does a queue
+     * exist?" into a flush, and the script then flushed what it had just been told
+     * about — every held event dispatched twice. On the flush route it ran before
+     * `check_ajax_referer()`, which made the nonce check decorative. Both routes own
+     * their own behaviour, so this one steps aside for them.
+     *
+     * @return void
+     */
+    public function resolve_held_events_on_page_view(): void
+    {
+        $wc_ajax = isset($_GET['wc-ajax']) && is_string($_GET['wc-ajax'])
+            ? sanitize_key(wp_unslash($_GET['wc-ajax'])) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- routing only, no state is changed on this branch
+            : '';
+
+        if ($wc_ajax === 'pixelflow_held_state' || $wc_ajax === 'pixelflow_resolve_held_events') {
+            return;
+        }
+
+        $this->resolve_held_events();
+    }
+
+    /**
      * Sends, denies, or abandons queued storefront events once the hold cookie is gone.
      *
      * @return void

@@ -128,6 +128,40 @@ function pixelflow_get_live_consent_cookie_decision(): ?array
 }
 
 /**
+ * Encodes a decision back into the `_pf_consent` cookie format the order meta carries.
+ *
+ * The decision a request resolves and the raw cookie it arrived with are not always
+ * the same value: the WP Consent API answers from the CMP's own cookie, which the
+ * tracking script mirrors into `_pf_consent` a moment later. Persisting the decision
+ * rather than the cookie is what keeps a withdrawal from being recorded as the grant
+ * it replaced.
+ *
+ * @param array{state: string, source: string, timestamp: int} $decision Resolved decision
+ * @return string Base64 cookie value, or '' when the decision cannot be represented
+ */
+function pixelflow_encode_consent_cookie(array $decision): string
+{
+    $state = isset($decision['state']) ? (string) $decision['state'] : '';
+    if ($state !== 'granted' && $state !== 'denied') {
+        return '';
+    }
+
+    $source = isset($decision['source']) ? (string) $decision['source'] : '';
+    if ( ! pixelflow_is_valid_consent_source($source)) {
+        return '';
+    }
+
+    $encoded = wp_json_encode([
+        's'   => $state,
+        't'   => isset($decision['timestamp']) ? (int) $decision['timestamp'] : 0,
+        'src' => $source,
+        'v'   => 1,
+    ]);
+
+    return is_string($encoded) ? base64_encode($encoded) : '';
+}
+
+/**
  * Whether a CMP has registered a consent type via the WP Consent API.
  *
  * @return bool

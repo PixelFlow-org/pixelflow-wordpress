@@ -328,6 +328,14 @@ function pixelflow_clear_held_woo_events(): void
     $session = pixelflow_woo_session();
     if ($session !== null) {
         $session->set(PIXELFLOW_HELD_WOO_EVENTS_SESSION_KEY, []);
+        // Persisted here rather than left to WooCommerce's `shutdown` save. The
+        // caller clears the queue and only then dispatches it, so waiting for
+        // shutdown leaves the whole dispatch inside a window where another request
+        // still reads the old queue and sends the same recipes again — and where a
+        // fatal error mid-dispatch would resurrect all of them.
+        if (method_exists($session, 'save_data')) {
+            $session->save_data();
+        }
     }
     pixelflow_sync_held_events_cookie([]);
 }

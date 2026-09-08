@@ -39,8 +39,12 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
     /** Cron hook that sends a blocked purchase's row once its window has closed. */
     private const BLOCKED_REPORT_HOOK = 'pixelflow_report_blocked_purchase';
+
+    /** How many of the buyer's most recent orders a consent decision is carried onto. */
+    private const CONSENT_SYNC_ORDER_SCAN = 5;
     private int $timeout;
     private bool $flushing_held = false;
+    private bool $consent_synced_this_request = false;
 
     /** @var self|null */
     private static $instance = null;
@@ -92,6 +96,14 @@ class PixelFlow_WooCommerce_Cart_Hooks
         // silently undercount the backend.
         add_action(self::BLOCKED_REPORT_HOOK, [$this, 'report_blocked_purchase'], 10, 1);
 
+        // Registered before the guards too: an order reaches a purchasing status in
+        // whatever request moved it — a staff change in wp-admin, automation over
+        // WP-CLI — and the Purchase has no other path to fall back on. The payload is
+        // built from the order, so the kind of request only decides whether the
+        // requester's own identity may be attributed to the buyer (it may not).
+        add_action('woocommerce_order_status_processing', [$this, 'pf_purchase_hook'], 10, 1);
+        add_action('woocommerce_order_status_completed', [$this, 'pf_purchase_hook'], 10, 1);
+
         // Skip all hook registration if this is a cache-warmer / internal request
         if (pixelflow_is_cache_warmer_request()) {
             return;
@@ -114,14 +126,15 @@ class PixelFlow_WooCommerce_Cart_Hooks
         // Persist tracking cookies to order meta while the browser request is available
         add_action('woocommerce_new_order', [$this, 'pf_save_tracking_cookies_to_order'], 10, 1);
 
-        // Fire Purchase on order status change (works even for async payment gateways)
-        add_action('woocommerce_order_status_processing', [$this, 'pf_purchase_hook'], 10, 1);
-        add_action('woocommerce_order_status_completed', [$this, 'pf_purchase_hook'], 10, 1);
-
         // Keep thankyou as a fallback for gateways that go straight to "on-hold" or "pending"
         add_action('woocommerce_thankyou', [$this, 'pf_purchase_hook'], 10, 1);
 
-        add_action('wp', [$this, 'resolve_held_events'], 30);
+        // Every storefront request the buyer makes, `wc-ajax` routes included: those
+        // are dispatched on `template_redirect`, which runs after `wp`, and the one the
+        // storefront script fires on a consent change is the only request a buyer who
+        // changes their mind without reloading the page ever makes.
+        add_action('wp', [$this, 'record_consent_decision_on_open_orders'], 25);
+        add_action('wp', [$this, 'resolve_held_events_on_page_view'], 30);
         add_action('wc_ajax_pixelflow_resolve_held_events', [$this, 'ajax_resolve_held_events']);
         add_action('wc_ajax_pixelflow_held_state', [$this, 'ajax_held_state']);
     }
@@ -708,8 +721,8 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $event_time = time();
 
         $additional = $this->build_purchase_additional_data_from_order($order);
-        $customer   = $this->build_customer_data_from_order($order);
-        $utm        = $this->get_utm_params_for_order($order);
+        $customer   = $this->build_customer_data_from_order($order, $owns_order);
+        $utm        = $this->get_utm_params_for_order($order, $owns_order);
 
         $payload = [
             'siteId'    => (string)$this->site_external_id,
@@ -726,8 +739,8 @@ class PixelFlow_WooCommerce_Cart_Hooks
         if ( ! empty($utm)) {
             $payload['eventData']['utm_params'] = $utm;
         }
-        $this->append_cookie_params_for_order($payload, $order);
-        $this->append_attribution_for_order($payload, $order);
+        $this->append_cookie_params_for_order($payload, $order, $owns_order);
+        $this->append_attribution_for_order($payload, $order, $owns_order);
 
         $consent_raw = $order->get_meta('_pf_cookie__pf_consent', true);
         $consent_override = is_string($consent_raw) && $consent_raw !== '' ? $consent_raw : null;
@@ -741,6 +754,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             'no_decision' => $no_decision_override,
             'source'      => $source_override,
             'allow_live'  => $owns_order,
+            'ua'          => (string) $order->get_meta('_pf_client_ua', true),
             'order'       => $order,
         ]);
 
@@ -940,6 +954,138 @@ class PixelFlow_WooCommerce_Cart_Hooks
     }
 
     /**
+     * Carries the decision on this request onto the buyer's undelivered orders.
+     *
+     * The order-received page is the only storefront request that runs a purchase
+     * hook, so a buyer who reconsiders anywhere else — the order-pay page for an
+     * unpaid order, my-account, a product page — used to leave the decision in the
+     * browser, and a later status change was gated on the one taken at checkout.
+     *
+     * @return void
+     */
+    public function record_consent_decision_on_open_orders(): void
+    {
+        if ($this->consent_synced_this_request) {
+            return;
+        }
+        $this->consent_synced_this_request = true;
+
+        $decision = pixelflow_live_consent_decision();
+        $state    = $decision === null ? '' : (string) ($decision['state'] ?? '');
+        if ($state !== 'granted' && $state !== 'denied') {
+            return;
+        }
+
+        foreach ($this->orders_awaiting_this_buyers_decision() as $order) {
+            $this->sync_live_consent_onto_order($order);
+        }
+    }
+
+    /**
+     * The buyer's orders whose purchase a decision made now can still change.
+     *
+     * Candidates come from the signals the request carries — the order it is paying
+     * for, the customer it is logged in as, the visitor id it was issued — and each
+     * one is put to the same ownership predicate the purchase hook uses, so a request
+     * that merely knows an order id changes nothing.
+     *
+     * @return array<int, WC_Order>
+     */
+    private function orders_awaiting_this_buyers_decision(): array
+    {
+        if ( ! function_exists('wc_get_orders') || ! function_exists('wc_get_order')) {
+            return [];
+        }
+
+        $ids = [];
+
+        $session = pixelflow_woo_session();
+        if ($session !== null) {
+            $awaiting = (int) $session->get('order_awaiting_payment');
+            if ($awaiting > 0) {
+                $ids[] = $awaiting;
+            }
+        }
+
+        $user_id = function_exists('get_current_user_id') ? (int) get_current_user_id() : 0;
+        if ($user_id > 0) {
+            $ids = array_merge($ids, (array) wc_get_orders([
+                'customer_id' => $user_id,
+                'limit'       => self::CONSENT_SYNC_ORDER_SCAN,
+                'orderby'     => 'date',
+                'order'       => 'DESC',
+                'return'      => 'ids',
+            ]));
+        }
+
+        // Both signals a guest order can be tied to the browser by, asked as one
+        // query. The visitor id is stamped only on an order placed under a granted
+        // consent, so the session id carries the case that matters most here: an
+        // order placed under a decline, whose buyer is now granting.
+        $meta_clauses = [];
+
+        $uid = isset($_COOKIE['_pf_uid']) && is_string($_COOKIE['_pf_uid'])
+            ? sanitize_text_field(wp_unslash($_COOKIE['_pf_uid']))
+            : '';
+        if ($uid !== '') {
+            $meta_clauses[] = [
+                'key'   => '_pf_cookie__pf_uid',
+                'value' => $uid,
+            ];
+        }
+
+        $session_customer_id = $session !== null && method_exists($session, 'get_customer_id')
+            ? (string) $session->get_customer_id()
+            : '';
+        if ($session_customer_id !== '') {
+            $meta_clauses[] = [
+                'key'   => '_pf_session_customer_id',
+                'value' => $session_customer_id,
+            ];
+        }
+
+        if ($meta_clauses !== []) {
+            $ids = array_merge($ids, (array) wc_get_orders([
+                'limit'      => self::CONSENT_SYNC_ORDER_SCAN,
+                'orderby'    => 'date',
+                'order'      => 'DESC',
+                'return'     => 'ids',
+                'meta_query' => array_merge( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- these are the only links between a guest order and the browser
+                    ['relation' => 'OR'],
+                    $meta_clauses
+                ),
+            ]));
+        }
+
+        $orders = [];
+        foreach (array_unique(array_map('intval', $ids)) as $order_id) {
+            if ($order_id <= 0) {
+                continue;
+            }
+
+            $order = wc_get_order($order_id);
+            if ( ! $order instanceof WC_Order) {
+                continue;
+            }
+
+            // An order the backend has already counted, either way, is closed: a
+            // decision made afterwards has nothing left to change about it.
+            if ( ! empty($order->get_meta('_pf_purchase_sent', true))
+                || ! empty($order->get_meta('_pf_purchase_blocked_reported', true))) {
+                continue;
+            }
+
+            if ( ! pixelflow_request_owns_order($order)) {
+                continue;
+            }
+
+            $orders[] = $order;
+        }
+
+        return $orders;
+    }
+
+    /**
      * Writes the buyer's own decision onto the order so a later background hook sees it.
      *
      * Called only for a request that owns the order, and it moves in both directions:
@@ -958,29 +1104,89 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return;
         }
 
-        $order->delete_meta_data('_pf_cookie__pf_no_consent_decision');
+        $changed = false;
 
-        $overwritable = ['_pf_consent', '_pf_consent_source'];
+        $snapshot = $this->consent_snapshot_to_record($consent);
+        if ($snapshot !== '' && (string) $order->get_meta('_pf_cookie__pf_consent', true) !== $snapshot) {
+            $order->update_meta_data('_pf_cookie__pf_consent', $snapshot);
+            $changed = true;
+        }
+
+        if ((string) $order->get_meta('_pf_cookie__pf_no_consent_decision', true) !== '') {
+            $order->delete_meta_data('_pf_cookie__pf_no_consent_decision');
+            $changed = true;
+        }
+
+        $overwritable = ['_pf_consent_source'];
         $fill_only    = ['_pf_uid', '_pf_attribution'];
 
         foreach (array_merge($overwritable, $fill_only) as $key) {
             if ( ! isset($_COOKIE[$key]) || ! is_string($_COOKIE[$key]) || $_COOKIE[$key] === '') {
                 continue;
             }
-            if (in_array($key, $fill_only, true)
-                && (string) $order->get_meta('_pf_cookie_' . $key, true) !== '') {
+            $stored = (string) $order->get_meta('_pf_cookie_' . $key, true);
+            if (in_array($key, $fill_only, true) && $stored !== '') {
                 continue;
             }
-            $order->update_meta_data('_pf_cookie_' . $key, sanitize_text_field(wp_unslash($_COOKIE[$key])));
+            $value = sanitize_text_field(wp_unslash($_COOKIE[$key]));
+            if ($value === $stored) {
+                continue;
+            }
+            $order->update_meta_data('_pf_cookie_' . $key, $value);
+            $changed = true;
         }
 
-        $order->save();
+        // This runs on every storefront request the buyer makes, so an order that
+        // already carries the decision is left alone rather than rewritten.
+        if ($changed) {
+            $order->save();
+        }
+    }
+
+    /**
+     * The value to persist for the decision this request resolved.
+     *
+     * The raw cookie is kept whenever it says the same thing, so an order records
+     * exactly what the buyer's browser holds. It is re-encoded only when the two
+     * disagree — the CMP has answered and the tracking script has yet to mirror it —
+     * and then the CMP's own source is preserved, because that is what the blocked
+     * row is reported under.
+     *
+     * @param array{state: string, source: string, timestamp: int} $decision Resolved decision
+     * @return string Cookie-format snapshot, or '' when none can be built
+     */
+    private function consent_snapshot_to_record(array $decision): string
+    {
+        $raw    = isset($_COOKIE['_pf_consent']) && is_string($_COOKIE['_pf_consent'])
+            ? wp_unslash($_COOKIE['_pf_consent']) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- decoded and field-sanitized in pixelflow_decode_consent_cookie()
+            : '';
+        $cookie = $raw !== '' ? pixelflow_decode_consent_cookie($raw) : null;
+
+        if ($cookie !== null && ($cookie['state'] ?? '') === ($decision['state'] ?? '')) {
+            return $raw;
+        }
+
+        if ($cookie !== null && isset($cookie['source'])) {
+            $decision['source'] = $cookie['source'];
+        } else {
+            $source = pixelflow_get_consent_source_from_cookie();
+            if ($source !== null) {
+                $decision['source'] = $source;
+            }
+        }
+
+        return pixelflow_encode_consent_cookie($decision);
     }
 
     /**
      * Get UTM params from order meta (saved at order creation) or fall back to cookies.
+     *
+     * @param WC_Order $order
+     * @param bool     $request_is_buyer False when the request is not the buyer's, so
+     *                                   the live cookies belong to someone else
+     * @return array
      */
-    private function get_utm_params_for_order(WC_Order $order): array
+    private function get_utm_params_for_order(WC_Order $order, bool $request_is_buyer = true): array
     {
         $saved_utm = $order->get_meta('_pf_cookie__pf_utm', true);
         if ( ! empty($saved_utm) && is_string($saved_utm)) {
@@ -999,13 +1205,23 @@ class PixelFlow_WooCommerce_Cart_Hooks
             }
         }
 
+        if ( ! $request_is_buyer) {
+            return [];
+        }
+
         return pixelflow_get_utm_params_from_cookie();
     }
 
     /**
      * Append cookie params from order meta (saved at creation) or fall back to live cookies.
+     *
+     * @param array    $payload          Event payload passed by reference
+     * @param WC_Order $order
+     * @param bool     $request_is_buyer False when the request is not the buyer's, so the
+     *                                   live cookies identify someone other than the buyer
+     * @return void
      */
-    private function append_cookie_params_for_order(array &$payload, WC_Order $order): void
+    private function append_cookie_params_for_order(array &$payload, WC_Order $order, bool $request_is_buyer = true): void
     {
         if ( ! isset($payload['eventData']) || ! is_array($payload['eventData'])) {
             return;
@@ -1020,7 +1236,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
         foreach ($map as $param => $cookie_name) {
             // Try order meta first (saved at woocommerce_new_order)
             $val = $order->get_meta('_pf_cookie_' . $cookie_name, true);
-            if (empty($val) && isset($_COOKIE[$cookie_name])) {
+            if (empty($val) && $request_is_buyer && isset($_COOKIE[$cookie_name])) {
                 $val = sanitize_text_field(wp_unslash($_COOKIE[$cookie_name]));
             }
             if ( ! empty($val) && is_string($val)) {
@@ -1031,7 +1247,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
         // Fallback for _fbc
         if ( ! isset($payload['eventData']['fbc'])) {
             $fbc = $order->get_meta('_pf_cookie__fbc', true);
-            if (empty($fbc) && isset($_COOKIE['_fbc'])) {
+            if (empty($fbc) && $request_is_buyer && isset($_COOKIE['_fbc'])) {
                 $fbc = sanitize_text_field(wp_unslash($_COOKIE['_fbc']));
             }
             if ( ! empty($fbc) && is_string($fbc)) {
@@ -1049,21 +1265,23 @@ class PixelFlow_WooCommerce_Cart_Hooks
      *
      * @param array    $payload Event payload passed by reference
      * @param WC_Order $order
+     * @param bool     $request_is_buyer False when the request is not the buyer's, so the
+     *                                   live cookies identify someone other than the buyer
      * @return void
      */
-    private function append_attribution_for_order( array &$payload, WC_Order $order ): void {
+    private function append_attribution_for_order( array &$payload, WC_Order $order, bool $request_is_buyer = true ): void {
         if ( ! isset( $payload['eventData'] ) || ! is_array( $payload['eventData'] ) ) {
             return;
         }
 
         $raw = $order->get_meta( '_pf_cookie__pf_attribution', true );
 
-        if ( empty( $raw ) && isset( $_COOKIE['_pf_attribution'] ) && is_string( $_COOKIE['_pf_attribution'] ) ) {
+        if ( empty( $raw ) && $request_is_buyer && isset( $_COOKIE['_pf_attribution'] ) && is_string( $_COOKIE['_pf_attribution'] ) ) {
             $raw = wp_unslash( $_COOKIE['_pf_attribution'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON; field-level sanitization happens inside pixelflow_get_attribution_from_cookie()
         }
 
         $uid = $order->get_meta( '_pf_cookie__pf_uid', true );
-        if ( empty( $uid ) && isset( $_COOKIE['_pf_uid'] ) && is_string( $_COOKIE['_pf_uid'] ) ) {
+        if ( empty( $uid ) && $request_is_buyer && isset( $_COOKIE['_pf_uid'] ) && is_string( $_COOKIE['_pf_uid'] ) ) {
             $uid = sanitize_text_field( wp_unslash( $_COOKIE['_pf_uid'] ) );
         }
 
@@ -1164,7 +1382,13 @@ class PixelFlow_WooCommerce_Cart_Hooks
         return array_filter($out, fn($v) => $v !== '');
     }
 
-    private function build_customer_data_from_order(WC_Order $order): array
+    /**
+     * @param WC_Order $order
+     * @param bool     $request_is_buyer False when the request is not the buyer's, so its
+     *                                   IP and user agent must not stand in for the order's
+     * @return array
+     */
+    private function build_customer_data_from_order(WC_Order $order, bool $request_is_buyer = true): array
     {
         $email   = (string)$order->get_billing_email();
         $phone   = (string)$order->get_billing_phone();
@@ -1192,16 +1416,18 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
         $out['external_id'] = pixelflow_sha256_if_not_empty(pixelflow_normalize_external_id($external_raw));
 
-        // Get IP and UA: prefer values saved to order meta at creation time (real browser request),
-        // fall back to current request values
+        // Get IP and UA: prefer values saved to order meta at creation time (real browser
+        // request), fall back to the current request only when this request is the buyer's.
+        // A staff member's address must never be attributed to the buyer, so an order with
+        // none of its own goes out without them.
         $ip = (string)$order->get_meta('_pf_client_ip', true);
-        if ($ip === '') {
-        $ip = pixelflow_get_client_ip_address();
+        if ($ip === '' && $request_is_buyer) {
+            $ip = pixelflow_get_client_ip_address();
         }
 
         $ua = (string)$order->get_meta('_pf_client_ua', true);
-        if ($ua === '') {
-        $ua = pixelflow_get_client_user_agent();
+        if ($ua === '' && $request_is_buyer) {
+            $ua = pixelflow_get_client_user_agent();
         }
 
         if ($ip !== '' && ! pixelflow_is_private_ip($ip)) {
@@ -1636,7 +1862,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
      * Posts a server-side event to the PixelFlow API, or a blocked-events beacon when skipped.
      *
      * @param array $payload Event payload
-     * @param array{consent?: ?string, no_decision?: ?string, source?: ?string, product_id?: int, variation_id?: int, allow_live?: bool, order?: WC_Order} $context
+     * @param array{consent?: ?string, no_decision?: ?string, source?: ?string, product_id?: int, variation_id?: int, allow_live?: bool, ua?: string, order?: WC_Order} $context
      * @return string sent|held|blocked|skipped|failed
      */
     private function post_event(array $payload, array $context = []): string
@@ -1652,7 +1878,12 @@ class PixelFlow_WooCommerce_Cart_Hooks
         pixelflow_append_consent_to_payload($payload, $consent_cookie_raw, $source_cookie_raw, $allow_live);
 
         $event_name = isset($payload['eventData']['eventName']) ? (string) $payload['eventData']['eventName'] : 'unknown';
-        $ua         = pixelflow_get_client_user_agent();
+        // The agent of whoever the event is about: this request's when it is the buyer's,
+        // otherwise the one the order saved at creation. A staff member or an automation
+        // client must not decide whether the buyer looks like a bot.
+        $ua         = $allow_live
+            ? pixelflow_get_client_user_agent()
+            : (isset($context['ua']) && is_string($context['ua']) ? $context['ua'] : '');
         $blocked    = pixelflow_resolve_blocked_event_reason(
             $consent_cookie_raw,
             $no_decision_raw,
@@ -1670,7 +1901,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             $this->resolve_held_events();
         }
 
-        return $this->dispatch_event_post($payload, $event_name, $ua);
+        return $this->dispatch_event_post($payload, $event_name, $ua, $allow_live);
     }
 
     /**
@@ -1726,16 +1957,24 @@ class PixelFlow_WooCommerce_Cart_Hooks
     /**
      * POSTs /event unless the client IP is private.
      *
-     * @param array  $payload    Event payload
-     * @param string $event_name Catalog event name
-     * @param string $ua         Client user agent
+     * @param array  $payload           Event payload
+     * @param string $event_name        Catalog event name
+     * @param string $ua                Client user agent
+     * @param bool   $request_is_buyer  False when the request is not the buyer's
      * @return string sent|skipped|failed
      */
-    private function dispatch_event_post(array $payload, string $event_name, string $ua): string
+    private function dispatch_event_post(array $payload, string $event_name, string $ua, bool $request_is_buyer = true): string
     {
-        $resolved_ip   = pixelflow_get_client_ip_address();
-        $is_private_ip = pixelflow_is_private_ip($resolved_ip);
-        $this->append_request_customer_fields($payload, $ua, $resolved_ip, $is_private_ip);
+        if ($request_is_buyer) {
+            $resolved_ip   = pixelflow_get_client_ip_address();
+            $is_private_ip = pixelflow_is_private_ip($resolved_ip);
+            $this->append_request_customer_fields($payload, $ua, $resolved_ip, $is_private_ip);
+        } else {
+            // Nothing about this request belongs to the buyer: it contributes no fields,
+            // and its address decides nothing. An admin or WP-CLI request has a private
+            // address or none at all, and gating on it would drop the event for good.
+            $is_private_ip = false;
+        }
 
         $private_skip_message = __('EVENT SENDING SKIPPED BECAUSE CLIENT IP IS PRIVATE', 'pixelflow');
         $args = [
