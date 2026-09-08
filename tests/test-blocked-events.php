@@ -387,6 +387,40 @@ pf_run_blocked_case(
     $passes
 );
 
+pf_run_blocked_case(
+    'The client IP rides along when it is public and is left out when it is not',
+    /** @return bool|string */
+    function () {
+        $previous = $_SERVER['REMOTE_ADDR'] ?? null;
+
+        // The API reads the address to tell an opt-in region from an opt-out one. It is
+        // the one field a blocked row may carry beyond the reason, and a private address
+        // tells it nothing, so that one is withheld.
+        $_SERVER['REMOTE_ADDR'] = '198.51.100.7';
+        $public = pixelflow_build_blocked_events_payload('site_1', 'AddToCart', [ 'reason' => 'denied' ]);
+
+        $_SERVER['REMOTE_ADDR'] = '10.0.0.5';
+        $private = pixelflow_build_blocked_events_payload('site_1', 'AddToCart', [ 'reason' => 'denied' ]);
+
+        if ($previous === null) {
+            unset($_SERVER['REMOTE_ADDR']);
+        } else {
+            $_SERVER['REMOTE_ADDR'] = $previous;
+        }
+
+        if (($public['client_ip_address'] ?? null) !== '198.51.100.7') {
+            return 'a public address must be attached, got ' . json_encode($public);
+        }
+        if (array_key_exists('client_ip_address', (array) $private)) {
+            return 'a private address must be withheld, got ' . json_encode($private);
+        }
+
+        return true;
+    },
+    $failures,
+    $passes
+);
+
 echo "\n{$passes} passed, " . count($failures) . " failed\n";
 
 exit(count($failures) > 0 ? 1 : 0);

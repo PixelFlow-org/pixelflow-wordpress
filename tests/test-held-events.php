@@ -340,15 +340,91 @@ pf_run_held_case(
 );
 
 pf_run_held_case(
-    'Flush overlay keeps the stored value over a live rebuild',
+    'A recipe carries the line items it was built from',
     /** @return bool|string */
     function () {
-        $additional = pixelflow_apply_held_recipe_to_additional_data(
-            [ 'value' => 99.0, 'currency' => 'USD', 'contentType' => 'product' ],
-            [ 'value' => 24.5, 'currency' => 'EUR' ]
-        );
-        if ((float) $additional['value'] !== 24.5 || $additional['currency'] !== 'EUR') {
-            return 'stored value/currency must win';
+        $recipe = pixelflow_held_event_recipe_from_payload(pf_held_add_to_cart_payload(), 99, 0);
+        if ( ! isset($recipe['contents'][0]['id']) || $recipe['contents'][0]['id'] !== '99') {
+            return 'the recipe must store the event\'s own line items';
+        }
+        if ((int) $recipe['contents'][0]['quantity'] !== 2) {
+            return 'line quantity must survive the hold';
+        }
+
+        return true;
+    },
+    $failures,
+    $passes
+);
+
+pf_run_held_case(
+    'The flush payload is rebuilt from the recipe alone',
+    /** @return bool|string */
+    function () {
+        $recipe     = pixelflow_held_event_recipe_from_payload(pf_held_add_to_cart_payload(), 99, 0);
+        $additional = pixelflow_held_recipe_additional_data($recipe);
+
+        if (abs((float) $additional['value'] - 24.5) > 0.001 || $additional['currency'] !== 'EUR') {
+            return 'the value and currency held at the time must be replayed';
+        }
+        if (count($additional['contents']) !== 1 || $additional['contents'][0]['id'] !== '99') {
+            return 'the stored line items must be replayed, not looked up again';
+        }
+
+        return true;
+    },
+    $failures,
+    $passes
+);
+
+pf_run_held_case(
+    'A wholesale cart is replayed intact',
+    /** @return bool|string */
+    function () {
+        $payload  = pf_held_add_to_cart_payload();
+        $contents = [];
+        for ($i = 0; $i < 300; $i++) {
+            $contents[] = [ 'id' => (string) $i, 'quantity' => 1, 'item_price' => 1.0 ];
+        }
+        $payload['eventData']['eventName']                    = 'InitiateCheckout';
+        $payload['eventData']['additionalData']['contents']   = $contents;
+        $payload['eventData']['additionalData']['num_items']  = 300;
+
+        $recipe     = pixelflow_held_event_recipe_from_payload($payload);
+        $additional = pixelflow_held_recipe_additional_data($recipe);
+
+        if (count($additional['contents']) !== 300) {
+            return 'every line must survive the hold, got ' . count($additional['contents']);
+        }
+        if ((int) $additional['num_items'] !== 300) {
+            return 'the item count held at the time must be replayed';
+        }
+
+        return true;
+    },
+    $failures,
+    $passes
+);
+
+pf_run_held_case(
+    'A site can raise the queue limit past twenty',
+    /** @return bool|string */
+    function () {
+        $GLOBALS['__pf_test_filters']['pixelflow_held_events_cap'] = 50;
+
+        try {
+            for ($i = 0; $i < 30; $i++) {
+                $payload                            = pf_held_add_to_cart_payload();
+                $payload['eventData']['event_id']   = 'atc-' . $i;
+                pixelflow_enqueue_held_woo_event(pixelflow_held_event_recipe_from_payload($payload, 99, 0));
+            }
+            $queue = pixelflow_get_held_woo_events();
+        } finally {
+            unset($GLOBALS['__pf_test_filters']['pixelflow_held_events_cap']);
+        }
+
+        if (count($queue) !== 30) {
+            return 'a raised limit must keep more than twenty recipes, got ' . count($queue);
         }
 
         return true;

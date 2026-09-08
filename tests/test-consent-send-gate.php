@@ -2,6 +2,9 @@
 /**
  * Consent send-gate: skip Woo events while holding or denied.
  *
+ * The gate that actually runs is pixelflow_resolve_blocked_event_reason(): a null
+ * row means the event is sent, any row means it is skipped and reported.
+ *
  * Run: php tests/test-consent-send-gate.php
  */
 
@@ -14,6 +17,7 @@ if ( ! defined('PIXELFLOW_PLUGIN_BASENAME')) {
 }
 
 require_once dirname(__DIR__) . '/includes/consent.php';
+require_once dirname(__DIR__) . '/includes/blocked-events.php';
 
 $GLOBALS['__pf_test_consent_type']      = '';
 $GLOBALS['__pf_test_marketing_consent'] = true;
@@ -56,6 +60,19 @@ function pf_encode_consent_cookie_for_gate(string $state, string $source, int $t
     );
 }
 
+/**
+ * Whether the live gate would let the event through.
+ *
+ * @param string|null $consent_cookie_raw Saved `_pf_consent` from order meta
+ * @param string|null $no_decision_raw    Saved `_pf_no_consent_decision` from order meta
+ * @param bool        $allow_live         False when the request is not the buyer's
+ * @return bool
+ */
+function pf_gate_sends(?string $consent_cookie_raw = null, ?string $no_decision_raw = null, bool $allow_live = true): bool
+{
+    return pixelflow_resolve_blocked_event_reason($consent_cookie_raw, $no_decision_raw, null, null, $allow_live) === null;
+}
+
 $failures = [];
 $passes   = 0;
 
@@ -89,7 +106,7 @@ pf_run_send_gate_case(
     /** @return bool|string */
     function () {
         $_COOKIE[PIXELFLOW_NO_CONSENT_DECISION_COOKIE_NAME] = 'true';
-        if (pixelflow_should_send_event_for_consent()) {
+        if (pf_gate_sends()) {
             return 'expected skip while _pf_no_consent_decision=true';
         }
 
@@ -104,7 +121,7 @@ pf_run_send_gate_case(
     /** @return bool|string */
     function () {
         $_COOKIE[PIXELFLOW_NO_CONSENT_DECISION_COOKIE_NAME] = 'yes';
-        if ( ! pixelflow_should_send_event_for_consent()) {
+        if ( ! pf_gate_sends()) {
             return 'only the literal true value is a hold';
         }
 
@@ -119,7 +136,7 @@ pf_run_send_gate_case(
     /** @return bool|string */
     function () {
         $_COOKIE[PIXELFLOW_CONSENT_COOKIE_NAME] = pf_encode_consent_cookie_for_gate('denied', 'cookieyes', 1756370000000);
-        if (pixelflow_should_send_event_for_consent()) {
+        if (pf_gate_sends()) {
             return 'expected skip when _pf_consent is denied';
         }
 
@@ -134,7 +151,7 @@ pf_run_send_gate_case(
     /** @return bool|string */
     function () {
         $_COOKIE[PIXELFLOW_CONSENT_COOKIE_NAME] = pf_encode_consent_cookie_for_gate('granted', 'cookieyes', 1756370000000);
-        if ( ! pixelflow_should_send_event_for_consent()) {
+        if ( ! pf_gate_sends()) {
             return 'expected send when _pf_consent is granted';
         }
 
@@ -148,7 +165,7 @@ pf_run_send_gate_case(
     'No cookies allows the send (no-banner / script not loaded)',
     /** @return bool|string */
     function () {
-        if ( ! pixelflow_should_send_event_for_consent()) {
+        if ( ! pf_gate_sends()) {
             return 'absence of cookies must still send';
         }
 
@@ -162,7 +179,7 @@ pf_run_send_gate_case(
     'Order-meta hold skips Purchase even with no live cookies',
     /** @return bool|string */
     function () {
-        if (pixelflow_should_send_event_for_consent(null, 'true')) {
+        if (pf_gate_sends(null, 'true')) {
             return 'expected skip from persisted _pf_no_consent_decision';
         }
 
@@ -177,7 +194,7 @@ pf_run_send_gate_case(
     /** @return bool|string */
     function () {
         $raw = pf_encode_consent_cookie_for_gate('denied', 'gcm', 1756370001000);
-        if (pixelflow_should_send_event_for_consent($raw, null)) {
+        if (pf_gate_sends($raw, null)) {
             return 'expected skip from persisted denied _pf_consent';
         }
 
@@ -192,7 +209,7 @@ pf_run_send_gate_case(
     /** @return bool|string */
     function () {
         $_COOKIE[PIXELFLOW_CONSENT_COOKIE_NAME] = pf_encode_consent_cookie_for_gate('granted', 'cookieyes', 1756370000000);
-        if ( ! pixelflow_should_send_event_for_consent(null, 'true')) {
+        if ( ! pf_gate_sends(null, 'true')) {
             return 'thank-you grant must send even when the order saved a hold';
         }
 
@@ -206,8 +223,71 @@ pf_run_send_gate_case(
     'Cookie-less Purchase with no snapshot still sends',
     /** @return bool|string */
     function () {
-        if ( ! pixelflow_should_send_event_for_consent(null, null)) {
+        if ( ! pf_gate_sends(null, null)) {
             return 'admin/cron with no snapshot must still send';
+        }
+
+        return true;
+    },
+    $failures,
+    $passes
+);
+
+pf_run_send_gate_case(
+    'A stranger\'s decline does not block an order that consented',
+    /** @return bool|string */
+    function () {
+        $_COOKIE[PIXELFLOW_CONSENT_COOKIE_NAME] = pf_encode_consent_cookie_for_gate('denied', 'cookieyes', 1756370002000);
+        $granted = pf_encode_consent_cookie_for_gate('granted', 'gcm', 1756370001000);
+        if ( ! pf_gate_sends($granted, null, false)) {
+            return 'a request that is not the buyer\'s must not withhold a persisted grant';
+        }
+
+        return true;
+    },
+    $failures,
+    $passes
+);
+
+pf_run_send_gate_case(
+    'A stranger\'s grant does not release an order that declined',
+    /** @return bool|string */
+    function () {
+        $_COOKIE[PIXELFLOW_CONSENT_COOKIE_NAME] = pf_encode_consent_cookie_for_gate('granted', 'cookieyes', 1756370002000);
+        $denied = pf_encode_consent_cookie_for_gate('denied', 'gcm', 1756370001000);
+        if (pf_gate_sends($denied, null, false)) {
+            return 'a request that is not the buyer\'s must not lift a persisted decline';
+        }
+
+        return true;
+    },
+    $failures,
+    $passes
+);
+
+pf_run_send_gate_case(
+    'The buyer withdrawing consent blocks a purchase that consented at checkout',
+    /** @return bool|string */
+    function () {
+        $_COOKIE[PIXELFLOW_CONSENT_COOKIE_NAME] = pf_encode_consent_cookie_for_gate('denied', 'cookieyes', 1756370002000);
+        $granted = pf_encode_consent_cookie_for_gate('granted', 'gcm', 1756370001000);
+        if (pf_gate_sends($granted, null, true)) {
+            return 'the buyer\'s own withdrawal must stop a purchase that has not been sent';
+        }
+
+        return true;
+    },
+    $failures,
+    $passes
+);
+
+pf_run_send_gate_case(
+    'A stranger cannot lift a persisted hold',
+    /** @return bool|string */
+    function () {
+        $_COOKIE[PIXELFLOW_CONSENT_COOKIE_NAME] = pf_encode_consent_cookie_for_gate('granted', 'cookieyes', 1756370002000);
+        if (pf_gate_sends(null, 'true', false)) {
+            return 'a persisted hold must survive a stranger\'s grant';
         }
 
         return true;

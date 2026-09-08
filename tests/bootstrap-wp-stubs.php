@@ -57,18 +57,24 @@ function remove_filter($hook, $callback, $priority = 10)
 }
 
 /**
- * Simplified apply_filters(): no filters are registered in this harness,
- * so it always returns the provided default value — matching WordPress's
- * own behavior when no callback is hooked to the given tag.
+ * Simplified apply_filters(): returns the provided default value, matching
+ * WordPress's own behavior when no callback is hooked to the given tag. A test
+ * that needs a filtered value sets $GLOBALS['__pf_test_filters'][$tag] instead
+ * of registering a callback, since add_filter() here is a no-op.
  */
 function apply_filters($tag, $value, ...$args)
 {
+    if (isset($GLOBALS['__pf_test_filters'][$tag])) {
+        return $GLOBALS['__pf_test_filters'][$tag];
+    }
+
     return $value;
 }
 
 function is_admin(): bool
 {
-    return false;
+    // A test that needs an admin-side request sets $GLOBALS['__pf_admin'].
+    return ! empty($GLOBALS['__pf_admin']);
 }
 
 function sanitize_text_field($str)
