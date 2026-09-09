@@ -69,6 +69,7 @@ class PixelFlow
         add_action('admin_notices', array($this, 'display_debug_notice'));
         add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
         add_action('wp_print_scripts', array($this, 'inject_script'));
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_held_events_script'));
         add_filter('plugin_action_links_' . PIXELFLOW_PLUGIN_BASENAME, array($this, 'add_plugin_action_links'));
 
         // AJAX handlers
@@ -78,6 +79,8 @@ class PixelFlow
         add_action('wp_ajax_pixelflow_remove_script_params', array($this, 'ajax_remove_script_params'));
         add_action('wp_ajax_pixelflow_clear_debug_log', array($this, 'ajax_clear_debug_log'));
         add_action('wp_ajax_pixelflow_get_debug_log', array($this, 'ajax_get_debug_log'));
+        add_action('wp_ajax_pixelflow_resolve_held_events', array($this, 'ajax_resolve_held_events'));
+        add_action('wp_ajax_nopriv_pixelflow_resolve_held_events', array($this, 'ajax_resolve_held_events'));
     }
 
     /**
@@ -88,6 +91,8 @@ class PixelFlow
         // Load WooCommerce integration
         require_once PIXELFLOW_PLUGIN_PATH . 'includes/helpers.php';
         require_once PIXELFLOW_PLUGIN_PATH . 'includes/consent.php';
+        require_once PIXELFLOW_PLUGIN_PATH . 'includes/blocked-events.php';
+        require_once PIXELFLOW_PLUGIN_PATH . 'includes/held-events.php';
         require_once PIXELFLOW_PLUGIN_PATH . 'includes/woo/class-woocommerce-integration.php';
     }
 
@@ -294,6 +299,96 @@ class PixelFlow
                 }
             }
         }
+    }
+
+    /**
+     * Storefront script that flushes the Woo hold queue after a same-page grant or deny.
+     *
+     * @return void
+     */
+    public function enqueue_held_events_script()
+    {
+        if (is_admin()) {
+            return;
+        }
+
+        $general = get_option('pixelflow_general_options', array());
+        if (empty($general['enabled']) || empty($general['woo_enabled'])) {
+            return;
+        }
+        if ($this->should_exclude_current_user($general)) {
+            return;
+        }
+
+        $params = get_option('pixelflow_script_params', array());
+        if (empty($params['siteExternalId']) || empty($params['apiKey'])) {
+            return;
+        }
+
+        $handle = 'pixelflow-held-events';
+        wp_register_script(
+            $handle,
+            PIXELFLOW_PLUGIN_URL . 'assets/js/held-events.js',
+            array(),
+            PIXELFLOW_VERSION,
+            true
+        );
+        // No nonce is baked into the page: this HTML may be served from a full-page
+        // cache long after the nonce it carried expired. The script asks the state
+        // route for a fresh one at the moment it is about to flush.
+        wp_localize_script(
+            $handle,
+            'pixelflowHeldEvents',
+            array(
+                'stateUrl'   => $this->wc_ajax_endpoint('pixelflow_held_state'),
+                'flushUrl'   => $this->wc_ajax_endpoint('pixelflow_resolve_held_events'),
+                'holdCookie' => PIXELFLOW_NO_CONSENT_DECISION_COOKIE_NAME,
+                'holdValue'  => PIXELFLOW_NO_CONSENT_DECISION_COOKIE_VALUE,
+                'heldCookie' => PIXELFLOW_HELD_WOO_EVENTS_COOKIE_NAME,
+            )
+        );
+        wp_enqueue_script($handle);
+    }
+
+    /**
+     * WooCommerce AJAX endpoint URL, which skips the admin bootstrap and is the
+     * route cache plugins already know to leave alone.
+     *
+     * @param string $action wc-ajax action name
+     *
+     * @return string
+     */
+    private function wc_ajax_endpoint($action)
+    {
+        if (class_exists('WC_AJAX')) {
+            return WC_AJAX::get_endpoint($action);
+        }
+
+        return add_query_arg('wc-ajax', $action, home_url('/'));
+    }
+
+    /**
+     * Same-page grant or deny: flush or beacon the Woo session queue.
+     *
+     * Deprecated alias of the `wc-ajax` route, kept for one release so storefront
+     * pages cached before this version keep flushing. Remove in the next release.
+     *
+     * @return void
+     */
+    public function ajax_resolve_held_events()
+    {
+        check_ajax_referer('pixelflow_held_events', 'nonce');
+        if (class_exists('PixelFlow_WooCommerce_Cart_Hooks')) {
+            $hooks = PixelFlow_WooCommerce_Cart_Hooks::instance();
+            if ($hooks !== null) {
+                $session = pixelflow_woo_session();
+                if ($session !== null && method_exists($session, 'init_session_cookie')) {
+                    $session->init_session_cookie();
+                }
+                $hooks->resolve_held_events();
+            }
+        }
+        wp_send_json_success();
     }
 
 

@@ -26,6 +26,9 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap-wp-stubs.php';
 require_once dirname(__DIR__) . '/includes/helpers.php';
+require_once dirname(__DIR__) . '/includes/consent.php';
+require_once dirname(__DIR__) . '/includes/blocked-events.php';
+require_once dirname(__DIR__) . '/includes/held-events.php';
 require_once dirname(__DIR__) . '/includes/woo/hooks/class-woocommerce-hooks.php';
 
 // Public (non-private) IP so pixelflow_is_cache_warmer_request() resolves

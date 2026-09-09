@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PixelFlow — Test Scenario Matrix</title>
+<style>
+  :root {
+    --bg: #f7f7f5;
+    --surface: #ffffff;
+    --ink: #1c1c19;
+    --muted: #6b6b63;
+    --line: #e3e3dd;
+    --accent: #2d5f4f;
+    --ok-bg: #e6f2ec;
+    --ok-ink: #1d6a4c;
+    --partial-bg: #fdf1dc;
+    --partial-ink: #8a5a12;
+    --gap-bg: #fbe6e4;
+    --gap-ink: #93342c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17171a;
+      --surface: #1f1f23;
+      --ink: #ececea;
+      --muted: #9c9c95;
+      --line: #33333a;
+      --accent: #7fc0a6;
+      --ok-bg: #1d3a30;
+      --ok-ink: #8ed7b6;
+      --partial-bg: #3b2f16;
+      --partial-ink: #e5bd76;
+      --gap-bg: #3d211f;
+      --gap-ink: #f0a49b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 40px 24px 80px;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  header { border-bottom: 2px solid var(--line); padding-bottom: 20px; margin-bottom: 28px; }
+  h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0; font-size: 14px; }
+  h2 {
+    font-size: 15px; text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--accent); margin: 38px 0 10px;
+  }
+  h2 .count { color: var(--muted); text-transform: none; letter-spacing: 0; font-weight: 400; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 0; }
+  .legend span { font-size: 12.5px; }
+  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 900px; font-size: 13.5px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: color-mix(in srgb, var(--surface) 80%, var(--line)); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+  tbody tr:last-child td { border-bottom: none; }
+  td.id { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); white-space: nowrap; font-size: 12.5px; }
+  td.where { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); }
+  .tag {
+    display: inline-block; padding: 1px 7px; border-radius: 20px;
+    font-size: 11.5px; font-weight: 600; white-space: nowrap;
+  }
+  .ok { background: var(--ok-bg); color: var(--ok-ink); }
+  .partial { background: var(--partial-bg); color: var(--partial-ink); }
+  .gap { background: var(--gap-bg); color: var(--gap-ink); }
+  .stats { display: flex; flex-wrap: wrap; gap: 22px; margin-top: 18px; }
+  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 16px; }
+  .stat b { display: block; font-size: 22px; line-height: 1.2; }
+  .stat span { font-size: 12px; color: var(--muted); }
+  footer { margin-top: 44px; color: var(--muted); font-size: 12.5px; border-top: 1px solid var(--line); padding-top: 14px; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.92em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>PixelFlow — Test Scenario Matrix</h1>
+  <p class="sub">What the plugin's behaviour is actually verified against, organised by capability rather than by test file. Generated 2026-09-08 from the working tree on <code>feature/gdpr-consent-gating</code>.</p>
+
+  <div class="stats">
+    <div class="stat"><b>104</b><span>scenarios in this matrix</span></div>
+    <div class="stat"><b>93</b><span>covered</span></div>
+    <div class="stat"><b>9</b><span>partial or uncovered</span></div>
+    <div class="stat"><b>163</b><span>automated cases (116 PHP · 6 vitest · 3 admin E2E · 38 live E2E)</span></div>
+  </div>
+
+  <div class="legend">
+    <span class="tag ok">Covered</span>
+    <span class="tag partial">Partial</span>
+    <span class="tag gap">Not covered</span>
+  </div>
+</header>
+
+<h2>1. Consent resolution <span class="count">— which decision wins, and what gets stamped on the event</span></h2>
+<div class="scroll"><table>
+<thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id">CON-01</td><td>WP Consent API is active and marketing consent is granted</td><td>Event carries <code>consent.state=granted</code>, <code>source=api</code></td><td class="where">tests/test-consent-consumer.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">CON-02</td><td>WP Consent API is active and marketing consent is denied</td><td>Event carries <code>state=denied</code>, <code>source=api</code></td><td class="where">tests/test-consent-consumer.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">CON-03</td><td>WP Consent API inactive, only the <code>_pf_consent</code> cookie is present</td><td>Cookie is parsed and used as the decision</td><td class="where">tests/test-consent-consumer.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">CON-04</td><td>A CMP source cookie exists but the visitor has not decided</td><td>Event is stamped <code>state=unknown</code> plus the CMP source</td><td class="where">tests/test-consent-consumer.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">CON-05</td><td>Both a real decision and a source-only cookie exist</td><td>The grant/deny outranks the source-only cookie</td><td class="where">tests/test-consent-consumer.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">CON-06</td><td>Live grant cookie vs. a deny persisted on the order meta</td><td>The live cookie wins; decision time comes from the cookie</td><td class="where">tests/test-consent-consumer.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">CON-07</td><td>Request carries no visitor cookie, order meta holds a decision</td><td>Order meta supplies the consent block</td><td class="where">tests/test-consent-consumer.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">CON-08</td><td>Cookie is malformed, unrecognised, or smuggles a visitor identifier</td><td>Treated as absent; resolution falls through, no identity leaks</td><td class="where">tests/test-consent-consumer.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">CON-09</td><td>No consent information of any kind</td><td>Payload carries no consent block at all</td><td class="where">tests/test-consent-consumer.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">CON-10</td><td>Consumer registration timing inside the plugin lifecycle</td><td>Registered from the constructor (not <code>init</code>); only the cookie disclosure translates strings</td><td class="where">tests/test-consent-registration.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">CON-11</td><td>Third-party CMPs other than the one under test (Cookiebot, Complianz, …)</td><td>Each recognised CMP maps to the same normalised source</td><td class="where">e2e/live/tests/consent-*.spec.ts <em>(Complianz only)</em></td><td><span class="tag partial">Partial</span></td></tr>
+</tbody>
+</table></div>
+
+<h2>2. Send gate <span class="count">— whether an event may leave the site at all</span></h2>
+<div class="scroll"><table>
+<thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id">GATE-01</td><td>Banner shown, visitor has not answered (hold cookie)</td><td>Event is not sent</td><td class="where">tests/test-consent-send-gate.php · e2e/live/tests/consent-hold.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">GATE-02</td><td>Visitor denied consent</td><td>Event is not sent</td><td class="where">tests/test-consent-send-gate.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">GATE-03</td><td>Visitor granted consent</td><td>Event is sent</td><td class="where">tests/test-consent-send-gate.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">GATE-04</td><td>No banner at all / consent script not loaded</td><td>Event is sent — absence of a CMP is not a denial</td><td class="where">tests/test-consent-send-gate.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">GATE-05</td><td>Malformed hold cookie</td><td>Ignored; the event still sends</td><td class="where">tests/test-consent-send-gate.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">GATE-06</td><td>Purchase reached from a request with no cookies, order meta holds a hold/deny</td><td>The persisted decision still blocks the purchase</td><td class="where">tests/test-consent-send-gate.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">GATE-07</td><td>Purchase with neither cookies nor a persisted snapshot</td><td>Sends — nothing on record to block it</td><td class="where">tests/test-consent-send-gate.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">GATE-08</td><td>Buyer withdraws consent after having consented at checkout</td><td>The purchase is blocked, wherever the buyer withdrew</td><td class="where">tests/test-consent-send-gate.php · e2e/live/tests/consent-ownership.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">GATE-09</td><td>A stranger's request tries to lift a persisted hold</td><td>The hold stands</td><td class="where">tests/test-consent-send-gate.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">GATE-10</td><td>The CMP banner is shown and offers both accept and deny</td><td>Precondition for every consent scenario — an absent or one-sided banner would leave the rest of the suite passing for the wrong reason</td><td class="where">e2e/live/tests/consent-hold.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+</tbody>
+</table></div>
+
+<h2>3. Request ownership <span class="count">— whose consent decision may change an order</span></h2>
+<div class="scroll"><table>
+<thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id">OWN-01</td><td>Request carries the visitor identifier recorded on the order</td><td>Recognised as the buyer</td><td class="where">tests/test-request-owns-order.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">OWN-02</td><td>Logged-in customer matches the order's customer id</td><td>Recognised as the buyer</td><td class="where">tests/test-request-owns-order.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">OWN-03</td><td>Order is awaiting payment in the current Woo session</td><td>Recognised as the buyer</td><td class="where">tests/test-request-owns-order.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">OWN-04</td><td>Order predates the stored session id</td><td>Still recognised — the older signals suffice</td><td class="where">tests/test-request-owns-order.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">OWN-05</td><td>Store staff changes the order status from wp-admin</td><td>Not the buyer; the persisted decision is untouched</td><td class="where">tests/test-request-owns-order.php · e2e/live/tests/consent-ownership.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">OWN-06</td><td>Stranger opens a shared order-received URL</td><td>Not the buyer; no state change</td><td class="where">tests/test-request-owns-order.php · e2e/live/tests/consent-ownership.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">OWN-07</td><td>Guest order carrying no identity signal at all</td><td>Not owned by anyone</td><td class="where">tests/test-request-owns-order.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">OWN-08</td><td>Buyer grants on their own order-received page</td><td>The purchase is delivered</td><td class="where">e2e/live/tests/consent-ownership.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">OWN-09</td><td>Buyer grants away from the order-received page, on an ordinary storefront page</td><td>The purchase is delivered just the same — the decision is carried onto the order from any request the buyer owns</td><td class="where">e2e/live/tests/consent-ownership.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+</tbody>
+</table></div>
+
+<h2>4. Held events — server queue <span class="count">— events parked while the banner is unanswered</span></h2>
+<div class="scroll"><table>
+<thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id">HELD-01</td><td>AddToCart is captured under a hold</td><td>Recipe keeps value, quantity, product ids, hashed PII and the original timestamp</td><td class="where">tests/test-held-events.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">HELD-02</td><td>Purchase reached under a hold</td><td>Never queued — purchases go through their own deferred report</td><td class="where">tests/test-held-events.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">HELD-03</td><td>Consent already denied, or the visitor is a bot</td><td>Nothing is queued</td><td class="where">tests/test-held-events.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">HELD-04</td><td>More than 20 events accumulate</td><td>Queue caps at 20, dropping the oldest; the cap is filterable per site</td><td class="where">tests/test-held-events.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">HELD-05</td><td>Disposition of a queued event on hold / grant / deny / abandonment</td><td>Kept, sent, denied, and abandoned respectively</td><td class="where">tests/test-held-events.php · e2e/live/tests/consent-hold.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">HELD-06</td><td>Persisted hold meets a live grant</td><td>Queue flushes rather than staying held</td><td class="where">tests/test-held-events.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">HELD-07</td><td>WooCommerce session is missing at enqueue time</td><td>Enqueue returns false instead of throwing</td><td class="where">tests/test-held-events.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">HELD-08</td><td>Cart changes between the hold and the grant</td><td>The flush payload is rebuilt from the recipe alone — the cart as it stood when held</td><td class="where">tests/test-held-events.php · e2e/live/tests/consent-hold.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">HELD-09</td><td>A large ("wholesale") cart is held</td><td>Replayed intact, every line preserved</td><td class="where">tests/test-held-events.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">HELD-10</td><td>Queue is cleared</td><td>Both session and cookie are emptied, and the clear reaches storage before anything dispatches</td><td class="where">tests/test-held-events.php · tests/test-held-flush-once.php</td><td><span class="tag ok">Covered</span></td></tr>
+</tbody>
+</table></div>
+
+<h2>5. Held events — flush exactly once</h2>
+<div class="scroll"><table>
+<thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id">FLUSH-01</td><td>The read-only state route is called</td><td>It does not flush the queue</td><td class="where">tests/test-held-flush-once.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FLUSH-02</td><td>The flush route is called</td><td>Handled only by its own nonce-checked handler</td><td class="where">tests/test-held-flush-once.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FLUSH-03</td><td>An ordinary page view with a granted queue</td><td>Still flushes</td><td class="where">tests/test-held-flush-once.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FLUSH-04</td><td>State route call followed by a flush route call</td><td>Each recipe is sent exactly once</td><td class="where">tests/test-held-flush-once.php</td><td><span class="tag ok">Covered</span></td></tr>
+</tbody>
+</table></div>
+
+<h2>6. Held events — storefront script</h2>
+<div class="scroll"><table>
+<thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id">JS-01</td><td>The script flushes the server queue</td><td>Uses a nonce minted by the server, not one baked into the page</td><td class="where">app/source/src/test/held-events.test.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">JS-02</td><td>No hold cookie was written but the server holds a queue</td><td>The script still finds it</td><td class="where">app/source/src/test/held-events.test.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">JS-03</td><td>The CMP emits a consent-change signal</td><td>Acts immediately, without waiting for the poll timer</td><td class="where">app/source/src/test/held-events.test.ts · e2e/live/tests/consent-hold.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">JS-04</td><td>The banner is still unanswered</td><td>Waits; nothing is flushed</td><td class="where">app/source/src/test/held-events.test.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">JS-05</td><td>A CMP grants consent but emits no signal</td><td>The next poll catches it</td><td class="where">app/source/src/test/held-events.test.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">JS-06</td><td>The flush endpoint refuses permanently</td><td>Backoff grows and calls stop at the ceiling</td><td class="where">app/source/src/test/held-events.test.ts</td><td><span class="tag ok">Covered</span></td></tr>
+</tbody>
+</table></div>
+
+<h2>7. Blocked-event beacons <span class="count">— reporting what was suppressed, anonymously</span></h2>
+<div class="scroll"><table>
+<thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id">BLK-01</td><td>Unanswered banner, with and without a CMP source cookie</td><td>Reason <code>no_decision</code>, source attached only when known</td><td class="where">tests/test-blocked-events.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">BLK-02</td><td>Consent denied, live cookie or persisted order meta</td><td>Reason <code>denied</code> with the recorded source</td><td class="where">tests/test-blocked-events.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">BLK-03</td><td>Visitor matches a bot pattern</td><td>Reason <code>bot</code>; detail is the matched pattern, never the raw user agent; bot outranks a hold</td><td class="where">tests/test-blocked-events.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">BLK-04</td><td>Consent granted, or no cookies at all</td><td>Nothing is beaconed — the real event goes instead</td><td class="where">tests/test-blocked-events.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">BLK-05</td><td>Payload shape of a blocked row</td><td>Anonymous: illegal fields stripped, no visitor identity, <code>consent_mode_disabled</code> is not a source</td><td class="where">tests/test-blocked-events.php · e2e/live/tests/consent-blocked.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">BLK-08</td><td>A blocked row is built for a public and for a private client IP</td><td><code>client_ip_address</code> rides along when the address is public and is withheld when it is not — the API reads it to tell an opt-in region from an opt-out one and neither stores nor forwards it</td><td class="where">tests/test-blocked-events.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">BLK-06</td><td>Site id or event type is empty</td><td>No payload is produced</td><td class="where">tests/test-blocked-events.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">BLK-07</td><td>Repeated blocked actions under a decline</td><td>One blocked row per action, no real events</td><td class="where">e2e/live/tests/consent-blocked.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+</tbody>
+</table></div>
+
+<h2>8. Purchase delivered exactly once</h2>
+<div class="scroll"><table>
+<thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id">PUR-01</td><td>Two concurrent hooks fire for one order</td><td>Only one takes the delivery claim</td><td class="where">tests/test-purchase-once.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">PUR-02</td><td>A request crashes holding the claim</td><td>A later request takes the abandoned claim over; a raised PHP timeout widens the interval</td><td class="where">tests/test-purchase-once.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">PUR-03</td><td>Thank-you page plus two later status changes</td><td>Exactly one Purchase across all three</td><td class="where">tests/test-purchase-once.php · e2e/live/tests/consent-purchase-once.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">PUR-04</td><td>Purchase blocked by consent</td><td>Not reported at the moment of the skip; a single deferred blocked row follows</td><td class="where">tests/test-purchase-once.php · e2e/live/tests/consent-blocked.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">PUR-05</td><td>Consent granted inside the deferral window</td><td>The blocked report is cancelled and the real purchase is delivered</td><td class="where">tests/test-purchase-once.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">PUR-06</td><td>Consent granted after the blocked row was already sent</td><td>Nothing further is sent</td><td class="where">tests/test-purchase-once.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">PUR-07</td><td>An overdue deferred report</td><td>Sent once — by a later hook or by the scheduled event, never twice</td><td class="where">tests/test-purchase-once.php · e2e/live/tests/consent-blocked.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">PUR-08</td><td>The API transport fails</td><td>Not recorded as a delivery; a reachable API is</td><td class="where">tests/test-purchase-once.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">PUR-09</td><td>Request comes from a private client IP</td><td>The buyer's own request is skipped without recording anything; a staff or WP-CLI request is not gated on its address, since it has a private one by nature and the purchase would be lost for good</td><td class="where">tests/test-purchase-once.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">PUR-10</td><td>A blocked row cannot be built</td><td>Logged rather than dropped silently</td><td class="where">tests/test-purchase-once.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">PUR-12</td><td>The request that moves the order is a staff or WP-CLI one</td><td>Purchase hooks are registered above the admin and cache-warmer guards; storefront hooks are not; the event carries the order's own IP and UA and none of the requester's, and automation's user agent does not read as a bot</td><td class="where">tests/test-purchase-once.php · e2e/live/tests/consent-blocked.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">PUR-11</td><td>Event identifier for a purchase</td><td>Derived from the order and the event name, so it is stable across retries</td><td class="where">tests/test-purchase-once.php · e2e/live/tests/consent-purchase-once.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+</tbody>
+</table></div>
+
+<h2>9. WooCommerce event capture</h2>
+<div class="scroll"><table>
+<thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id">WOO-01</td><td>Simple product added to cart, from the product page and from the listing</td><td>Exactly one AddToCart per add</td><td class="where">e2e/live/tests/add-to-cart-product.spec.ts · e2e/live/tests/add-to-cart-shop.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">WOO-02</td><td>Variable product</td><td>The selected variation is what gets logged</td><td class="where">e2e/live/tests/add-to-cart-product.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">WOO-03</td><td>Grouped product</td><td>One AddToCart per child added</td><td class="where">e2e/live/tests/add-to-cart-product.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">WOO-04</td><td>External / affiliate product</td><td>Nothing is logged</td><td class="where">e2e/live/tests/add-to-cart-product.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">WOO-05</td><td>Checkout is reached</td><td>One InitiateCheckout listing every cart product</td><td class="where">e2e/live/tests/initiate-checkout.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">WOO-06</td><td>A third party fires <code>woocommerce_add_to_cart</code> with null variation args</td><td>No fatal TypeError, no notices; the standard call still resolves the variation</td><td class="where">tests/test-woo-add-to-cart-null-variation.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">WOO-07</td><td>The same cart item key repeats within one request</td><td>Deduplicated to a single event</td><td class="where">tests/test-woo-add-to-cart-null-variation.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">WOO-08</td><td>The Woo integration is switched off</td><td>The full shop flow produces no events</td><td class="where">e2e/live/tests/integration-disabled.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">WOO-09</td><td>Subscription / renewal orders and other Woo extensions</td><td>—</td><td class="where">—</td><td><span class="tag gap">Not covered</span></td></tr>
+</tbody>
+</table></div>
+
+<h2>10. Payload value &amp; line filtering</h2>
+<div class="scroll"><table>
+<thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id">VAL-01</td><td>Order mixing tracked and excluded products</td><td>Excluded lines leave <code>contents</code>, <code>num_items</code> and <code>value</code> entirely</td><td class="where">tests/test-woo-line-filtering.php · e2e/live/tests/excluded-sku.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">VAL-02</td><td>Nothing is excluded</td><td>Payload is unchanged from the default behaviour</td><td class="where">tests/test-woo-line-filtering.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">VAL-03</td><td>Every line in the cart or order is excluded</td><td>No event at all</td><td class="where">tests/test-woo-line-filtering.php · e2e/live/tests/excluded-sku.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">VAL-04</td><td>Free products with the freebie-suppression setting on / off</td><td>Dropped or reported accordingly, per event type</td><td class="where">tests/test-woo-line-filtering.php · e2e/live/tests/freebies.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">VAL-05</td><td>An order-level discount spans an excluded product</td><td>The discount stays with the excluded line, it is not shifted onto the rest</td><td class="where">tests/test-woo-line-filtering.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">VAL-06</td><td>Discounted product and a percentage coupon across several products</td><td>Sale price is reported; the lines sum to the reported value</td><td class="where">e2e/live/tests/value-consistency.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">VAL-07</td><td>Multi-currency stores / currency conversion</td><td>—</td><td class="where">—</td><td><span class="tag gap">Not covered</span></td></tr>
+<tr><td class="id">VAL-08</td><td>Tax- and shipping-inclusive value configurations</td><td>—</td><td class="where">—</td><td><span class="tag gap">Not covered</span></td></tr>
+</tbody>
+</table></div>
+
+<h2>11. Attribution &amp; visitor data</h2>
+<div class="scroll"><table>
+<thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id">ATTR-01</td><td>Full attribution cookie</td><td>Forwarded with only whitelisted keys; extras stripped</td><td class="where">tests/test-attribution-cookie.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">ATTR-02</td><td>Only a uid is available</td><td>Returns <code>visitor_id</code> and does not invent a <code>session_id</code></td><td class="where">tests/test-attribution-cookie.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">ATTR-03</td><td>Cookies absent, order meta holds a uid</td><td>Order meta supplies the visitor id</td><td class="where">tests/test-attribution-cookie.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">ATTR-04</td><td>Partial or invalid attribution JSON</td><td>Accepted where partial; invalid falls back to the uid</td><td class="where">tests/test-attribution-cookie.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">ATTR-05</td><td>No attribution and no uid</td><td>Returns null</td><td class="where">tests/test-attribution-cookie.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">LOC-01</td><td>Storefront sets the location cookie</td><td><code>pf_loc</code> is written</td><td class="where">e2e/live/tests/user-location.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">LOC-02</td><td>Anonymous visitor vs. logged-in customer</td><td>Guest takes location from <code>pf_loc</code>; the account address wins for a customer</td><td class="where">e2e/live/tests/user-location.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">LOC-03</td><td>The <code>pf_loc</code> cookie is removed</td><td>Location still resolves from the remaining sources</td><td class="where">e2e/live/tests/user-location.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+</tbody>
+</table></div>
+
+<h2>12. Admin interface &amp; plugin lifecycle</h2>
+<div class="scroll"><table>
+<thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id">ADM-01</td><td>Debug-log popup Refresh button</td><td>Sits left of Close; re-fetches, shows a loading state, disables itself, then renders fresh content or the empty state</td><td class="where">e2e/tests/debug-log-refresh.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">ADM-02</td><td>Debug-log popup Close button</td><td>Still closes, unaffected by the Refresh addition</td><td class="where">e2e/tests/debug-log-refresh.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">ADM-03</td><td>Settings page: saving, validation, site-id / API-key handling</td><td>—</td><td class="where">—</td><td><span class="tag gap">Not covered</span></td></tr>
+<tr><td class="id">ADM-04</td><td>WooCommerce settings tab: toggles, excluded SKUs, freebie flags round-trip</td><td>Exercised indirectly by the live suite through the settings page object, never asserted on its own</td><td class="where">e2e/live/pages/settings-page.ts</td><td><span class="tag partial">Partial</span></td></tr>
+<tr><td class="id">ADM-05</td><td>Onboarding / bootstrap and home screens of the React admin</td><td>—</td><td class="where">—</td><td><span class="tag gap">Not covered</span></td></tr>
+<tr><td class="id">DEP-01</td><td>Built plugin is installed through the WordPress uploader</td><td>Uploads and activates cleanly</td><td class="where">e2e/live/tests/deploy.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">DEP-02</td><td>WooCommerce is deactivated under the plugin</td><td>The site survives; no fatals</td><td class="where">e2e/live/tests/integration-disabled.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">DEP-03</td><td>Uninstall cleanup (<code>uninstall.php</code>)</td><td>—</td><td class="where">—</td><td><span class="tag gap">Not covered</span></td></tr>
+<tr><td class="id">DEP-04</td><td>Version upgrade / option migration between releases</td><td>—</td><td class="where">—</td><td><span class="tag gap">Not covered</span></td></tr>
+</tbody>
+</table></div>
+
+<footer>
+  <p><strong>How to run.</strong> PHP suites are plain scripts: <code>php tests/test-&lt;name&gt;.php</code> (exit 0 = green). Component tests: <code>npm run test</code> from <code>app/source/</code>. Local admin E2E: Playwright from <code>e2e/</code>. The live storefront suite runs against the rift test site — invoke it through the <code>test-live-woo-events</code> skill rather than by hand, since it builds and installs the plugin first.</p>
+  <p>“Partial” means the behaviour is touched by a test that asserts something else; “Not covered” means no automated test exercises it today.</p>
+</footer>
+
+</div>
+</body>
+</html>
