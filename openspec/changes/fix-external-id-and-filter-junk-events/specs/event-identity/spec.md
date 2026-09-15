@@ -175,4 +175,11 @@ treated as a public contract.
 - **WHEN** no visitor id resolves and no callback changes the value
 - **THEN** the event payload omits the `external_id` field rather than carrying a null
 
+#### Scenario: Nothing at all is known about the customer
+
+- **WHEN** an event carries no customer data of any kind — no identifier resolved and no billing
+  detail to hash, as a staff-created order with a blank billing address produces
+- **THEN** the payload omits the customer-data object entirely rather than sending it empty, as
+  the events that never had a guaranteed identifier already do
+
 

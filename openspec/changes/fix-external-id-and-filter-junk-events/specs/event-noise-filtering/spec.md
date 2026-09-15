@@ -11,7 +11,10 @@ suppression be diagnosable by the site owner.
 The plugin SHALL classify a request as automated when its user agent matches a known automation
 signature, and SHALL NOT send an event for such a request. The signature list SHALL include the
 generic HTTP client libraries and advertising crawlers observed in production traffic, alongside
-the existing entries.
+the existing entries. It SHALL also include the mainstream scraping frameworks whose default agent
+names them, even where the export did not happen to record one: such a framework keeps cookies and
+sends the headers a browser sends, so no other rule in this capability can separate it from a
+shopper, and its agent string cannot collide with a browser's.
 
 Where a vendor ships a family of crawlers under one agent prefix, the list SHALL carry that prefix
 as a catch-all, so that a new member of the family is suppressed without a plugin release, and
@@ -42,6 +45,39 @@ the prefix.
 
 - **WHEN** a request arrives from a mainstream desktop or mobile browser user agent
 - **THEN** the event is sent as before
+
+### Requirement: A generic HTTP client library does not suppress a Purchase
+
+The generic HTTP client libraries in the signature list are the one group a store may legitimately
+use to reach its own storefront: a headless front end or a mobile app makes the buyer's own request
+through one, carrying the buyer's cookies, which is what makes the live user agent readable at all.
+The plugin SHALL NOT suppress a Purchase on the strength of one of those signatures. It SHALL keep
+suppressing AddToCart and InitiateCheckout for them, and SHALL keep suppressing Purchase for every
+other signature, for the vendor crawler family and for a prefetch header. A signature a site adds
+through the filter is not exempt: the exemption names a fixed group, not a category the filter can
+extend.
+
+An order in the database is evidence that a human paid, because completing a WooCommerce checkout
+takes a payment. There is correspondingly nothing for an automation rule to protect on this event,
+while the cost of a false positive is total: a suppressed Purchase is deferred and then closed
+permanently, so the order can never be reported afterwards.
+
+#### Scenario: Headless storefront completes an order
+
+- **WHEN** an order reaches a purchasing status in a request the buyer owns, whose user agent
+  contains one of the generic HTTP client libraries
+- **THEN** the Purchase is sent
+
+#### Scenario: The same client adds to the cart
+
+- **WHEN** a request from that same client adds a product to the cart
+- **THEN** AddToCart is suppressed and reported under the matched signature, as for any automation
+
+#### Scenario: Another signature on the same event
+
+- **WHEN** an order reaches a purchasing status in a request the buyer owns, whose user agent
+  matches a crawler signature that is not one of the generic libraries
+- **THEN** the Purchase is suppressed exactly as it was before this change
 
 ### Requirement: Speculative browser prefetch is not reported
 
@@ -128,6 +164,48 @@ SHALL keep outranking the consent state, as it does today.
   as a client running no JavaScript produces
 - **THEN** the cookieless rule still applies and the suppression is reported under it
 
+### Requirement: A suppressed automated request leaves no trace on the shopper's next event
+
+The plugin deduplicates events with short-lived dedupe windows and per-cart guards kept in the
+WooCommerce session, so that several hooks firing for one shopper action produce one event. A
+request classified as automated SHALL NOT consume that state. The shopper's own request arrives
+seconds behind the speculative one that preceded it — a prefetch of the checkout page, a preloaded
+`add-to-cart` link — and state burned by the suppressed request would silence the shopper's real
+event; for a guard keyed on the cart, it would silence it for that cart altogether rather than
+merely delay it.
+
+The same holds whenever the send did not happen for a reason that has nothing to do with this
+shopper — an absent credential, a transport failure. Such state SHALL close only once the event was
+delivered, deliberately parked awaiting a decision, or deliberately withheld by a decision about
+the visitor. A suppression for a consent reason SHALL keep consuming that state exactly as it does
+today: there it is the decision, not the request, that withheld the event, and the guard is what
+stops the path queueing another recipe or sending another beacon on every page view.
+
+#### Scenario: The credentials are absent when the shopper reaches the checkout
+
+- **WHEN** an event cannot be sent because a credential is empty, and the shopper returns to the
+  same page with the same cart after the credentials are restored
+- **THEN** the event is sent for that later visit, because the guard never closed
+
+#### Scenario: Prefetched checkout page, then the real visit
+
+- **WHEN** a speculative prefetch of the checkout page is suppressed, and the shopper then loads
+  the checkout page with the same cart
+- **THEN** InitiateCheckout is sent for the shopper's load
+
+#### Scenario: Preloaded add-to-cart link, then the real click
+
+- **WHEN** an `add-to-cart` request is suppressed as automated, and the shopper's own request for
+  the same product arrives inside the dedupe window
+- **THEN** AddToCart is sent for the shopper's request
+
+#### Scenario: A consent hold still consumes the guard
+
+- **WHEN** an event is withheld because the consent decision is pending, and the shopper loads the
+  same page again
+- **THEN** the guard from the first request still applies, so one recipe is queued rather than one
+  for every page view
+
 ### Requirement: The site's debug log names the cause that suppressed an event
 
 When an event is withheld because the request was classified as automated, the entry the plugin
@@ -168,8 +246,12 @@ owners with a usable example, so that a false positive can be corrected without 
 
 ### Requirement: Anonymous cookieless add-to-cart URLs are not reported
 
-WooCommerce adds a product to the cart on any GET request carrying an `add-to-cart` parameter, so
-crawlers and prefetchers that follow such a link produce cart activity without a shopper. The
+WooCommerce adds a product to the cart whenever an `add-to-cart` parameter reaches it, on any
+request method, so crawlers and prefetchers that follow such a link produce cart activity without a
+shopper. The rule SHALL therefore be scoped by where the parameter arrived rather than by the
+request method: it applies when `add-to-cart` came in the **query string**, which covers the
+classic link however it is requested, and leaves a genuine add-to-cart form outside the rule by
+construction, because a form submits the parameter in the request body. The
 plugin SHALL NOT send AddToCart for such a request when it carries neither the visitor cookie nor
 the Facebook browser cookie **and** its headers carry no sign that a browser navigated to it.
 Both cookies are written by JavaScript, so a visitor running a mainstream ad blocker has neither —
@@ -177,7 +259,7 @@ and a server-side event is the only signal left for that visitor, which is the r
 exists. Cookie absence alone therefore cannot separate them from a crawler, and the headers SHALL
 have to agree before anything is withheld. Any one of the headers a browser navigation carries
 SHALL count as that agreement, because no single one of them is universal. This rule SHALL NOT
-apply unless the visitor's consent decision is pending or declined — in
+apply when the visitor's consent decision is pending or declined — in
 which case the consent state is the reported cause, because both cookies are withheld until
 consent is granted and their absence therefore proves nothing about automation. A request carrying
 either cookie SHALL be reported normally. The suppression SHALL be reported on the anonymous
@@ -186,14 +268,14 @@ stays visible rather than vanishing.
 
 #### Scenario: Crawler follows an add-to-cart link
 
-- **WHEN** an `add-to-cart` GET request arrives with neither `_pf_uid` nor `_fbp` and without the
-  headers a browser navigation carries
+- **WHEN** a request arrives with `add-to-cart` in its query string, with neither `_pf_uid` nor
+  `_fbp` and without the headers a browser navigation carries
 - **THEN** no AddToCart event is sent, and a blocked-events row is reported for it with `reason`
   `bot` and `detail` `no_cookies_in_wp_plugin`
 
 #### Scenario: Ad-blocked shopper clicks an add-to-cart link
 
-- **WHEN** an `add-to-cart` GET arrives with neither cookie, because the visitor's ad blocker
+- **WHEN** an `add-to-cart` link is requested with neither cookie, because the visitor's ad blocker
   stopped the scripts that write them, but its headers show a browser navigation
 - **THEN** the AddToCart event is sent
 
@@ -212,26 +294,47 @@ stays visible rather than vanishing.
 #### Scenario: Add to cart by other means
 
 - **WHEN** a product is added through the AJAX endpoint, the Store API, or a POST form — none of
-  which is a GET request carrying an `add-to-cart` query parameter
+  which carries an `add-to-cart` parameter in the query string
 - **THEN** this rule does not apply and the event is sent subject to the other rules
 
-### Requirement: Events are not produced when the integration is unconfigured
+#### Scenario: Crawler probes the classic link with another method
 
-The plugin SHALL NOT register its WooCommerce event hooks unless both the site identifier and
+- **WHEN** the same cookieless, header-less request carries `add-to-cart` in its query string but
+  uses `HEAD`, or `POST` to an unrelated URL — both of which still add the product to the cart
+- **THEN** the rule applies exactly as it does to the `GET` form of the same link
+
+### Requirement: Events are not sent when the integration is unconfigured
+
+The plugin SHALL NOT send an event or a blocked-events beacon unless both the site identifier and
 the API key are configured and non-empty, reusing the same credential check that gates the
 browser script. Only that check: the browser-script gate also tests the plugin's enable toggle and
 the role exclusion, neither of which applies here — the toggle is already resolved before the
 hooks are loaded, and role exclusion has never applied to server-side events.
 
+The gate SHALL withhold the outbound request and nothing else. The plugin SHALL keep recording what
+exists only for the duration of the buyer's own request and is written once — the tracking cookies
+it persists onto the order, the consent decision it records on open orders — and SHALL keep
+flushing events already queued awaiting a decision. A credential is empty for reasons that are
+temporary and invisible to the shopper: a rotated key, a paste error, a half-finished migration.
+Withholding the recording as well would turn that window into a loss no reconfiguration can repair,
+because the cookies the snapshot is taken from are gone once the request has ended.
+
 #### Scenario: Half-configured site
 
 - **WHEN** the site identifier is set but the API key is empty
-- **THEN** no WooCommerce events are produced
+- **THEN** no event and no blocked-events beacon leaves the site
+
+#### Scenario: A half-configured site still records
+
+- **WHEN** an order is placed while either credential is empty
+- **THEN** its tracking cookies are still persisted onto the order and its consent decision is
+  still recorded, so the order keeps the attribution and the decision that only its own request
+  could supply
 
 #### Scenario: Fully configured site
 
 - **WHEN** both the site identifier and the API key are non-empty
-- **THEN** the WooCommerce event hooks are registered as before
+- **THEN** events are sent as before
 
 ### Requirement: An unconfigured site is told why it is silent
 

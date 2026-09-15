@@ -200,8 +200,13 @@
 ## 4. Cookieless add-to-cart filtering
 
 - [x] 4.1 In `pf_add_to_cart_hook()` (`includes/woo/hooks/class-woocommerce-hooks.php:152`),
-      skip the event when `$_SERVER['REQUEST_METHOD'] === 'GET'` and `$_GET` carries an
-      `add-to-cart` key and the request has neither `_pf_uid` nor `_fbp`. Record the skip in the
+      skip the event when `$_GET` carries an `add-to-cart` key and the request has neither
+      `_pf_uid` nor `_fbp`. Do not test `$_SERVER['REQUEST_METHOD']`: WooCommerce's own handler
+      runs on `wp_loaded` and reads `$_REQUEST['add-to-cart']`
+      (`woocommerce/includes/class-wc-form-handler.php:33`, `:823`), so `HEAD` and a `POST` whose
+      URL carries the parameter both add to the cart and would both escape a `GET`-only rule.
+      `$_GET` is the parsed query string whatever the method, which is the scope this rule wants —
+      and a genuine add-to-cart form stays outside it, because a form submits in the body. Record the skip in the
       site's debug log, and report it on the blocked-events channel with `reason` `bot` and
       `detail` `no_cookies_in_wp_plugin` so the withheld volume stays visible in the PixelFlow UI.
       Do NOT return early with a direct POST: pass `$context['bot_rule'] = 'no_cookies_in_wp_plugin'`
@@ -248,9 +253,17 @@
 
 ## 5. Configuration gate and dead code
 
-- [x] 5.1 Make `load_hooks()` (`includes/woo/class-woocommerce-integration.php:52`) return early
-      unless both `siteExternalId` and `apiKey` are non-empty, reusing the same condition as the
-      browser-script injection gate in `pixelflow.php:280`.
+- [x] 5.1 Gate the *sending* on both `siteExternalId` and `apiKey` being non-empty, reusing the
+      same condition as the browser-script injection gate in `pixelflow.php:280`. Apply it at the
+      one place that performs the outbound request, covering both the event POST and the
+      blocked-events beacon. Do NOT gate hook registration in `load_hooks()`
+      (`includes/woo/class-woocommerce-integration.php:52`): `init_hooks()` also registers the
+      writers whose data exists only during the buyer's own request —
+      `pf_save_tracking_cookies_to_order` (`class-woocommerce-hooks.php:126`, "written once and
+      never rewritten"), `record_consent_decision_on_open_orders` (`:135`),
+      `resolve_held_events_on_page_view` (`:136`) and the two `wc_ajax` handlers (`:137-138`) —
+      so an empty credential would turn a rotated key or a half-finished migration into a
+      permanent loss of attribution and consent for every order created in that window.
 - [x] 5.2 Remove `pf_clkid`, `clkId` and the PHP reads of `pf_fbc` from all four readers — the
       default cookie map in `pixelflow_append_cookie_params()` (`includes/helpers.php:679`), the
       order-meta cookie list (`class-woocommerce-hooks.php:628`), the second cookie map
@@ -266,7 +279,9 @@
       callers are the `external_id` derivations this change replaces
       (`class-woocommerce-hooks.php:1379`, `:1417`); nothing else in the plugin, the tests or the
       documented filter surface refers to it, so this change is what orphans it.
-- [x] 5.5 Tests: hooks are not registered when either setting is empty; the notice renders in that
+- [x] 5.5 Tests: no event and no beacon leaves the site when either setting is empty, while the
+      cookie-to-order-meta writer, the consent recorder and the held-event flush all still run;
+      the notice renders in that
       case and not when both settings are set, and renders on an empty credential regardless of the
       plugin's enable toggles and of whether WooCommerce is active — the notice is deliberately
       conditioned on the credentials alone, matching the browser-script gate; a stale retired cookie reaches neither the payload
@@ -303,3 +318,58 @@
       events with no visitor id now arrive with no `external_id` at all, because the backend is removing the
       site-constant substitution in the same window — coordinate the release order with that team
       so the two changes do not land far apart.
+
+## 7. Review fixes
+
+Found by the review round on the implemented branch. Each is a defect in this change's own work,
+not new scope; the operator approved every spec edit they required.
+
+- [x] 7.1 Stop an automation suppression from consuming the dedupe and guard state the shopper's
+      own request needs. `should_send_event()` (`class-woocommerce-hooks.php:1394-1419`) writes the
+      session timestamp at `:1416` before `post_event()` classifies the request, and
+      `maybe_send_initiate_checkout()` sets the per-cart guard at `:637-641` before its
+      `post_event()` at `:668`. A prefetch of the checkout page therefore drops the event as `bot`
+      — never held, never replayed — and the shopper's real click returns at `:625-629` on the
+      guard the prefetch set, so InitiateCheckout is never sent for that cart. The same shape burns
+      the 5-second AddToCart window at `:171`. Keep the in-request flag (`:1396-1400`) committed at
+      check time, and keep a consent suppression consuming the state exactly as it does today.
+- [x] 7.2 Key the cookieless rule on the query string rather than the request method — see 4.1.
+- [x] 7.3 Move the credential gate from hook registration to the send — see 5.1.
+- [x] 7.4 Exempt Purchase from the three generic HTTP-library signatures, keeping every other
+      signature, the vendor prefix family and the prefetch rule applying to it as now. A Purchase
+      suppressed as `bot` is deferred and then closed for good by `_pf_purchase_blocked_reported`
+      (`:988`, enforced at `:791`), and the live user agent is read only when the request owns the
+      order (`includes/consent.php:427`) — that is, when it carries the buyer's own cookies. For a
+      headless storefront or a mobile app whose client is one of those libraries, that is every
+      real order. Keep the three names in one list beside `PIXELFLOW_BOT_PATTERNS`; a signature a
+      site adds through the filter is not exempt.
+- [x] 7.5 Add `scrapy` to `PIXELFLOW_BOT_PATTERNS`. It keeps cookies and sends
+      `Accept-Language` by default, so `request_looks_like_a_browser_navigation()` (`:297-313`)
+      spares it and no existing signature matches its default agent.
+- [x] 7.6 Set `customerData` on Purchase only when it is non-empty (`:822`), as the other two
+      producers already do (`:229-231`, `:663-666`). The key used to be guaranteed non-empty by the
+      order-id fallback this change removed, and `wp_json_encode([])` emits `[]`, not `{}`.
+- [x] 7.7 Remove the `fbc` fallback block in `append_cookie_params_for_order()` (`:1333-1342`):
+      now that the map above reads `_pf_cookie__fbc` (`:1317-1331`), it reads the same meta key and
+      the same live cookie. It is a duplicate this change created.
+- [ ] 7.8 Re-run the full PHP and frontend suites after the fixes, then the live storefront suite.
+- [x] 7.9 Stop a send that never happened from closing durable state. The credential gate added in
+      7.3 made `dispatch_event_post()` return `skipped` (`class-woocommerce-hooks.php:2235`) and
+      `post_blocked_event()` return without sending, while several call sites closed state right
+      after calling them. `send_settled_the_event()` (`:1484-1498`) is now the single rule: state
+      closes on `sent`, on `held`, or on a `blocked` whose reason is the shopper's own consent
+      decision, and on nothing else. The per-cart InitiateCheckout guard is the case that mattered
+      — keyed on the cart fingerprint and never reopened, so a guard closed by a send that never
+      left the site silenced that cart for good.
+- [x] 7.10 Make it impossible to mark a blocked-purchase report delivered when it was not.
+      `post_blocked_event()` reports whether the row left the site, and
+      `send_blocked_purchase_report()` (`:1019-1045`) sets `_pf_purchase_blocked_reported` — which
+      closes the order permanently (`:791`) — only after a row that did. When it did not, the
+      marker and the order stay open and exactly one retry is re-armed, guarded by
+      `wp_next_scheduled`. If the credentials never return, that retry re-arms and nothing is sent;
+      the alternative would be an order closed by a report nobody received.
+- [x] 7.11 Sweep every call site of the three sending functions and record a verdict for each,
+      including those left unchanged: `class-woocommerce-hooks.php:255`, `:438`, `:680`, `:874`,
+      `:1029`, `:2235`, and `trait-held-woo-events.php:134`, `:162`. `ajax_resolve_held_events()`
+      and `resolve_held_events_on_page_view()` both reach the flush only through
+      `resolve_held_events()`, so its credential guard (`:99`) is the single chokepoint.

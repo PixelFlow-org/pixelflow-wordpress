@@ -2,7 +2,7 @@
 
 ### Requirement: Skipped sends report anonymous blocked events
 
-The plugin SHALL POST an anonymous `blocked_events` payload to `/blocked-events` when it skips a server-side send for a bot user agent, a request that declared itself as speculative prefetch, an add-to-cart request classified as automated because it carries no browser cookies, a denied consent decision, a Purchase that was skipped and not resolved within its reporting window, or a storefront hold queue that ends without a grant. The payload SHALL contain `siteId`, `blocked` rows (`eventType`, `reason`, optional `detail` on bot, optional `consentSource` on denied and no_decision), and `client_ip_address` when the client IP is public — the API uses the address to determine whether the visitor is in an opt-in or an opt-out region, and neither stores nor forwards it. The payload SHALL carry no other visitor data. On a `bot` row, `detail` SHALL name the cause of the suppression: the matched user-agent pattern when the classification came from the user agent, or a fixed identifier naming the rule when it came from another signal. The plugin SHALL NOT beacon for a private or reserved IP skip, for GPC, or when the event is sent.
+The plugin SHALL POST an anonymous `blocked_events` payload to `/blocked-events` when it skips a server-side send for a bot user agent, a request that declared itself as speculative prefetch, an add-to-cart request classified as automated because it carries neither browser cookies nor any sign of a browser navigation, a denied consent decision, a Purchase that was skipped and not resolved within its reporting window, or a storefront hold queue that ends without a grant. The payload SHALL contain `siteId`, `blocked` rows (`eventType`, `reason`, optional `detail` on bot, optional `consentSource` on denied and no_decision), and `client_ip_address` when the client IP is public — the API uses the address to determine whether the visitor is in an opt-in or an opt-out region, and neither stores nor forwards it. The payload SHALL carry no other visitor data. On a `bot` row, `detail` SHALL name the cause of the suppression: the matched user-agent pattern when the classification came from the user agent, or a fixed identifier naming the rule when it came from another signal. The plugin SHALL NOT beacon for a private or reserved IP skip, for GPC, when the event is sent, or while the integration is unconfigured — an absent credential withholds the beacon on the same terms as the event it reports.
 
 #### Scenario: Unanswered opt-in banner
 - **WHEN** the plugin skips AddToCart or InitiateCheckout because `_pf_no_consent_decision` is the literal value `true`
@@ -25,7 +25,7 @@ The plugin SHALL POST an anonymous `blocked_events` payload to `/blocked-events`
 - **THEN** it POSTs `/blocked-events` with `reason` `bot` and `detail` set to `prefetch_header`
 
 #### Scenario: Cookieless add-to-cart URL
-- **WHEN** the plugin skips AddToCart because the request is an `add-to-cart` GET carrying neither `_pf_uid` nor `_fbp`
+- **WHEN** the plugin skips AddToCart because the request carries `add-to-cart` in its query string with neither `_pf_uid` nor `_fbp`, and no header showing a browser navigated to it
 - **THEN** it POSTs `/blocked-events` with `reason` `bot` and `detail` set to `no_cookies_in_wp_plugin`
 
 #### Scenario: Bot wins over hold or deny
