@@ -588,7 +588,9 @@ pf_run_bot_case(
     'A Purchase blocked as a bot names the rule in the debug log',
     /** @return bool|string */
     function () {
-        $_SERVER['HTTP_USER_AGENT'] = 'guzzle/7.8';
+        // Deliberately not one of the generic HTTP client libraries: those are exempt on
+        // Purchase, because a headless storefront makes the buyer's own request through one.
+        $_SERVER['HTTP_USER_AGENT'] = 'python-requests/2.31';
         $order = new WC_Order(202);
 
         pf_call(pf_hooks(), 'post_event', [pf_payload('Purchase'), ['order' => $order]]);
@@ -596,7 +598,7 @@ pf_run_bot_case(
         if (pf_event_was_sent()) {
             return 'the Purchase was sent anyway';
         }
-        if (strpos(pf_debug_log(), 'guzzle') === false) {
+        if (strpos(pf_debug_log(), 'python-requests') === false) {
             return 'the blocked-Purchase log line does not name the rule that fired';
         }
 

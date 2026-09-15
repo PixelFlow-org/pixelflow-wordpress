@@ -2,9 +2,14 @@
 /**
  * The credential gate, the notice that explains it, and the retired cookie names.
  *
- * Without credentials the API rejects every event, so the hooks are not registered at all. That
- * turns a half-configured site silent, which is why the notice ships with the gate: silence the
- * owner cannot see is indistinguishable from a broken plugin.
+ * Without credentials the API rejects every event, so nothing is sent — but the hooks still
+ * register. Most of them only record: the attribution snapshot and the consent decision exist
+ * only during the buyer's own request, and a site whose key is briefly empty would otherwise lose
+ * them for every order created in that window, with no way to recover them afterwards. The gate
+ * therefore sits at the two outbound requests, /event and /blocked-events.
+ *
+ * A gated site is silent, which is why the notice ships with the gate: silence the owner cannot
+ * see is indistinguishable from a broken plugin.
  *
  * Run: php tests/test-configuration-gate.php
  */
@@ -191,6 +196,27 @@ function pf_hooks_were_loaded(): bool
     return PixelFlow_WooCommerce_Cart_Hooks::instance() !== null;
 }
 
+/**
+ * Runs one AddToCart through the loaded hooks instance: once as an event that would be sent,
+ * once as a skip that would be beaconed to /blocked-events.
+ *
+ * @return void
+ */
+function pf_drive_one_event(): void
+{
+    $hooks  = PixelFlow_WooCommerce_Cart_Hooks::instance();
+    $method = new ReflectionMethod('PixelFlow_WooCommerce_Cart_Hooks', 'post_event');
+    $method->setAccessible(true);
+
+    $payload = [
+        'siteId'    => PF_SITE,
+        'eventData' => ['eventName' => 'AddToCart', 'eventTime' => 1757000000],
+    ];
+
+    $method->invoke($hooks, $payload, []);
+    $method->invoke($hooks, $payload, ['bot_rule' => 'no_cookies_in_wp_plugin']);
+}
+
 /** Resets the hooks singleton so each case observes its own run. */
 function pf_reset_hooks_instance(): void
 {
@@ -264,6 +290,30 @@ pf_run_gate_case(
     $passes
 );
 
+pf_run_gate_case(
+    'Both credentials present: the event and the beacon reach the API',
+    /** @return bool|string */
+    function () {
+        $GLOBALS['__pf_test_options']['pixelflow_script_params'] = [
+            'siteExternalId' => PF_SITE,
+            'apiKey'         => 'k',
+        ];
+        pf_hooks_were_loaded();
+        pf_drive_one_event();
+
+        $urls = array_column($GLOBALS['__pf_test_posts'], 'url');
+        foreach (['/event', '/blocked-events'] as $path) {
+            if ( ! in_array('https://api.pixelflow.so' . $path, $urls, true)) {
+                return "nothing reached {$path}: " . json_encode($urls);
+            }
+        }
+
+        return true;
+    },
+    $failures,
+    $passes
+);
+
 foreach (
     [
         'the API key is empty'         => ['siteExternalId' => PF_SITE, 'apiKey' => ''],
@@ -272,12 +322,34 @@ foreach (
     ] as $label => $params
 ) {
     pf_run_gate_case(
-        "No WooCommerce events are produced when {$label}",
+        "The recording hooks still register when {$label}",
+        /** @return bool|string */
+        function () use ($params) {
+            // The attribution snapshot, the consent decision carried onto open orders and the
+            // held-event flush all live on these hooks, and the data behind them exists only
+            // during the buyer's own request.
+            $GLOBALS['__pf_test_options']['pixelflow_script_params'] = $params;
+
+            return pf_hooks_were_loaded() ? true : 'the hooks were not registered';
+        },
+        $failures,
+        $passes
+    );
+
+    pf_run_gate_case(
+        "No request leaves the site when {$label}",
         /** @return bool|string */
         function () use ($params) {
             $GLOBALS['__pf_test_options']['pixelflow_script_params'] = $params;
+            if ( ! pf_hooks_were_loaded()) {
+                return 'the hooks were not registered';
+            }
 
-            return pf_hooks_were_loaded() ? 'the hooks were registered anyway' : true;
+            pf_drive_one_event();
+
+            return $GLOBALS['__pf_test_posts'] === []
+                ? true
+                : 'a request left the site: ' . json_encode(array_column($GLOBALS['__pf_test_posts'], 'url'));
         },
         $failures,
         $passes
