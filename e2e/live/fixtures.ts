@@ -141,6 +141,31 @@ export async function withStrangerPage(
   }
 }
 
+/**
+ * Runs a block as a client that behaves like a crawler: no JavaScript, so the tracking script
+ * never runs and the context acquires none of the cookies a shopper would have — no `_pf_uid`,
+ * no `_fbp`, and no consent decision either.
+ *
+ * This is the traffic the cookieless add-to-cart rule exists to filter. Disabling JavaScript is
+ * what makes the case honest: clearing cookies in a JS-enabled context would let the script write
+ * them again before the request lands.
+ */
+export async function withCrawlerPage(
+  browser: import('@playwright/test').Browser,
+  fn: (page: Page) => Promise<void>
+): Promise<void> {
+  const context = await browser.newContext({
+    ignoreHTTPSErrors: true,
+    javaScriptEnabled: false,
+  });
+  const page = await context.newPage();
+  try {
+    await fn(page);
+  } finally {
+    await context.close();
+  }
+}
+
 /** Opens the settings panel in an admin context that is independent of the storefront persona. */
 export async function withAdminPage(
   browser: import('@playwright/test').Browser,

@@ -222,6 +222,15 @@
       adds are excluded by construction, because none of them sets `$_GET['add-to-cart']`. Do
       not add a `wp_doing_ajax()` or `REST_REQUEST` probe — it would widen the rule without
       narrowing the traffic it targets.
+- [x] 4.3a Live e2e coverage for the rule, in `e2e/live/tests/cookieless-add-to-cart.spec.ts`. The
+      classic `?add-to-cart=` GET is the only add the live suite never exercised — every other one
+      goes through the Store API, which is a POST and outside the rule by construction — so the
+      rule and its interaction with consent were invisible to it. Four scenarios: an undecided
+      shopper's classic link is held rather than reported as automation; accepting afterwards
+      flushes it; a consenting shopper's classic link is reported normally; and a JavaScript-less
+      context (`withCrawlerPage()`, which acquires no cookies at all because the script never
+      runs) is withheld and reported under the rule. `URLS.classicAddToCart()` is added to
+      `site.ts` for the first three.
 - [x] 4.3 Tests: GET with neither cookie is skipped, logged, and beaconed with `reason` `bot` and
       `detail` `no_cookies_in_wp_plugin`; GET with either cookie is sent and not beaconed; an AJAX
       add (`?wc-ajax=add_to_cart` with a POST body) and a Store API add are unaffected even with

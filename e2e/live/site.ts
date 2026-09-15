@@ -62,6 +62,12 @@ export const URLS = {
   cart: `${SITE.baseURL}/?page_id=10`,
   checkout: `${SITE.baseURL}/?page_id=11`,
   product: (slug: string) => `${SITE.baseURL}/?product=${slug}`,
+  /**
+   * The classic add-to-cart link: a plain GET that WooCommerce acts on server-side.
+   * Themes still render these, and crawlers follow them — which is why the plugin
+   * filters cookieless ones. Nothing else in this suite exercises that shape.
+   */
+  classicAddToCart: (productId: number) => `${SITE.baseURL}/?add-to-cart=${productId}`,
   adminOrder: (orderId: number) =>
     `${SITE.baseURL}/wp-admin/admin.php?page=wc-orders&action=edit&id=${orderId}`,
 } as const;
