@@ -252,8 +252,15 @@ class PixelFlow_WooCommerce_Cart_Hooks
     }
 
     /**
-     * Reports whether this request is an anonymous `add-to-cart` GET: no visitor cookie and no
-     * Facebook browser cookie, which together mean no browser with any history ran.
+     * Reports whether this request is an anonymous `add-to-cart` GET made by something that is
+     * not a browser: no visitor cookie, no Facebook browser cookie, and no sign in the headers
+     * that a browser navigated here.
+     *
+     * Both cookies require the absence test, and both are written by JavaScript — which a
+     * mainstream ad blocker prevents. An ad-blocked shopper therefore carries neither, and
+     * server-side events are the only signal that survives for them: exactly what this plugin
+     * exists to recover. Cookie absence alone cannot tell that shopper from a crawler, so the
+     * headers have to agree before the event is withheld.
      *
      * @return bool
      */
@@ -267,7 +274,42 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return false;
         }
 
-        return empty($_COOKIE['_pf_uid']) && empty($_COOKIE['_fbp']);
+        if ( ! empty($_COOKIE['_pf_uid']) || ! empty($_COOKIE['_fbp'])) {
+            return false;
+        }
+
+        return ! $this->request_looks_like_a_browser_navigation();
+    }
+
+    /**
+     * Reports whether the request headers carry positive evidence that a browser navigated here.
+     *
+     * Either signal is enough, deliberately. `Sec-Fetch-Mode` is the stronger of the two but is
+     * not universal — older browsers never send it — and `Accept-Language` is sent by every
+     * mainstream browser and by none of the HTTP client libraries by default. Requiring both
+     * would put old browsers back in the same bucket as crawlers.
+     *
+     * This is positive evidence rather than an inference from absence, which is why it is allowed
+     * to overrule the cookie test rather than merely add to it.
+     *
+     * @return bool
+     */
+    private function request_looks_like_a_browser_navigation(): bool
+    {
+        if (isset($_SERVER['HTTP_SEC_FETCH_MODE']) && is_string($_SERVER['HTTP_SEC_FETCH_MODE'])) {
+            $mode = strtolower(sanitize_text_field(wp_unslash($_SERVER['HTTP_SEC_FETCH_MODE'])));
+            if ($mode === 'navigate') {
+                return true;
+            }
+        }
+
+        if (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) && is_string($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
+            if (trim(sanitize_text_field(wp_unslash($_SERVER['HTTP_ACCEPT_LANGUAGE']))) !== '') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

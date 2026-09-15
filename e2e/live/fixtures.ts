@@ -142,13 +142,24 @@ export async function withStrangerPage(
 }
 
 /**
- * Runs a block as a client that behaves like a crawler: no JavaScript, so the tracking script
- * never runs and the context acquires none of the cookies a shopper would have — no `_pf_uid`,
- * no `_fbp`, and no consent decision either.
+ * Headers a browser navigation carries and a bare HTTP client does not. The cookieless
+ * add-to-cart rule treats either of them as proof that a person followed a link.
+ */
+const BROWSER_NAVIGATION_HEADERS = ['accept-language', 'sec-fetch-mode', 'sec-fetch-dest'];
+
+/**
+ * Runs a block as a client that behaves like a crawler.
  *
- * This is the traffic the cookieless add-to-cart rule exists to filter. Disabling JavaScript is
- * what makes the case honest: clearing cookies in a JS-enabled context would let the script write
- * them again before the request lands.
+ * Two things make the case honest, and both are needed. JavaScript is off, so the tracking script
+ * never runs and the context acquires none of the cookies a shopper would have — no `_pf_uid`, no
+ * `_fbp`, no consent decision. Clearing cookies in a JS-enabled context would not do, since the
+ * script would write them again before the request landed.
+ *
+ * And the navigation headers are stripped, because Chromium sends `Accept-Language` and
+ * `Sec-Fetch-Mode: navigate` whether or not JavaScript runs — it is still a browser. The rule
+ * spares anything carrying them, deliberately, so that an ad-blocked shopper is not mistaken for
+ * a crawler. Leaving them on would make this a test of an ad-blocked shopper wearing the wrong
+ * name.
  */
 export async function withCrawlerPage(
   browser: import('@playwright/test').Browser,
@@ -159,6 +170,15 @@ export async function withCrawlerPage(
     javaScriptEnabled: false,
   });
   const page = await context.newPage();
+
+  await page.route('**/*', async (route) => {
+    const headers = { ...route.request().headers() };
+    for (const header of BROWSER_NAVIGATION_HEADERS) {
+      delete headers[header];
+    }
+    await route.continue({ headers });
+  });
+
   try {
     await fn(page);
   } finally {

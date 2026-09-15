@@ -16,8 +16,10 @@ The plugin now refuses to report three kinds of request that were never shopper 
   had no human act on it.
 - **Anonymous cookieless add-to-cart URLs.** WooCommerce adds to the cart on any GET carrying an
   `add-to-cart` parameter, so crawlers following such a link produced cart activity with nobody
-  behind it. A request carrying either the visitor cookie or the Facebook browser cookie is still
-  reported normally.
+  behind it. A request is withheld only when it carries neither the visitor cookie nor the
+  Facebook browser cookie **and** its headers show no browser navigation. Visitors running an ad
+  blocker have neither cookie — both are written by JavaScript — so the header test is what keeps
+  their events flowing; they are exactly the shoppers server-side tracking exists to recover.
 
 Roughly one event in seven was junk of one of these kinds, so the drop is a correction, not a
 loss. The withheld volume is still visible on the anonymous blocked-events channel, separated by

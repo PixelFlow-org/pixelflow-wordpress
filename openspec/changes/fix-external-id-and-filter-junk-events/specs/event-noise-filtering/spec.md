@@ -171,7 +171,13 @@ owners with a usable example, so that a false positive can be corrected without 
 WooCommerce adds a product to the cart on any GET request carrying an `add-to-cart` parameter, so
 crawlers and prefetchers that follow such a link produce cart activity without a shopper. The
 plugin SHALL NOT send AddToCart for such a request when it carries neither the visitor cookie nor
-the Facebook browser cookie, unless the visitor's consent decision is pending or declined — in
+the Facebook browser cookie **and** its headers carry no sign that a browser navigated to it.
+Both cookies are written by JavaScript, so a visitor running a mainstream ad blocker has neither —
+and a server-side event is the only signal left for that visitor, which is the reason this plugin
+exists. Cookie absence alone therefore cannot separate them from a crawler, and the headers SHALL
+have to agree before anything is withheld. Any one of the headers a browser navigation carries
+SHALL count as that agreement, because no single one of them is universal. This rule SHALL NOT
+apply unless the visitor's consent decision is pending or declined — in
 which case the consent state is the reported cause, because both cookies are withheld until
 consent is granted and their absence therefore proves nothing about automation. A request carrying
 either cookie SHALL be reported normally. The suppression SHALL be reported on the anonymous
@@ -180,9 +186,16 @@ stays visible rather than vanishing.
 
 #### Scenario: Crawler follows an add-to-cart link
 
-- **WHEN** an `add-to-cart` GET request arrives with neither `_pf_uid` nor `_fbp`
+- **WHEN** an `add-to-cart` GET request arrives with neither `_pf_uid` nor `_fbp` and without the
+  headers a browser navigation carries
 - **THEN** no AddToCart event is sent, and a blocked-events row is reported for it with `reason`
   `bot` and `detail` `no_cookies_in_wp_plugin`
+
+#### Scenario: Ad-blocked shopper clicks an add-to-cart link
+
+- **WHEN** an `add-to-cart` GET arrives with neither cookie, because the visitor's ad blocker
+  stopped the scripts that write them, but its headers show a browser navigation
+- **THEN** the AddToCart event is sent
 
 #### Scenario: Returning shopper clicks an add-to-cart link
 

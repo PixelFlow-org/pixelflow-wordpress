@@ -326,7 +326,13 @@ function pf_run_bot_case(string $label, callable $fn, array &$failures, int &$pa
 {
     $_COOKIE = [];
     $_GET    = [];
-    unset($_SERVER['HTTP_SEC_PURPOSE'], $_SERVER['HTTP_PURPOSE'], $_SERVER['HTTP_X_PURPOSE']);
+    unset(
+        $_SERVER['HTTP_SEC_PURPOSE'],
+        $_SERVER['HTTP_PURPOSE'],
+        $_SERVER['HTTP_X_PURPOSE'],
+        $_SERVER['HTTP_SEC_FETCH_MODE'],
+        $_SERVER['HTTP_ACCEPT_LANGUAGE']
+    );
     $_SERVER['REQUEST_METHOD']  = 'POST';
     $_SERVER['HTTP_USER_AGENT'] = PF_BROWSER;
 
@@ -615,13 +621,54 @@ function pf_is_cookieless_add(): bool
 }
 
 pf_run_bot_case(
-    'An add-to-cart GET with neither cookie is classified as automated',
+    'An add-to-cart GET with neither cookie and no browser headers is classified as automated',
     /** @return bool|string */
     function () {
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_GET['add-to-cart']       = '4242';
 
         return pf_is_cookieless_add() ? true : 'the rule did not fire';
+    },
+    $failures,
+    $passes
+);
+
+// Both cookies are written by JavaScript, so a mainstream ad blocker leaves a real shopper with
+// neither — and server-side events are the only signal left for them, which is the whole point of
+// the plugin. The headers have to agree before anything is withheld.
+foreach (
+    [
+        'Sec-Fetch-Mode: navigate' => ['HTTP_SEC_FETCH_MODE', 'navigate'],
+        'Accept-Language'          => ['HTTP_ACCEPT_LANGUAGE', 'en-GB,en;q=0.9'],
+    ] as $label => $header
+) {
+    pf_run_bot_case(
+        "An ad-blocked shopper is spared: no cookies but {$label} is present",
+        /** @return bool|string */
+        function () use ($header) {
+            $_SERVER['REQUEST_METHOD'] = 'GET';
+            $_GET['add-to-cart']       = '4242';
+            $_SERVER[$header[0]]       = $header[1];
+
+            return pf_is_cookieless_add()
+                ? 'a browser navigation was classified as automation'
+                : true;
+        },
+        $failures,
+        $passes
+    );
+}
+
+pf_run_bot_case(
+    'Sec-Fetch-Mode that is not a navigation does not vouch for the request',
+    /** @return bool|string */
+    function () {
+        // A script-initiated fetch is not a person following a link.
+        $_SERVER['REQUEST_METHOD']        = 'GET';
+        $_GET['add-to-cart']              = '4242';
+        $_SERVER['HTTP_SEC_FETCH_MODE']   = 'cors';
+
+        return pf_is_cookieless_add() ? true : 'the rule stopped firing for a non-navigation';
     },
     $failures,
     $passes

@@ -93,8 +93,31 @@ only when the request demonstrably belongs to the buyer.
 
 Dropping every `?add-to-cart=` GET would be simpler, but some themes put those links on product
 pages that real shoppers use — on one site in the export, every such event came from a
-product page. Requiring the absence of *both* `_pf_uid` and `_fbp` keeps the shopper and drops
-the anonymous crawler.
+product page. So the rule tests the request instead.
+
+Testing it on cookies alone is not enough, and the reason is close to the heart of the product.
+Both `_pf_uid` and `_fbp` are written by JavaScript, and a mainstream ad blocker stops both. For
+that visitor the server-side event is the only signal that survives — which is what this plugin is
+sold to recover: the readme's first line promises to bypass ad blockers, and the README puts the
+loss at 30-50% of conversions. A rule keyed on cookie absence alone cannot tell that shopper from
+a crawler, so on classic links it would delete exactly the conversions the customer is paying to
+get back.
+
+The fix is to require positive evidence to be missing too, not just cookies. A browser navigation
+announces itself: `Sec-Fetch-Mode: navigate`, and an `Accept-Language` that HTTP client libraries
+do not send by default. Either one is enough to spare the request, deliberately — `Sec-Fetch-*` is
+not universal across browser versions, and requiring both signals would put old browsers back in
+the crawler bucket next to the ad-blocked ones. An event is withheld only when the cookies are
+absent *and* nothing in the headers speaks for a browser.
+
+This does not catch a headless-Chrome crawler, which sends all of these. That is the signature
+list's job, and it already covers it. What this rule targets is the bare client that follows links
+and runs nothing, which is where the volume was.
+
+Worth recording plainly: the claim that the cookieless add-to-cart traffic in the export was
+crawlers and prefetchers is an interpretation of the aggregate, not something verified request by
+request. Requiring the headers to agree is what makes the rule safe to ship on an unverified
+premise — a wrong guess now costs nothing rather than costing conversions.
 
 The rule is scoped by the shape of the request: `$_SERVER['REQUEST_METHOD'] === 'GET'` together
 with an `add-to-cart` key in `$_GET`. `woocommerce_add_to_cart` fires identically for the classic

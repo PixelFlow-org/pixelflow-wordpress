@@ -218,6 +218,15 @@
       `do_action('woocommerce_add_to_cart')` (`:1343`), so that hook wins the shared
       `add_to_cart:<key>` dedupe and would otherwise emit the event with no rule attached, making
       the outcome depend on cart state rather than on the shape of the request.
+- [x] 4.1b Require a missing browser signal as well as missing cookies before the rule fires.
+      `_pf_uid` and `_fbp` are both written by JavaScript, so an ad-blocked shopper carries
+      neither and is indistinguishable from a crawler on cookies alone — and that shopper is
+      precisely who server-side events exist to recover. Add
+      `request_looks_like_a_browser_navigation()`: `Sec-Fetch-Mode: navigate`, or a non-empty
+      `Accept-Language`. Either is enough, because `Sec-Fetch-*` is not universal and demanding
+      both would put old browsers in the crawler bucket. Test that each header alone spares the
+      request, that a non-navigation `Sec-Fetch-Mode` does not, and that a client sending neither
+      is still filtered.
 - [x] 4.2 Keep the scope to that one condition: the AJAX endpoint, the Store API and POST-form
       adds are excluded by construction, because none of them sets `$_GET['add-to-cart']`. Do
       not add a `wp_doing_ajax()` or `REST_REQUEST` probe — it would widen the rule without

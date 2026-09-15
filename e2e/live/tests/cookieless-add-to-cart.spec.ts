@@ -79,6 +79,34 @@ test.describe('Cookieless add-to-cart — an undecided shopper', () => {
   });
 });
 
+test.describe('Cookieless add-to-cart — an ad-blocked shopper', () => {
+  test('a classic add-to-cart link is reported when the headers show a browser navigation', async ({
+    browser,
+  }) => {
+    // Both cookies are written by JavaScript, so a blocker leaves a shopper with neither — and
+    // the server-side event is then the only signal left, which is what this plugin is for. What
+    // separates them from a crawler is the navigation headers, which the blocker does not touch.
+    // JavaScript off reproduces exactly that: no cookies, but a real browser navigation.
+    const context = await browser.newContext({ ignoreHTTPSErrors: true, javaScriptEnabled: false });
+    const page = await context.newPage();
+    try {
+      await page.goto(URLS.classicAddToCart(PRODUCTS.tshirt.id), {
+        waitUntil: 'domcontentloaded',
+      });
+    } finally {
+      await context.close();
+    }
+
+    const records = await waitForEvent('AddToCart', 1, { timeoutMs: 30_000 });
+    expect(
+      sentRecords(records, 'AddToCart'),
+      'an ad-blocked shopper following a classic link was filtered as automation'
+    ).toHaveLength(1);
+
+    expect(botEntries(), 'an ad-blocked shopper produced a bot row').toHaveLength(0);
+  });
+});
+
 test.describe('Cookieless add-to-cart — a shopper who has granted consent', () => {
   test('a classic add-to-cart link is reported normally', async ({ page }) => {
     // Consent is granted by the default fixture, so the visitor cookie exists and the rule's
@@ -98,7 +126,7 @@ test.describe('Cookieless add-to-cart — a shopper who has granted consent', ()
 });
 
 test.describe('Cookieless add-to-cart — a crawler', () => {
-  test('a JavaScript-less request on the classic link is withheld and reported under the rule', async ({
+  test('a request with no cookies and no navigation headers is withheld under the rule', async ({
     browser,
   }) => {
     await withCrawlerPage(browser, async (page) => {
