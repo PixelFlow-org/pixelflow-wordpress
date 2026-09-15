@@ -34,7 +34,7 @@ That reasoning applies just as much to a real Purchase, which has no such fallba
 `wp_schedule_single_event()` call in the file schedules the blocked report only
 (`class-woocommerce-hooks.php:852`).
 
-Observed on `rift.kskonovalov.me` with the current build:
+Observed on the live test site with the current build:
 
 - order 217, moved `processing → completed` through the wp-admin order screen with an overdue
   blocked marker present: nothing written to the debug log, `_pf_purchase_blocked` still on

@@ -4,11 +4,11 @@
 # duration of the check because the site's FPM log is root-only.
 set -euo pipefail
 
-SSH_KEY="${PF_SSH_KEY:-$HOME/.claude/keys/rift}"
-SSH_HOST="${PF_SSH_HOST:-claude@rift.kskonovalov.me}"
-WP_ROOT="${PF_WP_ROOT:-/var/www/rift.kskonovalov.me/www}"
+SSH_KEY="${PF_SSH_KEY:?PF_SSH_KEY is not set (see e2e/live/.env.example)}"
+SSH_HOST="${PF_SSH_HOST:?PF_SSH_HOST is not set (see e2e/live/.env.example)}"
+WP_ROOT="${PF_WP_ROOT:?PF_WP_ROOT is not set (see e2e/live/.env.example)}"
 WP="${PF_WP_CLI:-~/bin/wp}"
-BASE_URL="${PF_BASE_URL:-https://rift.kskonovalov.me}"
+BASE_URL="${PF_BASE_URL:?PF_BASE_URL is not set (see e2e/live/.env.example)}"
 
 remote() {
   ssh -i "$SSH_KEY" -o IdentitiesOnly=yes -o BatchMode=yes "$SSH_HOST" "cd $WP_ROOT && $*"

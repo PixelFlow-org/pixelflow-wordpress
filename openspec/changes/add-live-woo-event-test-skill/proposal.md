@@ -11,7 +11,7 @@ WordPress + WooCommerce install turns that manual ritual into a single command.
 ## What Changes
 
 - New Claude skill `test-live-woo-events` that drives a full verification run against the
-  `rift.kskonovalov.me` test site: build the plugin, deploy it, configure the plugin
+  the live test site test site: build the plugin, deploy it, configure the plugin
   through its own settings UI, run the event matrix, read the debug log over SSH, and
   report a pass/fail summary in chat.
 - Deploy step installs the freshly built `pixelflow.zip` through the wp-admin

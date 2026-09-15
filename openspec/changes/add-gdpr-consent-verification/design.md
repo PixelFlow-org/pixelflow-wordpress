@@ -214,7 +214,7 @@ site ambiguous about which kind of record it is counting.
 ## Migration Plan
 
 The test-site configuration is already applied: WP Consent API 2.0.1 and Complianz
-7.5.4 are active on `rift.kskonovalov.me`, the EU region is set, and
+7.5.4 are active on the live test site, the EU region is set, and
 `wp_get_consent_type()` returns `optin`. The change records that state as a
 prerequisite the suite asserts, so a rebuilt site is caught rather than silently
 producing a green run.

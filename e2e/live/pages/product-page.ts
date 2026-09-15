@@ -1,6 +1,6 @@
 /** Single product pages — classic WooCommerce templates on this site. */
 import { expect, type Page } from '@playwright/test';
-import { URLS, type Fixture } from '../site';
+import { offSiteRequests, URLS, type Fixture } from '../site';
 import { cartItemCount, waitForCartCount } from './cart-state';
 
 export class ProductPage {
@@ -63,11 +63,11 @@ export class ProductPage {
    */
   async activateExternal(product: Fixture): Promise<void> {
     await this.open(product);
-    await this.page.route(/^(?!https:\/\/rift\.kskonovalov\.me).*$/, (route) => route.abort());
+    await this.page.route(offSiteRequests(), (route) => route.abort());
     await this.page
       .click('form.cart a.single_add_to_cart_button, form.cart button.single_add_to_cart_button')
       .catch(() => undefined);
     await this.page.waitForTimeout(1_000);
-    await this.page.unroute(/^(?!https:\/\/rift\.kskonovalov\.me).*$/);
+    await this.page.unroute(offSiteRequests());
   }
 }

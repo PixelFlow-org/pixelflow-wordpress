@@ -7,9 +7,9 @@ which is where the branching lives. See proposal.md — Why.
 
 Constraints that shape the approach:
 
-- The only realistic environment is the live test site `rift.kskonovalov.me`. Agent access
+- The only realistic environment is the live test site the live test site. Agent access
   to it is key-based SSH as the `claude` user, with WP-CLI available at `~/bin/wp`; the WP
-  root is `/var/www/rift.kskonovalov.me/www`. Sibling sites under `/var/www/` are off
+  root is `/var/www/<live-test-site>/www`. Sibling sites under `/var/www/` are off
   limits.
 - The plugin's evidence trail is the debug log: `pixelflow_get_debug_log_path()` resolves
   to `wp-content/pixelflow_debug_<key>.log`, where `<key>` is the `pixelflow_debug_log_key`
@@ -33,7 +33,7 @@ Constraints that shape the approach:
 
 **Non-Goals:**
 
-- Running in CI, or against any site other than rift.
+- Running in CI, or against any site other than the live test site.
 - Asserting anything about what the Pixelflow backend does with the events. The debug log
   is the sole oracle.
 - Cleaning up after the run, or asserting on pre-existing site state.
@@ -41,7 +41,7 @@ Constraints that shape the approach:
 
 ## Decisions
 
-**The site is hardcoded to rift, not parameterised.** There is exactly one test site and
+**The site is fixed by configuration, not parameterised per run.** There is exactly one test site and
 its access details (SSH key, user, paths, accounts) are recorded outside the repo. A
 `--site` parameter would be speculative configurability for a second site that does not
 exist; adding it later is a small change if one appears.
@@ -117,7 +117,7 @@ The next run configures whatever it needs, so no run depends on the previous one
 
 - **The run mutates a live site and sends real events.** → The site is a dedicated test
   install on a test Pixelflow account, explicitly sanctioned for this. The skill touches
-  only the `rift.kskonovalov.me` tree.
+  only the the live test site tree.
 - **Events are dispatched asynchronously; the log may lag the browser action.** → Log reads
   poll with a bounded timeout rather than reading once, and the timeout failure message
   distinguishes "no record appeared" from "wrong record appeared".

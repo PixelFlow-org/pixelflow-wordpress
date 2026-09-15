@@ -5,7 +5,7 @@ import path from 'node:path';
 import { SITE } from './site';
 
 /**
- * Live verification suite — runs against the real rift test site and sends real
+ * Live verification suite — runs against the real live test site and sends real
  * events. Deliberately separate from ../playwright.config.ts so the admin suite
  * can never trigger it by accident.
  *

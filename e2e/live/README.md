@@ -1,6 +1,6 @@
 # Live WooCommerce event verification
 
-Runs the whole WooCommerce event matrix against the **rift test site**, using the
+Runs the whole WooCommerce event matrix against the **live test site**, using the
 plugin's own debug log as the oracle. Real events are sent to a test Pixelflow
 account and test orders accumulate on the site.
 
@@ -9,7 +9,7 @@ tests) so it can never run by accident.
 
 ## Prerequisites
 
-- SSH access to the test site as the `claude` user (key at `~/.claude/keys/rift`).
+- SSH access to the test site as the deploy user (host, user and key path all come from the environment — see `.env.example`).
 - `cp .env.example .env` and fill in the WordPress passwords.
 - Site fixtures in place: the `pf-fixtures` product category, the `discount`
   coupon, and the `pfcustomer` account with a billing address.
