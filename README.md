@@ -407,6 +407,9 @@ For more information:
 
 ## Changelog
 
+### 1.1.18
+The plugin now derives external_id itself from the visitor id, using the same formula as the PixelFlow browser script, so guests are no longer collapsed onto a single site-wide identifier; added guzzle, httpx, aiohttp and meta-externalads to the bot signatures plus a meta-external catch-all for the rest of Meta's crawler family, stopped reporting speculative browser prefetch and anonymous cookieless add-to-cart URLs, named the matched rule in the debug log instead of BOT_UA, and a site missing its credentials now stops sending events and says so in wp-admin.
+
 ### 1.1.17
 Added GDPR consent gating: WooCommerce events now carry the visitor's consent state, resolved from the WP Consent API or the _pf_consent cookie. Raised the minimum supported WordPress version to 6.5, which the admin settings page requires. Added Refresh button to Debug Log popup in Advanced Settings, enabling log re-fetch without closing the modal.
 

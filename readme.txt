@@ -4,7 +4,7 @@ Tags: facebook pixel, conversions api, meta pixel, woocommerce tracking, ecommer
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.17
+Stable tag: 1.1.18
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -143,7 +143,45 @@ We offer documentation, video tutorials, and email support on all plans. Most us
 6. Advanced Settings
 7. Events in the Pixelflow dashboard
 
+== Filters for Developers ==
+
+= pixelflow_external_id =
+
+From 1.1.18 the plugin derives `external_id` itself, as `sha256(site_external_id . '_' . visitor_id)` — the same value the PixelFlow browser script emits, so server-side and browser events resolve to one shopper. The visitor id is the only source: a WordPress user id, an email address, an order id or the Facebook cookie are never substituted for it, and an event with no visitor id is sent with no `external_id` at all.
+
+This filter lets a site replace that value, suppress it, or supply one where the plugin resolved none. It runs on every event, including when nothing resolved. Returning an empty value or null omits the field.
+
+`add_filter( 'pixelflow_external_id', function ( $external_id, $context ) {
+    // Supply an identifier where the plugin found none — the previous behaviour.
+    if ( empty( $external_id ) && ! empty( $context['order'] ) ) {
+        return hash( 'sha256', (string) $context['order']->get_billing_email() );
+    }
+
+    return $external_id;
+}, 10, 2 );`
+
+The `$context` array is a public contract from 1.1.18 onward, but its keys are **not** uniform across event types — a callback must tolerate a missing key rather than assume one:
+
+* AddToCart — `product_id`, `variation_id`, and `bot_rule` when the request was classified as an anonymous add-to-cart URL
+* InitiateCheckout — no keys at all
+* Purchase — `order`, plus the consent overrides `consent`, `no_decision`, `source`, and `allow_live` (false when the request is not the buyer's, such as a payment-gateway callback or a status change made in wp-admin)
+* A held event replayed after consent is granted — `product_id` and `variation_id` from the stored recipe
+
+= pixelflow_useragent_bot_patterns =
+
+The plugin does not send events for requests whose user agent matches a known automation signature. The list includes generic HTTP client libraries (`guzzle`, `httpx`, `aiohttp`), which a store's own mobile app or partner integration may legitimately use. When an event is withheld this way, the site's debug log names the matched signature, so a false positive can be identified and then removed here.
+
+`add_filter( 'pixelflow_useragent_bot_patterns', function ( $patterns ) {
+    // Our own mobile app uses Guzzle; stop treating it as automation.
+    return array_values( array_diff( $patterns, array( 'guzzle' ) ) );
+} );`
+
+Each entry is matched as a case-insensitive substring of the user agent.
+
 == Changelog ==
+
+= 1.1.18 =
+The plugin now derives external_id itself from the visitor id, using the same formula as the PixelFlow browser script, so guests are no longer collapsed onto a single site-wide identifier; added guzzle, httpx, aiohttp and meta-externalads to the bot signatures plus a meta-external catch-all for the rest of Meta's crawler family, stopped reporting speculative browser prefetch and anonymous cookieless add-to-cart URLs, named the matched rule in the debug log instead of BOT_UA, and a site missing its credentials now stops sending events and says so in wp-admin.
 
 = 1.1.17 =
 Added GDPR consent gating: WooCommerce events now carry the visitor's consent state, resolved from the WP Consent API or the _pf_consent cookie. Raised the minimum supported WordPress version to 6.5, which the admin settings page requires. Added Refresh button to Debug Log popup in Advanced Settings, enabling log re-fetch without closing the modal.

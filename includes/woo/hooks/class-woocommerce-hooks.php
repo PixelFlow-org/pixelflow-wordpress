@@ -230,10 +230,44 @@ class PixelFlow_WooCommerce_Cart_Hooks
             $payload['eventData']['customerData'] = $customer;
         }
 
-        $this->post_event($payload, [
+        $context = [
             'product_id'   => (int) $product_id,
             'variation_id' => (int) $variation_id,
-        ]);
+        ];
+
+        // WooCommerce adds to the cart on any GET carrying an add-to-cart parameter, so crawlers
+        // and prefetchers that follow such a link produce cart activity with no shopper behind it.
+        // A real shopper with browsing history keeps at least one of these cookies; an anonymous
+        // crawler has neither. The rule is scoped by the request itself, so AJAX, Store API and
+        // POST-form adds fall outside it by construction — none of them sets $_GET['add-to-cart'].
+        //
+        // The skip goes through post_event() rather than returning early, so the precedence in
+        // pixelflow_resolve_bot_detail() still applies: a crawler that also matches a signature is
+        // reported under that signature, and the logging and beaconing stay in one place.
+        if ($this->is_cookieless_add_to_cart_request()) {
+            $context['bot_rule'] = 'no_cookies_in_wp_plugin';
+        }
+
+        $this->post_event($payload, $context);
+    }
+
+    /**
+     * Reports whether this request is an anonymous `add-to-cart` GET: no visitor cookie and no
+     * Facebook browser cookie, which together mean no browser with any history ran.
+     *
+     * @return bool
+     */
+    private function is_cookieless_add_to_cart_request(): bool
+    {
+        $method = isset($_SERVER['REQUEST_METHOD']) && is_string($_SERVER['REQUEST_METHOD'])
+            ? strtoupper(sanitize_text_field(wp_unslash($_SERVER['REQUEST_METHOD'])))
+            : '';
+
+        if ($method !== 'GET' || ! isset($_GET['add-to-cart'])) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only request shape check, no state change
+            return false;
+        }
+
+        return empty($_COOKIE['_pf_uid']) && empty($_COOKIE['_fbp']);
     }
 
     /**
@@ -332,10 +366,21 @@ class PixelFlow_WooCommerce_Cart_Hooks
             $payload['eventData']['customerData'] = $customer;
         }
 
-        $this->post_event($payload, [
+        $context = [
             'product_id'   => $product_id,
             'variation_id' => $variation_id,
-        ]);
+        ];
+
+        // The same cookieless add-to-cart rule as pf_add_to_cart_hook(). This hook is the other
+        // AddToCart producer, and for a product already in the cart WooCommerce fires it first —
+        // set_quantity() runs before do_action('woocommerce_add_to_cart') — so it wins the shared
+        // add_to_cart:<key> dedupe. Without this the rule would depend on cart state rather than
+        // on the shape of the request.
+        if ($this->is_cookieless_add_to_cart_request()) {
+            $context['bot_rule'] = 'no_cookies_in_wp_plugin';
+        }
+
+        $this->post_event($payload, $context);
     }
 
     /**
@@ -625,7 +670,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return;
         }
 
-        $cookie_keys = ['_fbp', 'pf_fbc', '_fbc', 'pf_clkid', 'pf_loc', '_pf_utm', '_pf_attribution', '_pf_consent', '_pf_no_consent_decision', '_pf_consent_source', '_pf_uid'];
+        $cookie_keys = ['_fbp', '_fbc', 'pf_loc', '_pf_utm', '_pf_attribution', '_pf_consent', '_pf_no_consent_decision', '_pf_consent_source', '_pf_uid'];
 
         foreach ($cookie_keys as $key) {
             if (isset($_COOKIE[$key]) && is_string($_COOKIE[$key]) && $_COOKIE[$key] !== '') {
@@ -1228,9 +1273,8 @@ class PixelFlow_WooCommerce_Cart_Hooks
         }
 
         $map = [
-            'clkId' => 'pf_clkid',
-            'fbc'   => 'pf_fbc',
-            'fbp'   => '_fbp',
+            'fbc' => '_fbc',
+            'fbp' => '_fbp',
         ];
 
         foreach ($map as $param => $cookie_name) {
@@ -1285,9 +1329,13 @@ class PixelFlow_WooCommerce_Cart_Hooks
             $uid = sanitize_text_field( wp_unslash( $_COOKIE['_pf_uid'] ) );
         }
 
+        // An absent override is not permission to read the request's cookies: passing null for
+        // $raw means "no override given, read $_COOKIE" inside the helper, which is how a staff
+        // member's own _pf_attribution reached an order with nothing stored of its own.
         $attribution = pixelflow_get_attribution_from_cookie(
             is_string( $raw ) && $raw !== '' ? $raw : null,
-            is_string( $uid ) && $uid !== '' ? $uid : null
+            is_string( $uid ) && $uid !== '' ? $uid : null,
+            $request_is_buyer
         );
         if ( $attribution === null ) {
             return;
@@ -1376,7 +1424,6 @@ class PixelFlow_WooCommerce_Cart_Hooks
             'st'          => pixelflow_sha256_if_not_empty(pixelflow_normalize_state($state)),
             'zp'          => pixelflow_sha256_if_not_empty(pixelflow_normalize_zip($zip)),
             'country'     => pixelflow_sha256_if_not_empty(pixelflow_normalize_country($country)),
-            'external_id' => pixelflow_sha256_if_not_empty(pixelflow_normalize_external_id((string)$user_id)),
         ];
 
         return array_filter($out, fn($v) => $v !== '');
@@ -1399,9 +1446,6 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $zip     = (string)$order->get_billing_postcode();
         $country = (string)$order->get_billing_country(); // ISO alpha-2 in Woo, usually
 
-        $customer_id  = (int)$order->get_customer_id();
-        $external_raw = $customer_id > 0 ? (string)$customer_id : ($email !== '' ? $email : (string)$order->get_id());
-
         $out = [];
 
         $out['ln'] = pixelflow_sha256_if_not_empty(pixelflow_normalize_name($ln));
@@ -1413,8 +1457,6 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $out['zp']      = pixelflow_sha256_if_not_empty(pixelflow_normalize_zip($zip));
         $out['ct']      = pixelflow_sha256_if_not_empty(pixelflow_normalize_city($city));
         $out['country'] = pixelflow_sha256_if_not_empty(pixelflow_normalize_country($country));
-
-        $out['external_id'] = pixelflow_sha256_if_not_empty(pixelflow_normalize_external_id($external_raw));
 
         // Get IP and UA: prefer values saved to order meta at creation time (real browser
         // request), fall back to the current request only when this request is the buyer's.
@@ -1800,7 +1842,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             $response_summary = $response;
         }
 
-        $cookie_keys = ['_pf_utm', 'pf_clkid', 'pf_fbc', '_fbp', '_fbc', 'pf_loc'];
+        $cookie_keys = ['_pf_utm', '_fbp', '_fbc', 'pf_loc'];
         $cookies     = array_intersect_key($_COOKIE, array_flip($cookie_keys));
 
         $server_keys = ['REQUEST_URI', 'HTTP_ORIGIN', 'HTTP_REFERER', 'SERVER_NAME', 'SERVER_ADDR', 'QUERY_STRING', 'REQUEST_TIME'];
@@ -1862,7 +1904,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
      * Posts a server-side event to the PixelFlow API, or a blocked-events beacon when skipped.
      *
      * @param array $payload Event payload
-     * @param array{consent?: ?string, no_decision?: ?string, source?: ?string, product_id?: int, variation_id?: int, allow_live?: bool, ua?: string, order?: WC_Order} $context
+     * @param array{consent?: ?string, no_decision?: ?string, source?: ?string, product_id?: int, variation_id?: int, allow_live?: bool, ua?: string, bot_rule?: string, order?: WC_Order} $context
      * @return string sent|held|blocked|skipped|failed
      */
     private function post_event(array $payload, array $context = []): string
@@ -1874,6 +1916,67 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $variation_id       = isset($context['variation_id']) ? (int) $context['variation_id'] : 0;
         $allow_live         = ! isset($context['allow_live']) || (bool) $context['allow_live'];
         $order              = isset($context['order']) && $context['order'] instanceof WC_Order ? $context['order'] : null;
+        $bot_rule           = isset($context['bot_rule']) && is_string($context['bot_rule']) ? $context['bot_rule'] : null;
+
+        // Identity is resolved here rather than in the customer-data builders: this is the one
+        // point every event type passes through, and the only place $context exists — which the
+        // pixelflow_external_id filter is contracted to receive. Resolving before
+        // hold_or_block_event() below means a held event captures the identity of the shopper who
+        // actually triggered it.
+        //
+        // A replay does not re-resolve. flush_held_events() may run on a later request that is not
+        // the shopper's, so the recipe's captured value stands; only the filter runs again.
+        if ($this->flushing_held) {
+            $external_id = isset($payload['eventData']['customerData']['external_id'])
+                && is_string($payload['eventData']['customerData']['external_id'])
+                ? $payload['eventData']['customerData']['external_id']
+                : null;
+        } else {
+            $attribution_raw = null;
+            $uid_override    = null;
+
+            if ($order instanceof WC_Order) {
+                $stored_attribution = $order->get_meta('_pf_cookie__pf_attribution', true);
+                $attribution_raw    = is_string($stored_attribution) && $stored_attribution !== ''
+                    ? $stored_attribution
+                    : null;
+
+                $stored_uid   = $order->get_meta('_pf_cookie__pf_uid', true);
+                $uid_override = is_string($stored_uid) && $stored_uid !== '' ? $stored_uid : null;
+            }
+
+            $external_id = pixelflow_resolve_external_id(
+                (string) $this->site_external_id,
+                $attribution_raw,
+                $uid_override,
+                $allow_live
+            );
+        }
+
+        /**
+         * Filters the derived external_id before it is sent.
+         *
+         * Runs on every event, including when nothing resolved, so a site can supply an
+         * identifier where the plugin found none. Returning an empty value omits the field.
+         *
+         * @param string|null $external_id Derived identifier, or null when none resolved
+         * @param array       $context     The event context; its keys are a public contract
+         *                                 and are not uniform across event types
+         */
+        $external_id = apply_filters('pixelflow_external_id', $external_id, $context);
+
+        if (isset($payload['eventData']) && is_array($payload['eventData'])) {
+            if (is_string($external_id) && $external_id !== '') {
+                if ( ! isset($payload['eventData']['customerData'])
+                    || ! is_array($payload['eventData']['customerData'])) {
+                    $payload['eventData']['customerData'] = [];
+                }
+                $payload['eventData']['customerData']['external_id'] = $external_id;
+            } elseif (isset($payload['eventData']['customerData']['external_id'])) {
+                // Never serialise as null: an unresolved or suppressed identity leaves no key.
+                unset($payload['eventData']['customerData']['external_id']);
+            }
+        }
 
         pixelflow_append_consent_to_payload($payload, $consent_cookie_raw, $source_cookie_raw, $allow_live);
 
@@ -1884,10 +1987,14 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $ua         = $allow_live
             ? pixelflow_get_client_user_agent()
             : (isset($context['ua']) && is_string($context['ua']) ? $context['ua'] : '');
-        $blocked    = pixelflow_resolve_blocked_event_reason(
+        // The prefetch header is read live only when the request is the buyer's, on the same gate
+        // as the user agent above: on a gateway callback or a wp-admin status change the headers
+        // belong to someone other than the shopper and say nothing about their event.
+        $is_prefetch = $allow_live && pixelflow_request_is_speculative_prefetch();
+        $blocked     = pixelflow_resolve_blocked_event_reason(
             $consent_cookie_raw,
             $no_decision_raw,
-            pixelflow_get_bot_detail_pattern($ua),
+            pixelflow_resolve_bot_detail($ua, $is_prefetch, $bot_rule),
             $source_cookie_raw,
             $allow_live
         );
@@ -1923,10 +2030,13 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
         if ($order !== null && $event_name === 'Purchase') {
             $disposition = $this->defer_blocked_purchase_report($order, $blocked);
+            $detail      = isset($blocked['detail']) && is_string($blocked['detail']) ? $blocked['detail'] : '';
             $this->debug_log(
                 $event_name,
                 $payload,
-                'EVENT SENDING SKIPPED (' . ($blocked['reason'] ?? 'unknown') . '); BLOCKED ROW ' . $disposition
+                'EVENT SENDING SKIPPED (' . ($blocked['reason'] ?? 'unknown')
+                    . ($detail !== '' ? '; ' . $detail : '')
+                    . '); BLOCKED ROW ' . $disposition
             );
 
             return 'blocked';
@@ -1943,8 +2053,15 @@ class PixelFlow_WooCommerce_Cart_Hooks
 
         $this->post_blocked_event($event_name, $blocked);
         if (($blocked['reason'] ?? '') === 'bot') {
-            $message = __('EVENT SENDING SKIPPED BECAUSE USER AGENT MATCHED BOT SIGNATURE', 'pixelflow');
-            $this->debug_log($event_name . ' ' . $message, $payload, $message . ' (BOT_UA)');
+            // Three rules reach this branch — the signature list, the prefetch header and the
+            // cookieless add-to-cart rule — so the line names whichever fired rather than
+            // asserting a user-agent match that may not have happened.
+            $detail  = isset($blocked['detail']) && is_string($blocked['detail']) ? $blocked['detail'] : '';
+            $message = __('EVENT SENDING SKIPPED BECAUSE THE REQUEST WAS CLASSIFIED AS AUTOMATED', 'pixelflow');
+            if ($detail !== '') {
+                $message .= ': ' . $detail;
+            }
+            $this->debug_log($event_name . ' ' . $message, $payload, $message);
 
             return 'blocked';
         }

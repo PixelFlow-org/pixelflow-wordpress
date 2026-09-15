@@ -62,6 +62,71 @@ function pixelflow_get_bot_detail_pattern(string $user_agent): ?string
 }
 
 /**
+ * Reports whether the current request declares itself as speculative prefetch or prerender.
+ *
+ * Chrome sends `Sec-Purpose: prefetch` (optionally `;prerender`); older browsers and some
+ * crawlers send the legacy `Purpose: prefetch`. No human has acted on such a request.
+ *
+ * @return bool
+ */
+function pixelflow_request_is_speculative_prefetch(): bool
+{
+    // Safari's legacy header says `preview` rather than `prefetch`, so matching only the modern
+    // values would leave X-Purpose read but never matched.
+    $headers = [
+        'HTTP_SEC_PURPOSE' => ['prefetch', 'prerender'],
+        'HTTP_PURPOSE'     => ['prefetch', 'prerender'],
+        'HTTP_X_PURPOSE'   => ['prefetch', 'prerender', 'preview'],
+    ];
+
+    foreach ($headers as $key => $markers) {
+        if ( ! isset($_SERVER[$key]) || ! is_string($_SERVER[$key])) {
+            continue;
+        }
+
+        $value = strtolower(sanitize_text_field(wp_unslash($_SERVER[$key])));
+        foreach ($markers as $marker) {
+            if (strpos($value, $marker) !== false) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Decides the single cause reported for an automated-client suppression.
+ *
+ * Three rules can fire on the same request — a crawler following an add-to-cart link matches the
+ * signature list and the cookieless rule at once — so the cause is decided here rather than by
+ * whichever branch happens to run first, which would tie the backend's (reason, detail) breakdown
+ * to call order. Most specific wins: a matched signature names an actual client, a prefetch header
+ * names a browser behaviour, and the caller-supplied rule is an inference from absence.
+ *
+ * The prefetch signal arrives as a resolved boolean rather than being read from $_SERVER here, so
+ * the buyer-trust gate stays at the one call site that knows whether the request is the buyer's.
+ *
+ * @param string      $user_agent  Agent of whoever the event is about
+ * @param bool        $is_prefetch Whether the request declared itself as speculative prefetch
+ * @param string|null $rule        Rule identifier supplied by the calling event path
+ * @return string|null The cause, or null when the request is not classified as automated
+ */
+function pixelflow_resolve_bot_detail(string $user_agent, bool $is_prefetch = false, ?string $rule = null): ?string
+{
+    $pattern = pixelflow_get_bot_detail_pattern($user_agent);
+    if ($pattern !== null && $pattern !== '') {
+        return $pattern;
+    }
+
+    if ($is_prefetch) {
+        return 'prefetch_header';
+    }
+
+    return $rule !== null && $rule !== '' ? $rule : null;
+}
+
+/**
  * Maps a Woo skip to the script's blocked-event reason. Bot wins so a crawler
  * with an unanswered banner is counted as bot, not no_decision.
  *

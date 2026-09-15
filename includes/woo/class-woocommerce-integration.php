@@ -55,6 +55,13 @@ class PixelFlow_WooCommerce_Integration
         $params           = get_option('pixelflow_script_params', array());
         $site_external_id = isset($params['siteExternalId']) ? $params['siteExternalId'] : '';
         $api_key          = isset($params['apiKey']) ? $params['apiKey'] : '';
+        // Without credentials the API rejects every event, so producing them only burns
+        // requests. The same credential check gates the browser script (pixelflow.php),
+        // so a half-configured site is silent in both places rather than one.
+        if (empty($site_external_id) || empty($api_key)) {
+            return;
+        }
+
         $pixelflow_general_options = get_option('pixelflow_general_options');
         require_once PIXELFLOW_PLUGIN_PATH . 'includes/woo/hooks/class-woocommerce-hooks.php';
         new PixelFlow_WooCommerce_Cart_Hooks($api_url, $api_key, $site_external_id, $pixelflow_general_options);

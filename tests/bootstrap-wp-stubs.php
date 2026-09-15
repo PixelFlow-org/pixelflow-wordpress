@@ -103,5 +103,8 @@ function wp_json_encode($data, $options = 0, $depth = 512)
 function wc_get_product($id)
 {
     $GLOBALS['__pf_test_last_wc_get_product_id'] = $id;
-    return null;
+
+    // Defaults to null, which is what the null-variation test needs. A test that has to drive a
+    // hook past the product lookup registers its own product under this key instead.
+    return $GLOBALS['__pf_test_products'][$id] ?? null;
 }
