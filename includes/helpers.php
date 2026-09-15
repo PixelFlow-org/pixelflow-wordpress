@@ -751,6 +751,9 @@ define('PIXELFLOW_BOT_PATTERNS', [
     'headless',
     'phantom',
     'selenium',
+    // Scrapy sends Accept-Language and keeps cookies, so request_looks_like_a_browser_navigation()
+    // spares it and its default agent is the only signal left.
+    'scrapy',
     'facebookexternalhit',
     // Meta ships a family of crawlers under the meta-external prefix. The two we have seen in
     // production are listed exactly and report themselves, so the backend can still separate
@@ -775,8 +778,26 @@ define('PIXELFLOW_BOT_PATTERNS', [
     'shopproductfinder',
     'pricefinder',
     // Generic HTTP client libraries. Broad enough to catch a store's own integration, so a
-    // suppression names the matched signature in the debug log and the
-    // pixelflow_useragent_bot_patterns filter can remove any of them.
+    // suppression names the matched signature in the debug log, the
+    // pixelflow_useragent_bot_patterns filter can remove any of them, and
+    // PIXELFLOW_PURCHASE_EXEMPT_BOT_PATTERNS below keeps them from deciding a Purchase.
+    'guzzle',
+    'httpx',
+    'aiohttp',
+]);
+
+/**
+ * Signatures that never suppress a Purchase; see pixelflow_resolve_bot_detail().
+ *
+ * An order in the database is evidence that a human paid, and a headless store or a mobile app
+ * legitimately reports that order with one of these clients — where a suppressed Purchase is
+ * lost for good, because the blocked row closes the order permanently. They keep suppressing
+ * AddToCart and InitiateCheckout, which no order backs.
+ *
+ * Only the plugin's own names are listed: a signature a site adds through
+ * pixelflow_useragent_bot_patterns is its own decision and is not exempt.
+ */
+define('PIXELFLOW_PURCHASE_EXEMPT_BOT_PATTERNS', [
     'guzzle',
     'httpx',
     'aiohttp',

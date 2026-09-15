@@ -93,6 +93,13 @@ trait PixelFlow_Held_Woo_Events_Trait
             return;
         }
 
+        // Nothing can be delivered without credentials, and every disposition below empties the
+        // queue: resolving it now would discard the visit's events instead of holding them until
+        // the site id or key is back.
+        if ( ! $this->has_api_credentials()) {
+            return;
+        }
+
         $disposition = pixelflow_held_events_disposition();
         if ($disposition === 'keep') {
             return;

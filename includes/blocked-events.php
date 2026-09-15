@@ -36,10 +36,12 @@ const PIXELFLOW_BLOCKED_EVENT_CONSENT_SOURCES = [
 /**
  * Returns the first bot-pattern substring that matched, for anonymous telemetry detail.
  *
- * @param string $user_agent Client user agent (never stored on the row)
+ * @param string             $user_agent Client user agent (never stored on the row)
+ * @param array<int, string> $exempt     Patterns to skip, so an agent matching both an exempt
+ *                                       and a listed signature still reports the listed one
  * @return string|null Matched pattern, or null when the agent is not a bot
  */
-function pixelflow_get_bot_detail_pattern(string $user_agent): ?string
+function pixelflow_get_bot_detail_pattern(string $user_agent, array $exempt = []): ?string
 {
     if ( ! defined('PIXELFLOW_BOT_PATTERNS')) {
         return null;
@@ -53,7 +55,10 @@ function pixelflow_get_bot_detail_pattern(string $user_agent): ?string
     $lower_ua = strtolower($user_agent);
     foreach ($bot_patterns as $pattern) {
         $pattern = (string) $pattern;
-        if ($pattern !== '' && strpos($lower_ua, $pattern) !== false) {
+        if ($pattern === '' || in_array($pattern, $exempt, true)) {
+            continue;
+        }
+        if (strpos($lower_ua, $pattern) !== false) {
             return $pattern;
         }
     }
@@ -115,11 +120,20 @@ function pixelflow_request_is_speculative_prefetch(): bool
  *
  * @param string $user_agent  Agent of whoever the event is about
  * @param bool   $is_prefetch Whether the request declared itself as speculative prefetch
+ * @param string $event_name  Catalog event name, so a Purchase can spare the generic client
+ *                            libraries; every other signature and the prefetch rule still apply
  * @return string|null The cause, or null when the request's own evidence says nothing
  */
-function pixelflow_resolve_bot_detail(string $user_agent, bool $is_prefetch = false): ?string
+function pixelflow_resolve_bot_detail(string $user_agent, bool $is_prefetch = false, string $event_name = ''): ?string
 {
-    $pattern = pixelflow_get_bot_detail_pattern($user_agent);
+    // The one place the Purchase exemption lives: an order in the database is evidence a human
+    // paid, and a suppressed Purchase is closed permanently, so the three generic HTTP client
+    // libraries a store may integrate with do not decide that event.
+    $exempt = $event_name === 'Purchase' && defined('PIXELFLOW_PURCHASE_EXEMPT_BOT_PATTERNS')
+        ? PIXELFLOW_PURCHASE_EXEMPT_BOT_PATTERNS
+        : [];
+
+    $pattern = pixelflow_get_bot_detail_pattern($user_agent, $exempt);
     if ($pattern !== null && $pattern !== '') {
         return $pattern;
     }
