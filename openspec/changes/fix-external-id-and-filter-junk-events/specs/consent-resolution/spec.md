@@ -29,8 +29,15 @@ The plugin SHALL POST an anonymous `blocked_events` payload to `/blocked-events`
 - **THEN** it POSTs `/blocked-events` with `reason` `bot` and `detail` set to `no_cookies_in_wp_plugin`
 
 #### Scenario: Bot wins over hold or deny
-- **WHEN** the request is both a bot and a consent hold or deny
+- **WHEN** the request's own evidence marks it as automated — its user agent matches a signature,
+  or it declares itself as speculative prefetch — and a consent hold or deny also applies
 - **THEN** the blocked row reason is `bot`
+
+#### Scenario: A hold outranks automation inferred from missing cookies
+- **WHEN** the only evidence of automation is that the request carries none of the cookies a
+  shopper would have, and a consent hold or deny applies
+- **THEN** the blocked row reason is the consent one — `no_decision` or `denied` — because the
+  consent decision is what withheld those cookies
 
 #### Scenario: Private IP and cookie-less Purchase
 - **WHEN** the plugin skips because the client IP is private, or sends a cookie-less Purchase with no hold or deny snapshot

@@ -87,9 +87,17 @@ nothing about the shopper whose event is being sent.
 A single request can satisfy more than one automation rule — a crawler following an `add-to-cart`
 link matches both the user-agent list and the cookieless rule, and a prefetched request can carry
 an automation user agent. The plugin SHALL report exactly one cause for such a suppression, chosen
-in this order: the matched user-agent signature, then the prefetch header, then the rule supplied
-by the calling event path. The same cause SHALL appear in the debug log and in the blocked-events
-row, so the two never disagree.
+in this order: the matched user-agent signature, then the prefetch header, then an unresolved or
+declined consent decision, then the rule supplied by the calling event path. The same cause SHALL
+appear in the debug log and in the blocked-events row, so the two never disagree.
+
+The consent state outranks a caller-supplied rule because such a rule infers automation from the
+*absence* of something the request should have carried, and a consent decision that is pending or
+declined explains that absence with no automation involved. A request whose event is withheld for
+a pending decision SHALL therefore be reported as awaiting a decision, so that it stays eligible to
+be held and replayed if the visitor grants, and SHALL NOT be reported as automation. Evidence about
+the request itself — a matched signature, a prefetch header — is not an inference from absence and
+SHALL keep outranking the consent state, as it does today.
 
 #### Scenario: Crawler follows an add-to-cart link with a known agent
 
@@ -100,6 +108,25 @@ row, so the two never disagree.
 
 - **WHEN** a request carries a prefetch header and a mainstream browser user agent
 - **THEN** the suppression is reported with `prefetch_header`
+
+#### Scenario: Undecided shopper on an add-to-cart link
+
+- **WHEN** an `add-to-cart` GET carries neither the visitor cookie nor the Facebook browser
+  cookie because the visitor has not answered the consent banner yet, and the hold cookie is
+  present
+- **THEN** the event is reported as awaiting a decision rather than as automation, so it remains
+  eligible to be held and replayed on a grant
+
+#### Scenario: Declined shopper on an add-to-cart link
+
+- **WHEN** the same request arrives from a visitor whose resolved decision is `denied`
+- **THEN** the suppression is reported as denied rather than as automation
+
+#### Scenario: A crawler carries no cookies of any kind
+
+- **WHEN** an `add-to-cart` GET arrives with no browser cookies at all, consent cookies included,
+  as a client running no JavaScript produces
+- **THEN** the cookieless rule still applies and the suppression is reported under it
 
 ### Requirement: The site's debug log names the cause that suppressed an event
 
@@ -144,9 +171,12 @@ owners with a usable example, so that a false positive can be corrected without 
 WooCommerce adds a product to the cart on any GET request carrying an `add-to-cart` parameter, so
 crawlers and prefetchers that follow such a link produce cart activity without a shopper. The
 plugin SHALL NOT send AddToCart for such a request when it carries neither the visitor cookie nor
-the Facebook browser cookie. A request carrying either cookie SHALL be reported normally. The
-suppression SHALL be reported on the anonymous blocked-events channel as an automated-client
-suppression naming this rule, so the withheld volume stays visible rather than vanishing.
+the Facebook browser cookie, unless the visitor's consent decision is pending or declined — in
+which case the consent state is the reported cause, because both cookies are withheld until
+consent is granted and their absence therefore proves nothing about automation. A request carrying
+either cookie SHALL be reported normally. The suppression SHALL be reported on the anonymous
+blocked-events channel as an automated-client suppression naming this rule, so the withheld volume
+stays visible rather than vanishing.
 
 #### Scenario: Crawler follows an add-to-cart link
 
@@ -158,6 +188,13 @@ suppression naming this rule, so the withheld volume stays visible rather than v
 
 - **WHEN** an `add-to-cart` GET request arrives carrying `_pf_uid`, `_fbp`, or both
 - **THEN** the AddToCart event is sent
+
+#### Scenario: Consent decision still pending
+
+- **WHEN** an `add-to-cart` GET arrives with neither cookie because the visitor has not answered
+  the consent banner, and the hold cookie is present
+- **THEN** this rule does not decide the outcome: the event is withheld as awaiting a decision and
+  stays eligible to be held and replayed on a grant
 
 #### Scenario: Add to cart by other means
 

@@ -135,6 +135,25 @@ the request tells us plainly what it is, that answer is better than our inferenc
 order to code structure instead would tie the backend's `(reason, detail)` breakdown to call
 order, so the same traffic could shift between buckets after an unrelated refactor.
 
+**The consent state sits between them, and this is not a detail.** An inference from absence is
+only sound while nothing else explains the absence — and a consent decision that is pending or
+declined explains it exactly. `_pf_uid` and `_fbp` are both marketing cookies, withheld until
+consent is granted (the functional set the plugin declares is `_pf_consent`,
+`_pf_no_consent_decision`, `_pf_consent_source` and `_pf_held_woo_events`, none of which stores a
+visitor identifier). So a real shopper who has not yet answered the banner and clicks a classic
+`?add-to-cart=` link looks exactly like the crawler this rule targets.
+
+Ranking the rule above the consent checks destroys that shopper's event: `bot` is returned before
+the hold is ever tested, and `pixelflow_should_queue_held_event()` queues only `no_decision`, so
+the event cannot be held and can never be replayed on a grant. It is also invisible — it lands in
+the bot bucket, where a rising count reads as the junk filter working. That is the population
+held events exist to serve, so the rule is ranked below the consent state instead.
+
+The gate costs nothing against real automation. The consent cookies are written by the browser
+script, so a client running no JavaScript carries none of them; the hold is therefore false for a
+genuine crawler and the rule still fires. Only a request that proves a human is deciding gets the
+benefit of the doubt.
+
 `pixelflow_resolve_bot_detail()` holds this in one place and `post_event()` calls it, so the log
 line and the beacon cannot disagree about which rule fired.
 

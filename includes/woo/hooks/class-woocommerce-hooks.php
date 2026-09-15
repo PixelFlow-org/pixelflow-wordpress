@@ -1991,12 +1991,16 @@ class PixelFlow_WooCommerce_Cart_Hooks
         // as the user agent above: on a gateway callback or a wp-admin status change the headers
         // belong to someone other than the shopper and say nothing about their event.
         $is_prefetch = $allow_live && pixelflow_request_is_speculative_prefetch();
+        // The caller's rule goes in separately, as the last-ranked cause: it is an inference from
+        // an absence of cookies, and a pending or declined consent decision explains that same
+        // absence without any automation being involved.
         $blocked     = pixelflow_resolve_blocked_event_reason(
             $consent_cookie_raw,
             $no_decision_raw,
-            pixelflow_resolve_bot_detail($ua, $is_prefetch, $bot_rule),
+            pixelflow_resolve_bot_detail($ua, $is_prefetch),
             $source_cookie_raw,
-            $allow_live
+            $allow_live,
+            $bot_rule
         );
 
         $gate = $this->hold_or_block_event($payload, $event_name, $blocked, $product_id, $variation_id, $order);

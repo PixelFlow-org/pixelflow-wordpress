@@ -302,6 +302,19 @@ function pf_event_was_sent(): bool
     return false;
 }
 
+/**
+ * Encodes a `_pf_consent` cookie the way the browser script writes it.
+ *
+ * @param string $state granted|denied
+ * @return string
+ */
+function pf_consent_cookie(string $state): string
+{
+    return base64_encode(
+        (string) wp_json_encode(['s' => $state, 't' => 1757000000000, 'src' => 'api', 'v' => 1])
+    );
+}
+
 $failures = [];
 $passes   = 0;
 
@@ -747,6 +760,120 @@ pf_run_bot_case(
         return pf_event_was_sent() && pf_last_blocked_row() === null
             ? true
             : 'a returning shopper was suppressed: ' . json_encode($GLOBALS['__pf_test_posts']);
+    },
+    $failures,
+    $passes
+);
+
+// ---------------------------------------------------------------------
+// The cookieless rule against the consent state.
+//
+// The rule infers automation from an absence of cookies — but a shopper who has not answered the
+// banner has no _pf_uid and no _fbp either, because both are marketing cookies. Ranking the rule
+// below the consent checks is what keeps that shopper's event held and replayed on a grant
+// instead of dropped as automation.
+// ---------------------------------------------------------------------
+
+pf_run_bot_case(
+    'A cookieless add-to-cart with the decision still pending is held, not dropped as a bot',
+    /** @return bool|string */
+    function () {
+        $_COOKIE['_pf_no_consent_decision'] = 'true';
+        pf_call(
+            pf_hooks(),
+            'post_event',
+            [pf_payload('AddToCart'), ['bot_rule' => 'no_cookies_in_wp_plugin']]
+        );
+
+        $row = pf_last_blocked_row();
+        if (($row['reason'] ?? null) === 'bot') {
+            return 'an undecided shopper was classified as automation and can never be replayed';
+        }
+
+        return ($row['reason'] ?? null) === 'no_decision'
+            ? true
+            : 'unexpected blocked row: ' . json_encode($row);
+    },
+    $failures,
+    $passes
+);
+
+pf_run_bot_case(
+    'A cookieless add-to-cart after a decline is reported as denied, not as a bot',
+    /** @return bool|string */
+    function () {
+        $_COOKIE['_pf_consent'] = pf_consent_cookie('denied');
+        pf_call(
+            pf_hooks(),
+            'post_event',
+            [pf_payload('AddToCart'), ['bot_rule' => 'no_cookies_in_wp_plugin']]
+        );
+
+        $row = pf_last_blocked_row();
+
+        return ($row['reason'] ?? null) === 'denied'
+            ? true
+            : 'unexpected blocked row: ' . json_encode($row);
+    },
+    $failures,
+    $passes
+);
+
+pf_run_bot_case(
+    'A real crawler carrying no cookies at all is still filtered by the rule',
+    /** @return bool|string */
+    function () {
+        // The consent cookies are set by the browser script, so a client running no JavaScript
+        // has none of them. Ranking the rule last therefore costs nothing against real crawlers.
+        pf_call(
+            pf_hooks(),
+            'post_event',
+            [pf_payload('AddToCart'), ['bot_rule' => 'no_cookies_in_wp_plugin']]
+        );
+
+        $row = pf_last_blocked_row();
+
+        return ($row['reason'] ?? null) === 'bot' && ($row['detail'] ?? null) === 'no_cookies_in_wp_plugin'
+            ? true
+            : 'the rule stopped filtering crawlers: ' . json_encode($row);
+    },
+    $failures,
+    $passes
+);
+
+pf_run_bot_case(
+    'A matched signature still wins over a pending decision',
+    /** @return bool|string */
+    function () {
+        // Unchanged: a user-agent match is positive evidence about the client, not an inference
+        // from absence, so holding such an event for a decision would replay a bot's event.
+        $_COOKIE['_pf_no_consent_decision'] = 'true';
+        $_SERVER['HTTP_USER_AGENT']         = 'httpx/0.27';
+        pf_call(pf_hooks(), 'post_event', [pf_payload('AddToCart')]);
+
+        $row = pf_last_blocked_row();
+
+        return ($row['reason'] ?? null) === 'bot' && ($row['detail'] ?? null) === 'httpx'
+            ? true
+            : 'unexpected blocked row: ' . json_encode($row);
+    },
+    $failures,
+    $passes
+);
+
+pf_run_bot_case(
+    'A prefetch header still wins over a pending decision',
+    /** @return bool|string */
+    function () {
+        $_COOKIE['_pf_no_consent_decision'] = 'true';
+        $_SERVER['HTTP_SEC_PURPOSE']        = 'prefetch';
+        pf_call(pf_hooks(), 'post_event', [pf_payload('AddToCart')]);
+
+        $row = pf_last_blocked_row();
+
+        return ($row['reason'] ?? null) === 'bot' && ($row['detail'] ?? null) === 'prefetch_header'
+            ? true
+            : 'unexpected blocked row: ' . json_encode($row);
     },
     $failures,
     $passes

@@ -96,7 +96,13 @@ function pixelflow_request_is_speculative_prefetch(): bool
 }
 
 /**
- * Decides the single cause reported for an automated-client suppression.
+ * Decides the cause reported for an automated-client suppression from the request's own
+ * evidence: a matched user-agent signature, else a prefetch header.
+ *
+ * A rule supplied by the calling event path is deliberately NOT resolved here. Those rules infer
+ * automation from the *absence* of something, and an absence can have an innocent explanation
+ * that only the consent state knows about — so they are ranked after the consent checks, in
+ * pixelflow_resolve_blocked_event_reason().
  *
  * Three rules can fire on the same request — a crawler following an add-to-cart link matches the
  * signature list and the cookieless rule at once — so the cause is decided here rather than by
@@ -107,23 +113,18 @@ function pixelflow_request_is_speculative_prefetch(): bool
  * The prefetch signal arrives as a resolved boolean rather than being read from $_SERVER here, so
  * the buyer-trust gate stays at the one call site that knows whether the request is the buyer's.
  *
- * @param string      $user_agent  Agent of whoever the event is about
- * @param bool        $is_prefetch Whether the request declared itself as speculative prefetch
- * @param string|null $rule        Rule identifier supplied by the calling event path
- * @return string|null The cause, or null when the request is not classified as automated
+ * @param string $user_agent  Agent of whoever the event is about
+ * @param bool   $is_prefetch Whether the request declared itself as speculative prefetch
+ * @return string|null The cause, or null when the request's own evidence says nothing
  */
-function pixelflow_resolve_bot_detail(string $user_agent, bool $is_prefetch = false, ?string $rule = null): ?string
+function pixelflow_resolve_bot_detail(string $user_agent, bool $is_prefetch = false): ?string
 {
     $pattern = pixelflow_get_bot_detail_pattern($user_agent);
     if ($pattern !== null && $pattern !== '') {
         return $pattern;
     }
 
-    if ($is_prefetch) {
-        return 'prefetch_header';
-    }
-
-    return $rule !== null && $rule !== '' ? $rule : null;
+    return $is_prefetch ? 'prefetch_header' : null;
 }
 
 /**
@@ -132,12 +133,16 @@ function pixelflow_resolve_bot_detail(string $user_agent, bool $is_prefetch = fa
  *
  * @param string|null $consent_cookie_raw Saved `_pf_consent` from order meta
  * @param string|null $no_decision_raw    Saved `_pf_no_consent_decision` from order meta
- * @param string|null $bot_detail         Matched bot pattern, or null when not a bot
+ * @param string|null $bot_detail         Cause from the request's own evidence (user agent or
+ *                                        prefetch header), or null when it says nothing
  * @param string|null $source_cookie_raw  Saved `_pf_consent_source` from order meta
  * @param bool        $allow_live         False for an order-scoped event in a request that is not the buyer's
+ * @param string|null $inferred_bot_rule  Rule the calling path inferred from an absence — ranked
+ *                                        below a consent hold or a decline, because a pending or
+ *                                        declined banner explains that absence innocently
  * @return array{reason: string, detail?: string, consentSource?: string}|null
  */
-function pixelflow_resolve_blocked_event_reason(?string $consent_cookie_raw = null, ?string $no_decision_raw = null, ?string $bot_detail = null, ?string $source_cookie_raw = null, bool $allow_live = true): ?array
+function pixelflow_resolve_blocked_event_reason(?string $consent_cookie_raw = null, ?string $no_decision_raw = null, ?string $bot_detail = null, ?string $source_cookie_raw = null, bool $allow_live = true, ?string $inferred_bot_rule = null): ?array
 {
     if ($bot_detail !== null && $bot_detail !== '') {
         return [
@@ -161,6 +166,18 @@ function pixelflow_resolve_blocked_event_reason(?string $consent_cookie_raw = nu
         }
 
         return $row;
+    }
+
+    // Last: a rule the caller inferred from an absence. A crawler running no JavaScript carries
+    // no cookies at all — including the consent ones — so it still lands here and is still
+    // filtered. A shopper who has not answered the banner yet carries the hold cookie and was
+    // already returned above, as no_decision, which is what lets the event be held and replayed
+    // on a grant instead of being dropped as automation.
+    if ($inferred_bot_rule !== null && $inferred_bot_rule !== '') {
+        return [
+            'reason' => 'bot',
+            'detail' => $inferred_bot_rule,
+        ];
     }
 
     return null;

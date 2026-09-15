@@ -169,9 +169,23 @@
       `hold_or_block_event()` — a blocked AddToCart and a blocked Purchase — since they log through
       separate statements. Add the gate case: a Purchase sent from a request that is not the
       buyer's, carrying a prefetch header, is still sent and produces no prefetch suppression.
+- [x] 3.6a Rank a caller-supplied rule below the consent checks in
+      `pixelflow_resolve_blocked_event_reason()`, passing it as its own argument rather than
+      folding it into `$bot_detail`. Such a rule infers automation from an absence of cookies, and
+      a pending or declined decision explains that absence: `_pf_uid` and `_fbp` are marketing
+      cookies withheld until consent is granted, so an undecided shopper on a classic
+      `?add-to-cart=` link is indistinguishable from the crawler the rule targets. With the rule
+      ranked first, `bot` is returned before the hold is tested and
+      `pixelflow_should_queue_held_event()` — which queues only `no_decision` — can never hold the
+      event, so it is lost instead of replayed on a grant. A user-agent match and a prefetch header
+      stay above the consent state: those are evidence about the request, not inferences from
+      absence. Test all four orderings, and test that a client carrying no cookies at all —
+      consent cookies included, as a no-JavaScript crawler produces — is still filtered by the
+      rule.
 - [x] 3.6 Add `pixelflow_resolve_bot_detail()` to `includes/blocked-events.php` as the single place
-      that decides the automation detail, in this precedence: a matched user-agent signature, then
-      a prefetch header, then a caller-supplied rule identifier passed as `$context['bot_rule']`
+      that decides the automation detail from the request's own evidence, in this precedence: a
+      matched user-agent signature, then a prefetch header. A caller-supplied rule identifier
+      passed as `$context['bot_rule']`
       — `no_cookies_in_wp_plugin` for the only current caller. Add `bot_rule` to the `$context`
       keys documented in the `post_event()` docblock (`class-woocommerce-hooks.php:1863-1867`).
       Call it from `post_event()` (`includes/woo/hooks/class-woocommerce-hooks.php:1890`) in place
