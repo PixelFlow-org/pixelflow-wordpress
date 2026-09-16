@@ -7,6 +7,9 @@
  * arbitrary WordPress install.
  */
 
+import { homedir } from 'node:os';
+import path from 'node:path';
+
 /**
  * Reads a required environment variable, failing loudly rather than silently
  * pointing the suite at the wrong site.
@@ -22,10 +25,23 @@ function required(name: string): string {
   return value;
 }
 
+/**
+ * The key is optional: when PF_SSH_HOST names a `Host` entry in the operator's
+ * ~/.ssh/config, that entry supplies the identity and the suite should not
+ * override it. A path given here is expanded by hand — the shell never sees it,
+ * so a leading `~` would otherwise be passed to ssh literally.
+ */
+function sshKeyFromEnv(): string | undefined {
+  const value = process.env.PF_SSH_KEY;
+  if (!value) return undefined;
+
+  return value.startsWith('~/') ? path.join(homedir(), value.slice(2)) : value;
+}
+
 export const SITE = {
   baseURL: required('PF_BASE_URL').replace(/\/$/, ''),
   sshHost: required('PF_SSH_HOST'),
-  sshKey: required('PF_SSH_KEY'),
+  sshKey: sshKeyFromEnv(),
   wpRoot: required('PF_WP_ROOT'),
   wpCli: process.env.PF_WP_CLI ?? '~/bin/wp',
 } as const;

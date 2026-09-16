@@ -79,7 +79,11 @@ export function debugLogPath(): string {
 
 /** Empties the log so the next scenario starts from a known-empty file. */
 export function truncateDebugLog(): void {
-  ssh(`: > ${debugLogPath()}`);
+  // Removed rather than emptied: PHP creates the log as www-data with a 0644
+  // umask, so the SSH user cannot write to the file itself even as a member of
+  // that group. It can unlink it, because wp-content is group-writable, and the
+  // plugin recreates the log on its next write.
+  ssh(`rm -f ${debugLogPath()}`);
 }
 
 /** Raw log contents; empty string when the file does not exist yet. */

@@ -4,9 +4,9 @@
  * Each test starts from a known state: carts cleared server-side, then the
  * debug log truncated, so every record read afterwards belongs to that test.
  */
-import { test as base, type Page } from '@playwright/test';
+import { test as base, request, type APIRequestContext, type Page } from '@playwright/test';
 import path from 'node:path';
-import { ARTIFACTS_DIR } from './playwright.config';
+import { ARTIFACTS_DIR, STOREFRONT_USER_AGENT } from './playwright.config';
 import { CartPage } from './pages/cart-page';
 import { ConsentBanner } from './pages/consent-banner';
 import { CheckoutPage } from './pages/checkout-page';
@@ -142,47 +142,33 @@ export async function withStrangerPage(
 }
 
 /**
- * Headers a browser navigation carries and a bare HTTP client does not. The cookieless
- * add-to-cart rule treats either of them as proof that a person followed a link.
- */
-const BROWSER_NAVIGATION_HEADERS = ['accept-language', 'sec-fetch-mode', 'sec-fetch-dest'];
-
-/**
- * Runs a block as a client that behaves like a crawler.
+ * Runs a block as a bare HTTP client that behaves like a crawler: no cookies of any kind, and
+ * none of the headers a browser navigation carries.
  *
- * Two things make the case honest, and both are needed. JavaScript is off, so the tracking script
- * never runs and the context acquires none of the cookies a shopper would have — no `_pf_uid`, no
- * `_fbp`, no consent decision. Clearing cookies in a JS-enabled context would not do, since the
- * script would write them again before the request landed.
+ * It is a request context and not a browser page, because a crawler *is* an HTTP client. Modelling
+ * one as a browser with JavaScript switched off does not work, and the earlier attempt to do so
+ * made this scenario fail on behaviour that was right: Chromium sends `Accept-Language` and
+ * `Sec-Fetch-*` on every navigation whether or not scripts run, deleting them in a `page.route()`
+ * handler does not reach the wire, and the request still arrived carrying positive evidence of a
+ * browser — which the rule spares, deliberately, so that an ad-blocked shopper is never mistaken
+ * for a crawler. A request context sends only the headers it is given, which is exactly the client
+ * the rule targets.
  *
- * And the navigation headers are stripped, because Chromium sends `Accept-Language` and
- * `Sec-Fetch-Mode: navigate` whether or not JavaScript runs — it is still a browser. The rule
- * spares anything carrying them, deliberately, so that an ad-blocked shopper is not mistaken for
- * a crawler. Leaving them on would make this a test of an ad-blocked shopper wearing the wrong
- * name.
+ * The user agent is an ordinary browser string on purpose, the same one the headless storefront
+ * runs present. A client-library agent would be suppressed by the signature list instead, and the
+ * scenario would go green on the wrong rule.
  */
-export async function withCrawlerPage(
-  browser: import('@playwright/test').Browser,
-  fn: (page: Page) => Promise<void>
+export async function withCrawlerRequest(
+  fn: (client: APIRequestContext) => Promise<void>
 ): Promise<void> {
-  const context = await browser.newContext({
+  const client = await request.newContext({
     ignoreHTTPSErrors: true,
-    javaScriptEnabled: false,
+    userAgent: STOREFRONT_USER_AGENT,
   });
-  const page = await context.newPage();
-
-  await page.route('**/*', async (route) => {
-    const headers = { ...route.request().headers() };
-    for (const header of BROWSER_NAVIGATION_HEADERS) {
-      delete headers[header];
-    }
-    await route.continue({ headers });
-  });
-
   try {
-    await fn(page);
+    await fn(client);
   } finally {
-    await context.close();
+    await client.dispose();
   }
 }
 

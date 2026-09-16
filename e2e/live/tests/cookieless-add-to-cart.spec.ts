@@ -15,7 +15,7 @@
  * Nothing else in the suite exercises the classic link: every other add goes through the Store
  * API, which is a POST and outside the rule by construction.
  */
-import { test, expect, withAdminPage, withCrawlerPage } from '../fixtures';
+import { test, expect, withAdminPage, withCrawlerRequest } from '../fixtures';
 import { PRODUCTS, URLS } from '../site';
 import { applySettings, TRACK_EVERYTHING } from '../presets';
 import {
@@ -126,13 +126,16 @@ test.describe('Cookieless add-to-cart — a shopper who has granted consent', ()
 });
 
 test.describe('Cookieless add-to-cart — a crawler', () => {
-  test('a request with no cookies and no navigation headers is withheld under the rule', async ({
-    browser,
-  }) => {
-    await withCrawlerPage(browser, async (page) => {
-      await page.goto(URLS.classicAddToCart(PRODUCTS.tshirt.id), {
-        waitUntil: 'domcontentloaded',
-      });
+  test('a request with no cookies and no navigation headers is withheld under the rule', async () => {
+    await withCrawlerRequest(async (client) => {
+      const response = await client.get(URLS.classicAddToCart(PRODUCTS.tshirt.id));
+
+      // WooCommerce adds the line while serving this request, so a response that never arrived
+      // would leave the assertions below waiting on an event nothing produced.
+      expect(
+        response.ok(),
+        `the crawler's add-to-cart link did not load: HTTP ${response.status()}`
+      ).toBe(true);
     });
 
     const records = await waitForBlocked('AddToCart', 1, { timeoutMs: 30_000 });
