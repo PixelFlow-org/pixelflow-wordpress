@@ -353,7 +353,12 @@ not new scope; the operator approved every spec edit they required.
 - [x] 7.7 Remove the `fbc` fallback block in `append_cookie_params_for_order()` (`:1333-1342`):
       now that the map above reads `_pf_cookie__fbc` (`:1317-1331`), it reads the same meta key and
       the same live cookie. It is a duplicate this change created.
-- [ ] 7.8 Re-run the full PHP and frontend suites after the fixes, then the live storefront suite.
+- [x] 7.8 Re-run the full PHP and frontend suites after the fixes, then the live storefront suite.
+      PHP 21 files green, frontend 16 tests green, and the live matrix 89 of 89 green in one run
+      against the test site. Three earlier live runs failed only on the harness and on the stand:
+      a crawler fixture that modelled an HTTP client as a browser, a site whose consent state had
+      drifted, SSH connections throttled by the host, and a deferred blocked-purchase report
+      landing in another scenario's window. No plugin defect surfaced live.
 - [x] 7.9 Stop a send that never happened from closing durable state. The credential gate added in
       7.3 made `dispatch_event_post()` return `skipped` (`class-woocommerce-hooks.php:2235`) and
       `post_blocked_event()` return without sending, while several call sites closed state right
