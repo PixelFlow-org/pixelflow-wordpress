@@ -1,27 +1,14 @@
 /** Command execution on the test site over SSH. */
 import { execFileSync } from 'node:child_process';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
 import { SITE } from '../site';
 
 /**
- * A run makes hundreds of short SSH calls — one per cart reset, log truncation
- * and log read. Multiplexing them over a single connection avoids paying for a
- * handshake every time and keeps the site from seeing a burst of connections
- * that looks like an attack to a rate limiter.
- *
- * The socket lives in the system temp dir because a unix socket path is capped
- * at around 100 characters, which the scratchpad path alone would exhaust.
+ * Each call opens its own connection. Sharing one over ControlMaster was tried
+ * and reverted: when the master stalls, every later call inherits the stall, and
+ * a run lost fourteen scenarios to `spawnSync ssh ETIMEDOUT` in the cart-reset
+ * hook while the socket outlived its ControlPersist window. A handshake per call
+ * is the cheaper failure mode.
  */
-const CONTROL_PATH = path.join(tmpdir(), `pf-live-ssh-${process.env.USER ?? 'run'}`);
-
-const CONTROL_ARGS = [
-  '-o', 'ControlMaster=auto',
-  '-o', `ControlPath=${CONTROL_PATH}`,
-  // Outlives the individual calls, so the whole run shares one connection, but
-  // does not linger once the run is over.
-  '-o', 'ControlPersist=120',
-];
 
 export interface SshOptions {
   /** Fail the call when the remote command exits non-zero. Defaults to true. */
@@ -37,7 +24,6 @@ export function ssh(command: string, options: SshOptions = {}): string {
     // identity to use; forcing one here would override it.
     ...(SITE.sshKey ? ['-i', SITE.sshKey, '-o', 'IdentitiesOnly=yes'] : []),
     '-o', 'BatchMode=yes',
-    ...CONTROL_ARGS,
     SITE.sshHost,
     `cd ${SITE.wpRoot} && ${command}`,
   ];

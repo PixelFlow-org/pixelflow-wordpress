@@ -11,10 +11,6 @@ WP_ROOT="${PF_WP_ROOT:?PF_WP_ROOT is not set (see e2e/live/.env.example)}"
 WP="${PF_WP_CLI:-~/bin/wp}"
 BASE_URL="${PF_BASE_URL:?PF_BASE_URL is not set (see e2e/live/.env.example)}"
 
-# Shares the run's multiplexed connection (same socket as helpers/ssh.ts), so
-# this script does not open a fresh SSH session per command either.
-CONTROL_PATH="${TMPDIR:-/tmp}/pf-live-ssh-${USER:-run}"
-
 # With no explicit key, the operator's ~/.ssh/config entry for $SSH_HOST picks
 # the identity; forcing one here would override it.
 if [ -n "$SSH_KEY" ]; then
@@ -24,9 +20,7 @@ else
 fi
 
 remote() {
-  ssh "${KEY_ARGS[@]}" -o BatchMode=yes \
-    -o ControlMaster=auto -o ControlPath="$CONTROL_PATH" -o ControlPersist=120 \
-    "$SSH_HOST" "cd $WP_ROOT && $*"
+  ssh "${KEY_ARGS[@]}" -o BatchMode=yes "$SSH_HOST" "cd $WP_ROOT && $*"
 }
 
 restore() {
