@@ -311,7 +311,8 @@
       `readme.txt` stable tag, `readme.txt` changelog, `README.md` changelog).
 - [x] 6.3 Run the full PHP test suite and the frontend suite; confirm green.
 - [x] 6.4 Write the customer-facing note: reported AddToCart and InitiateCheckout volume drops by
-      roughly 13 %, and guest identity changes over in one step, so audiences and attribution
+      by an amount the export cannot predict, and guest identity changes over in one step, so
+      audiences and attribution
       windows keyed on the old identifier do not carry over. Note that a site missing either
       setting now stops sending events entirely and says so in wp-admin, so an owner who had been
       running half-configured will see a notice rather than an unexplained gap. Say plainly that

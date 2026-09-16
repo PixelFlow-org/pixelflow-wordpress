@@ -138,7 +138,7 @@ to fix in one release.
   stay separable.
 - `readme.txt`, `README.md` — changelog entry for 1.1.18 and documentation of the
   `pixelflow_useragent_bot_patterns` and `pixelflow_external_id` filters.
-- Client-visible: reported AddToCart and InitiateCheckout volume drops by roughly 13 % as junk
+- Client-visible: reported AddToCart and InitiateCheckout volume falls as junk
   stops being sent, and guest identity changes over in one step. Both are intended, both are
   visible in Meta dashboards, and both must be announced before release. A site missing either
   setting also stops sending events entirely — and now says so in wp-admin rather than going

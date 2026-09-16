@@ -3,20 +3,30 @@
 Two changes in this release are visible in Meta dashboards. Both are intended, and both should
 be announced before the plugin is rolled out rather than explained afterwards.
 
-## Reported AddToCart and InitiateCheckout volume drops by roughly 13 %
+## Reported AddToCart and InitiateCheckout volume falls
+
+How far it falls depends on how much of a store's traffic is automated, and that varies between
+sites — the figure will be visible in the dashboards within days of the release. On the sample this
+change was designed from, junk was a noticeable share of both events.
 
 The plugin now refuses to report three kinds of request that were never shopper activity:
 
-- **Automation clients.** Four signatures were added to the bot list — `guzzle`, `httpx`,
-  `aiohttp` and Meta's `meta-externalads` — plus a `meta-external` catch-all that suppresses any
+- **Automation clients.** Five signatures were added to the bot list — `guzzle`, `httpx`,
+  `aiohttp`, the `scrapy` scraping framework and Meta's `meta-externalads` — plus a
+  `meta-external` catch-all that suppresses any
   further crawler in that family without waiting for a plugin release. The two Meta agents we see
   in production keep reporting themselves, so nothing that is separable today stops being
   separable; only an unrecognised family member is counted under the generic `meta-external`.
+  The three general-purpose HTTP libraries never suppress a Purchase: a headless storefront or a
+  mobile app makes the buyer's own request through one, and an order in the database is evidence
+  that a person paid. A store whose own integration is filtered on the other two events can remove
+  any signature with the `pixelflow_useragent_bot_patterns` filter, documented in `readme.txt`.
 - **Speculative browser prefetch.** A request that declares itself as prefetch or prerender has
   had no human act on it.
-- **Anonymous cookieless add-to-cart URLs.** WooCommerce adds to the cart on any GET carrying an
-  `add-to-cart` parameter, so crawlers following such a link produced cart activity with nobody
-  behind it. A request is withheld only when it carries neither the visitor cookie nor the
+- **Anonymous cookieless add-to-cart URLs.** WooCommerce adds to the cart whenever an
+  `add-to-cart` parameter reaches it, whatever the request method, so crawlers following such a
+  link produced cart activity with nobody behind it. The rule applies to the classic link however
+  it is requested; an ordinary add-to-cart form, which submits in the request body, is outside it. A request is withheld only when it carries neither the visitor cookie nor the
   Facebook browser cookie **and** its headers show no browser navigation. Visitors running an ad
   blocker have neither cookie — both are written by JavaScript — so the header test is what keeps
   their events flowing; they are exactly the shoppers server-side tracking exists to recover.

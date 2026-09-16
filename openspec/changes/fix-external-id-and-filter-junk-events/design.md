@@ -442,7 +442,7 @@ switched to the old behaviour by accident, which a checkbox in the settings scre
   `no_cookies_in_wp_plugin`, or the matched signature), but only if the backend aggregates by
   `(reason, detail)`. Confirm before release.
 
-- **Reported volume drops by roughly 13 %, and guest identity changes over in one step.** Meta
+- **Reported volume drops, and guest identity changes over in one step.** Meta
   audiences and attribution windows keyed on the old constant do not carry over. → Both effects
   are intended and both are visible to the customer; announce before release rather than
   explaining after.
