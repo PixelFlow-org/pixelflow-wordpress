@@ -65,11 +65,9 @@ either direction makes the numbers hard to read.
 A site that wants the previous behaviour back can restore it in code, without downgrading the
 plugin, through the `pixelflow_external_id` filter documented in the readme.
 
-## A site missing its credentials now stops sending events, and says so
+## A site missing its credentials now stops sending events
 
-If either the site identifier or the API key is empty, the plugin no longer registers its
-WooCommerce hooks at all. That traffic was never accepted by the API, so nothing of value is
-lost — but the failure used to be invisible. An administrator now sees a notice in wp-admin
-naming the cause and linking to the settings screen.
-
-An owner who had been running half-configured will see that notice rather than an unexplained gap.
+If either the site identifier or the API key is empty, the plugin no longer sends events or
+blocked-event reports. That traffic was never accepted by the API, so nothing of value is lost. It
+keeps recording what it will need once the credentials are back — the tracking snapshot on new
+orders and the visitor's consent decision — so a temporary misconfiguration costs no data.

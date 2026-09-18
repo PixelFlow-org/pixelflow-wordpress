@@ -67,7 +67,9 @@ class PixelFlow
         add_action('admin_init', array($this, 'migrate_product_id_format'));
         add_action('admin_init', array($this, 'handle_disable_debug_action'));
         add_action('admin_notices', array($this, 'display_debug_notice'));
-        add_action('admin_notices', array($this, 'display_unconfigured_notice'));
+        // Unconfigured-site notice hidden until its wording and placement are reworked;
+        // display_unconfigured_notice() is kept for that.
+        // add_action('admin_notices', array($this, 'display_unconfigured_notice'));
         add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
         add_action('wp_print_scripts', array($this, 'inject_script'));
         add_action('wp_enqueue_scripts', array($this, 'enqueue_held_events_script'));

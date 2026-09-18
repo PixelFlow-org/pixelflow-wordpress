@@ -336,32 +336,6 @@ because the cookies the snapshot is taken from are gone once the request has end
 - **WHEN** both the site identifier and the API key are non-empty
 - **THEN** events are sent as before
 
-### Requirement: An unconfigured site is told why it is silent
-
-A site whose events are withheld because the integration is unconfigured SHALL be told so in the
-WordPress admin, with a link to the settings screen. Silence that the owner cannot see is
-indistinguishable from a broken plugin, and the configuration gate would otherwise turn a partial
-misconfiguration into a total, unexplained loss of events.
-
-#### Scenario: Half-configured site
-
-- **WHEN** an administrator loads a wp-admin screen on a site where the site identifier or the API
-  key is empty
-- **THEN** an admin notice states that PixelFlow is not fully configured and that no events are
-  being sent, and links to the settings screen
-
-#### Scenario: Fully configured site shows nothing
-
-- **WHEN** both settings are non-empty
-- **THEN** no such notice appears
-
-#### Scenario: Credentials are the only condition
-
-- **WHEN** the site identifier or the API key is empty, whatever the state of the plugin's own
-  enable toggles and whether or not WooCommerce is active
-- **THEN** the notice still appears, because an empty credential is a misconfiguration rather than
-  a choice, and the browser script is gated on the same two values
-
 ### Requirement: Retired cookie names are no longer read
 
 The plugin SHALL read the Facebook browser and click identifiers from their current cookie names

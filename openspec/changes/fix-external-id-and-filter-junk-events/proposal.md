@@ -80,6 +80,12 @@ to fix in one release.
 
 **Not in scope**
 
+- The wp-admin notice telling an unconfigured site why it is silent. It was implemented
+  (`display_unconfigured_notice()` in `pixelflow.php`) and is deliberately left unregistered in
+  this release: its wording and placement are being reworked, and the requirement will come back
+  with that change. The credential gate itself ships — a site without both credentials sends
+  nothing, silently.
+
 - Event de-duplication. A guard already exists in `should_send_event()`, and the product
   behaviour it encodes is correct (a repeat click on a product already in the cart is a
   separate event, by design). Its storage has weaknesses, but only one is proven from data —
@@ -124,8 +130,8 @@ to fix in one release.
   the bot skip's debug line (:1947) names the matched signature instead of `BOT_UA`.
 - `includes/woo/class-woocommerce-integration.php` — `load_hooks()` (:52) gains the
   configuration gate.
-- `pixelflow.php` — a second `admin_notices` callback, alongside the existing debug notice
-  (registered :69, rendered :573), telling an unconfigured site that no events are being sent.
+- `pixelflow.php` — `display_unconfigured_notice()`, written but left unregistered until the
+  notice is reworked (see Not in scope).
 - `includes/helpers.php` — `PIXELFLOW_BOT_PATTERNS` (:~715) gains four signatures; the default
   cookie map (:679) loses the dead names; `pixelflow_resolve_attribution_visitor_id()` (:572)
   becomes the single source of the visitor id for identity as well as attribution. The existing
@@ -141,7 +147,6 @@ to fix in one release.
 - Client-visible: reported AddToCart and InitiateCheckout volume falls as junk
   stops being sent, and guest identity changes over in one step. Both are intended, both are
   visible in Meta dashboards, and both must be announced before release. A site missing either
-  setting also stops sending events entirely — and now says so in wp-admin rather than going
-  quiet.
-- No database schema change and no new dependency. The only admin-facing change is the
-  configuration notice; the React settings app is untouched.
+  setting also stops sending events entirely; for now it does so without an admin notice.
+- No database schema change and no new dependency. No admin-facing change ships in this
+  release; the React settings app is untouched.
