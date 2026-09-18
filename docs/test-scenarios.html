@@ -82,7 +82,7 @@
 <header>
   <h1>PixelFlow 1.1.18 — Test Scenario Matrix</h1>
   <p class="sub">What the plugin's behaviour is actually verified against, organised by capability rather than by test file. Generated 2026-09-18 from <code>feature/fix-external-id-and-filter-junk-events</code>, for the OpenSpec change <code>fix-external-id-and-filter-junk-events</code>.</p>
-  <p class="sub"><strong>Last full run:</strong> not yet recorded for this revision — updated after every full run of the PHP suite, the component tests, the admin E2E and the live storefront matrix.</p>
+  <p class="sub"><strong>Last full run:</strong> 2026-09-18 on <code>f23ad0b</code> — PHP 242/242 (21 files) · component tests 16/16 · admin E2E 3/3 · live storefront matrix 80/89. None of the nine live failures is a plugin assertion: eight consent-hold scenarios found the visitor already treated as consented (the storefront set the Meta pixel cookies with the banner unanswered, and the test machine's outbound address differed from runs where the same scenarios passed — the opt-in/opt-out region is decided per visitor address), and one page load exceeded its 45-second timeout. The previous full run, on <code>55c0033</code>, passed 89/89.</p>
 
   <div class="stats">
     <div class="stat"><b>140</b><span>scenarios in this matrix</span></div>
