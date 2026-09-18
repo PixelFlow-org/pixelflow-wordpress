@@ -2,7 +2,7 @@
 /**
  * Plugin Name: PixelFlow
  * Description: PixelFlow Official Plugin for WordPress. Easily Install Meta's Conversions API on Your Website
- * Version: 1.1.17
+ * Version: 1.1.18
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: PixelFlow Team
@@ -19,7 +19,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('PIXELFLOW_VERSION', '1.1.17');
+define('PIXELFLOW_VERSION', '1.1.18');
 define('PIXELFLOW_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('PIXELFLOW_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('PIXELFLOW_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -67,6 +67,9 @@ class PixelFlow
         add_action('admin_init', array($this, 'migrate_product_id_format'));
         add_action('admin_init', array($this, 'handle_disable_debug_action'));
         add_action('admin_notices', array($this, 'display_debug_notice'));
+        // Unconfigured-site notice hidden until its wording and placement are reworked;
+        // display_unconfigured_notice() is kept for that.
+        // add_action('admin_notices', array($this, 'display_unconfigured_notice'));
         add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
         add_action('wp_print_scripts', array($this, 'inject_script'));
         add_action('wp_enqueue_scripts', array($this, 'enqueue_held_events_script'));
@@ -581,6 +584,43 @@ class PixelFlow
             esc_html($file_size),
             esc_url($disable_url),
             esc_url($settings_url)
+        );
+    }
+
+    /**
+     * Tells an unconfigured site that no events are being sent.
+     *
+     * The credential gate would otherwise turn a half-configured site into a total, unexplained
+     * loss of events: silence the owner cannot see is indistinguishable from a broken plugin.
+     *
+     * Conditioned on the credentials alone — not on the enable toggles and not on WooCommerce
+     * being active. An empty credential is a misconfiguration rather than a choice, and the same
+     * two values gate the browser script, so the notice covers both.
+     *
+     * @return void
+     */
+    public function display_unconfigured_notice(): void
+    {
+        if ( ! current_user_can('manage_options')) {
+            return;
+        }
+
+        $params           = get_option('pixelflow_script_params', array());
+        $site_external_id = isset($params['siteExternalId']) ? $params['siteExternalId'] : '';
+        $api_key          = isset($params['apiKey']) ? $params['apiKey'] : '';
+
+        if ( ! empty($site_external_id) && ! empty($api_key)) {
+            return;
+        }
+
+        printf(
+            '<div class="notice notice-error"><p>'
+            . '<strong>PixelFlow:</strong> '
+            . 'the plugin is not fully configured, so <strong>no events are being sent</strong>. '
+            . 'Add the site identifier and the API key to start tracking. '
+            . '<a href="%s">Go to settings</a>'
+            . '</p></div>',
+            esc_url(admin_url('options-general.php?page=pixelflow-settings'))
         );
     }
 

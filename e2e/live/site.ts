@@ -1,17 +1,48 @@
 /**
- * Everything that is specific to the rift test site.
+ * Everything that is specific to the live test site.
  *
- * Credentials come from the environment (see .env.example); nothing secret is
- * committed. Paths, product fixtures and URLs are pinned deliberately — this
- * suite verifies one known site, not an arbitrary WordPress install.
+ * The site's address, host and paths come from the environment (see
+ * .env.example) — no real hostname is committed. Product fixtures and URL
+ * shapes are pinned deliberately: this suite verifies one known site, not an
+ * arbitrary WordPress install.
  */
+
 import { homedir } from 'node:os';
+import path from 'node:path';
+
+/**
+ * Reads a required environment variable, failing loudly rather than silently
+ * pointing the suite at the wrong site.
+ */
+function required(name: string): string {
+  const value = process.env[name];
+  if (value === undefined || value === '') {
+    throw new Error(
+      `${name} is not set. Copy e2e/live/.env.example to .env and fill in the test site's details.`,
+    );
+  }
+
+  return value;
+}
+
+/**
+ * The key is optional: when PF_SSH_HOST names a `Host` entry in the operator's
+ * ~/.ssh/config, that entry supplies the identity and the suite should not
+ * override it. A path given here is expanded by hand — the shell never sees it,
+ * so a leading `~` would otherwise be passed to ssh literally.
+ */
+function sshKeyFromEnv(): string | undefined {
+  const value = process.env.PF_SSH_KEY;
+  if (!value) return undefined;
+
+  return value.startsWith('~/') ? path.join(homedir(), value.slice(2)) : value;
+}
 
 export const SITE = {
-  baseURL: 'https://rift.kskonovalov.me',
-  sshHost: process.env.PF_SSH_HOST ?? 'claude@rift.kskonovalov.me',
-  sshKey: process.env.PF_SSH_KEY ?? `${homedir()}/.claude/keys/rift`,
-  wpRoot: process.env.PF_WP_ROOT ?? '/var/www/rift.kskonovalov.me/www',
+  baseURL: required('PF_BASE_URL').replace(/\/$/, ''),
+  sshHost: required('PF_SSH_HOST'),
+  sshKey: sshKeyFromEnv(),
+  wpRoot: required('PF_WP_ROOT'),
   wpCli: process.env.PF_WP_CLI ?? '~/bin/wp',
 } as const;
 
@@ -30,7 +61,7 @@ export const CUSTOMER = {
     postcode: '97477',
     country: 'US',
     address1: '742 Evergreen Terrace',
-    email: 'pfcustomer@rift.kskonovalov.me',
+    email: process.env.PF_CUSTOMER_EMAIL ?? 'pfcustomer@example.test',
     phone: '5415550123',
     firstName: 'Pixel',
     lastName: 'Flow',
@@ -47,9 +78,25 @@ export const URLS = {
   cart: `${SITE.baseURL}/?page_id=10`,
   checkout: `${SITE.baseURL}/?page_id=11`,
   product: (slug: string) => `${SITE.baseURL}/?product=${slug}`,
+  /**
+   * The classic add-to-cart link: a plain GET that WooCommerce acts on server-side.
+   * Themes still render these, and crawlers follow them — which is why the plugin
+   * filters cookieless ones. Nothing else in this suite exercises that shape.
+   */
+  classicAddToCart: (productId: number) => `${SITE.baseURL}/?add-to-cart=${productId}`,
   adminOrder: (orderId: number) =>
     `${SITE.baseURL}/wp-admin/admin.php?page=wc-orders&action=edit&id=${orderId}`,
 } as const;
+
+/**
+ * Matches every request that does not belong to the site under test, so a page
+ * object can block third-party traffic without naming the host itself.
+ */
+export function offSiteRequests(): RegExp {
+  const escaped = SITE.baseURL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  return new RegExp(`^(?!${escaped}).*$`);
+}
 
 export interface Fixture {
   id: number;

@@ -14,7 +14,9 @@ export function startErrorCapture(): void {
   wp('config set WP_DEBUG true --raw');
   wp('config set WP_DEBUG_LOG true --raw');
   wp('config set WP_DEBUG_DISPLAY false --raw');
-  ssh(`: > ${DEBUG_LOG}`);
+  // Removed, not emptied — see truncateDebugLog: a file PHP created is not
+  // writable by the SSH user, but it can be unlinked.
+  ssh(`rm -f ${DEBUG_LOG}`);
 }
 
 /** Restores wp-config to its normal state. Safe to call even if capture never started. */

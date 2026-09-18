@@ -1,7 +1,7 @@
 # Live run reliability — observed failures
 
 Notes from a single long session (2026-09-07/08) of running `e2e/live` against
-`rift.kskonovalov.me`. Sixteen runs were started; **five did not produce a usable verdict**,
+the live test site. Sixteen runs were started; **five did not produce a usable verdict**,
 and several more produced a verdict that had to be re-read because the reporter's own output
 was ambiguous. None of these were product defects — they are costs of the harness and the way
 it is driven. Collected here so they can be fixed rather than re-discovered.

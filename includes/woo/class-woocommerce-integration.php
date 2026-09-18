@@ -55,6 +55,12 @@ class PixelFlow_WooCommerce_Integration
         $params           = get_option('pixelflow_script_params', array());
         $site_external_id = isset($params['siteExternalId']) ? $params['siteExternalId'] : '';
         $api_key          = isset($params['apiKey']) ? $params['apiKey'] : '';
+
+        // Missing credentials suppress sending, not recording: the hooks class gates its own two
+        // outbound requests. Returning here instead would also unregister everything that merely
+        // records — the attribution snapshot and the consent decision, which exist only during
+        // the buyer's own request — so a site whose key is briefly empty would lose them for
+        // every order created in that window, with nothing to recover them from afterwards.
         $pixelflow_general_options = get_option('pixelflow_general_options');
         require_once PIXELFLOW_PLUGIN_PATH . 'includes/woo/hooks/class-woocommerce-hooks.php';
         new PixelFlow_WooCommerce_Cart_Hooks($api_url, $api_key, $site_external_id, $pixelflow_general_options);

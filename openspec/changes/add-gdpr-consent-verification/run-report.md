@@ -20,7 +20,7 @@ request identity and hook registration, one on `client_ip_address` in a blocked 
 
 ## First pass — the run that found the defect
 
-Site: `rift.kskonovalov.me`. Build: the working tree of `feature/gdpr-consent-gating`
+Site: the live test site. Build: the working tree of `feature/gdpr-consent-gating`
 as of this date, packaged by `build_plugin.sh prod` and installed through the
 WordPress plugin uploader (version string 1.1.17 — the branch has not been bumped).
 Plugin code carries the fixes for `fix-held-event-double-flush`,

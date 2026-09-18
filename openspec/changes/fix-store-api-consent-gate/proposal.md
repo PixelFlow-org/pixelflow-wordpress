@@ -1,6 +1,6 @@
 > **WITHDRAWN — the evidence below was gathered against a stale build.**
 >
-> The test site `rift.kskonovalov.me` was running a plugin build dated 2026-09-06 that
+> The test site the live test site was running a plugin build dated 2026-09-06 that
 > reports the same version string (1.1.17) as the working tree but does **not** contain the
 > `fix-consent-gating-review` work: `purchase_event_id`, `pixelflow_request_owns_order` and
 > `defer_blocked_purchase_report` are all absent from the deployed `includes/`. Every live
@@ -25,7 +25,7 @@ does not act on them.
 
 ## Evidence
 
-Measured on `rift.kskonovalov.me` (plugin 1.1.x, WooCommerce 11.1.0, Complianz 7.5.4,
+Measured on the live test site (plugin 1.1.x, WooCommerce 11.1.0, Complianz 7.5.4,
 `wp_get_consent_type() === 'optin'`), headed Chromium, all facts below captured in a
 single run and correlated through `REQUEST_URI`:
 
@@ -33,7 +33,7 @@ Request that produced the event — headers read with Playwright's `allHeaders()
 unlike `headers()` does include cookie headers:
 
 ```
-POST https://rift.kskonovalov.me/index.php?rest_route=/wc/store/v1/batch
+POST https://<live-test-site>/index.php?rest_route=/wc/store/v1/batch
   cookie header present : true
   consent cookies sent  : _pf_consent_source=complianz, _pf_no_consent_decision=true
 ```

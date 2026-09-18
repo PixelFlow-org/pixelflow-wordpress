@@ -93,6 +93,13 @@ trait PixelFlow_Held_Woo_Events_Trait
             return;
         }
 
+        // Nothing can be delivered without credentials, and every disposition below empties the
+        // queue: resolving it now would discard the visit's events instead of holding them until
+        // the site id or key is back.
+        if ( ! $this->has_api_credentials()) {
+            return;
+        }
+
         $disposition = pixelflow_held_events_disposition();
         if ($disposition === 'keep') {
             return;
@@ -121,7 +128,16 @@ trait PixelFlow_Held_Woo_Events_Trait
             if ($payload === null) {
                 continue;
             }
-            $this->post_event($payload);
+            // Pass the recipe's product context so a pixelflow_external_id callback sees the same
+            // $context on a replay as on the live AddToCart that produced it. The identity itself
+            // is not re-resolved — $this->flushing_held keeps post_event() on the captured value.
+            $this->post_event(
+                $payload,
+                [
+                    'product_id'   => isset($recipe['product_id']) ? (int) $recipe['product_id'] : 0,
+                    'variation_id' => isset($recipe['variation_id']) ? (int) $recipe['variation_id'] : 0,
+                ]
+            );
         }
         $this->flushing_held = false;
     }
