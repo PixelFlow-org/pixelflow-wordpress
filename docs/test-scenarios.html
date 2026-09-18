@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PixelFlow — Test Scenario Matrix</title>
+<title>PixelFlow 1.1.18 — Test Scenario Matrix</title>
 <style>
   :root {
     --bg: #f7f7f5;
@@ -80,14 +80,15 @@
 <div class="wrap">
 
 <header>
-  <h1>PixelFlow — Test Scenario Matrix</h1>
-  <p class="sub">What the plugin's behaviour is actually verified against, organised by capability rather than by test file. Generated 2026-09-08 from the working tree on <code>feature/gdpr-consent-gating</code>.</p>
+  <h1>PixelFlow 1.1.18 — Test Scenario Matrix</h1>
+  <p class="sub">What the plugin's behaviour is actually verified against, organised by capability rather than by test file. Generated 2026-09-18 from <code>feature/fix-external-id-and-filter-junk-events</code>, for the OpenSpec change <code>fix-external-id-and-filter-junk-events</code>.</p>
+  <p class="sub"><strong>Last full run:</strong> not yet recorded for this revision — updated after every full run of the PHP suite, the component tests, the admin E2E and the live storefront matrix.</p>
 
   <div class="stats">
-    <div class="stat"><b>104</b><span>scenarios in this matrix</span></div>
-    <div class="stat"><b>93</b><span>covered</span></div>
-    <div class="stat"><b>9</b><span>partial or uncovered</span></div>
-    <div class="stat"><b>163</b><span>automated cases (116 PHP · 6 vitest · 3 admin E2E · 38 live E2E)</span></div>
+    <div class="stat"><b>140</b><span>scenarios in this matrix</span></div>
+    <div class="stat"><b>128</b><span>covered</span></div>
+    <div class="stat"><b>12</b><span>partial or uncovered</span></div>
+    <div class="stat"><b>350</b><span>automated cases (242 PHP · 16 vitest · 3 admin E2E · 89 live E2E)</span></div>
   </div>
 
   <div class="legend">
@@ -195,7 +196,7 @@
 <tbody>
 <tr><td class="id">BLK-01</td><td>Unanswered banner, with and without a CMP source cookie</td><td>Reason <code>no_decision</code>, source attached only when known</td><td class="where">tests/test-blocked-events.php</td><td><span class="tag ok">Covered</span></td></tr>
 <tr><td class="id">BLK-02</td><td>Consent denied, live cookie or persisted order meta</td><td>Reason <code>denied</code> with the recorded source</td><td class="where">tests/test-blocked-events.php</td><td><span class="tag ok">Covered</span></td></tr>
-<tr><td class="id">BLK-03</td><td>Visitor matches a bot pattern</td><td>Reason <code>bot</code>; detail is the matched pattern, never the raw user agent; bot outranks a hold</td><td class="where">tests/test-blocked-events.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">BLK-03</td><td>Visitor matches a bot pattern</td><td>Reason <code>bot</code>; detail is the matched pattern or the rule that fired (<code>prefetch_header</code>, <code>no_cookies_in_wp_plugin</code>), never the raw user agent; evidence about the request outranks a hold, an inference from missing cookies does not</td><td class="where">tests/test-blocked-events.php · tests/test-bot-filtering.php</td><td><span class="tag ok">Covered</span></td></tr>
 <tr><td class="id">BLK-04</td><td>Consent granted, or no cookies at all</td><td>Nothing is beaconed — the real event goes instead</td><td class="where">tests/test-blocked-events.php</td><td><span class="tag ok">Covered</span></td></tr>
 <tr><td class="id">BLK-05</td><td>Payload shape of a blocked row</td><td>Anonymous: illegal fields stripped, no visitor identity, <code>consent_mode_disabled</code> is not a source</td><td class="where">tests/test-blocked-events.php · e2e/live/tests/consent-blocked.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
 <tr><td class="id">BLK-08</td><td>A blocked row is built for a public and for a private client IP</td><td><code>client_ip_address</code> rides along when the address is public and is withheld when it is not — the API reads it to tell an opt-in region from an opt-out one and neither stores nor forwards it</td><td class="where">tests/test-blocked-events.php</td><td><span class="tag ok">Covered</span></td></tr>
@@ -278,10 +279,74 @@
 <tr><td class="id">ADM-03</td><td>Settings page: saving, validation, site-id / API-key handling</td><td>—</td><td class="where">—</td><td><span class="tag gap">Not covered</span></td></tr>
 <tr><td class="id">ADM-04</td><td>WooCommerce settings tab: toggles, excluded SKUs, freebie flags round-trip</td><td>Exercised indirectly by the live suite through the settings page object, never asserted on its own</td><td class="where">e2e/live/pages/settings-page.ts</td><td><span class="tag partial">Partial</span></td></tr>
 <tr><td class="id">ADM-05</td><td>Onboarding / bootstrap and home screens of the React admin</td><td>—</td><td class="where">—</td><td><span class="tag gap">Not covered</span></td></tr>
+<tr><td class="id">ADM-06</td><td>Unconfigured-site notice in wp-admin</td><td>Renders with the settings link when a credential is empty, on the credentials alone; its <code>admin_notices</code> hook is deliberately unregistered in 1.1.18 pending a rework</td><td class="where">tests/test-configuration-gate.php <em>(render only)</em></td><td><span class="tag partial">Partial</span></td></tr>
 <tr><td class="id">DEP-01</td><td>Built plugin is installed through the WordPress uploader</td><td>Uploads and activates cleanly</td><td class="where">e2e/live/tests/deploy.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
 <tr><td class="id">DEP-02</td><td>WooCommerce is deactivated under the plugin</td><td>The site survives; no fatals</td><td class="where">e2e/live/tests/integration-disabled.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
 <tr><td class="id">DEP-03</td><td>Uninstall cleanup (<code>uninstall.php</code>)</td><td>—</td><td class="where">—</td><td><span class="tag gap">Not covered</span></td></tr>
 <tr><td class="id">DEP-04</td><td>Version upgrade / option migration between releases</td><td>—</td><td class="where">—</td><td><span class="tag gap">Not covered</span></td></tr>
+</tbody>
+</table></div>
+
+<h2>13. Event identity <span class="count">— the <code>external_id</code> that lets Meta recognise a shopper</span></h2>
+<div class="scroll"><table>
+<thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id">ID-01</td><td>Identifier formula</td><td><code>sha256(site_external_id . "_" . visitor_id)</code>, pinned to a literal fixture; case not folded; a visitor id over 64 characters hashes the truncated value</td><td class="where">tests/test-external-id.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">ID-02</td><td>The same visitor id on two sites</td><td>Two different identifiers</td><td class="where">tests/test-external-id.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">ID-03</td><td>Visitor id sources</td><td>Attribution payload, then the order-meta <code>_pf_uid</code>, then the live <code>_pf_uid</code> cookie</td><td class="where">tests/test-external-id.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">ID-04</td><td>Nothing identifies the request — no visitor id, only <code>_fbp</code>, or a logged-in user without a visitor id</td><td>The <code>external_id</code> key is absent, not null; no user id, email or order id is hashed in its place, and <code>em</code> still travels</td><td class="where">tests/test-external-id.php · tests/test-external-id-events.php · tests/test-current-user-customer-data.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">ID-05</td><td>AddToCart, InitiateCheckout and Purchase</td><td>All three carry the derived identifier through one path; InitiateCheckout resolves from live cookies with no context</td><td class="where">tests/test-external-id-events.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">ID-06</td><td>A staff or gateway request moves an order with no stored identity</td><td>The requester's own <code>_pf_uid</code> and <code>_pf_attribution</code> are never borrowed, in the identity or in the attribution</td><td class="where">tests/test-external-id.php · tests/test-external-id-events.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">ID-07</td><td><code>pixelflow_external_id</code> filter</td><td>A callback can replace, suppress, or supply an identifier where none resolved</td><td class="where">tests/test-external-id-events.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">ID-08</td><td>A held event is replayed</td><td>Keeps the identity captured at hold time — even when flushed by a request with a different <code>_pf_uid</code>, and an event held with none acquires none; the recipe's product context reaches the filter through the real flush</td><td class="where">tests/test-external-id-events.php · tests/test-held-replay-context.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">ID-09</td><td>Purchase with nothing known about the buyer</td><td><code>customerData</code> is omitted rather than sent as an empty JSON array</td><td class="where">tests/test-purchase-customer-data.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">ID-10</td><td>The plugin and the browser script identify the same visitor on a live page</td><td>Both emit the same identifier</td><td class="where">—</td><td><span class="tag gap">Not covered</span></td></tr>
+</tbody>
+</table></div>
+
+<h2>14. Automation &amp; junk filtering <span class="count">— which requests are never reported as shopper activity</span></h2>
+<div class="scroll"><table>
+<thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id">BOT-01</td><td>User agent contains <code>guzzle</code>, <code>httpx</code>, <code>aiohttp</code>, <code>scrapy</code> or <code>meta-externalads</code></td><td>Not reported; the matched signature is the reported cause</td><td class="where">tests/test-bot-filtering.php · tests/test-bot-rule-scope.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">BOT-02</td><td>An unrecognised member of Meta's crawler family</td><td>Suppressed under the generic <code>meta-external</code> prefix; the two known agents still report themselves</td><td class="where">tests/test-bot-filtering.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">BOT-03</td><td>Mainstream desktop or mobile browser</td><td>Not classified as automated</td><td class="where">tests/test-bot-filtering.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">BOT-04</td><td><code>Sec-Purpose</code>, <code>Purpose</code> or <code>X-Purpose</code> declares a prefetch</td><td>Not reported; beaconed as <code>bot</code> / <code>prefetch_header</code>; the log does not claim a user-agent match</td><td class="where">tests/test-bot-filtering.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">BOT-05</td><td>A prefetch header on a request that is not the buyer's — gateway callback, wp-admin, cron</td><td>The rule does not fire; the Purchase is sent</td><td class="where">tests/test-bot-filtering.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">BOT-06</td><td>Several rules match one request</td><td>One cause, in a fixed order: signature, prefetch header, consent state, cookieless rule</td><td class="where">tests/test-bot-filtering.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">BOT-07</td><td>A classic <code>?add-to-cart=</code> link with no cookies and no browser-navigation header</td><td>Withheld; logged and beaconed as <code>no_cookies_in_wp_plugin</code></td><td class="where">tests/test-bot-filtering.php · e2e/live/tests/cookieless-add-to-cart.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">BOT-08</td><td>The same link from an ad-blocked shopper carrying <code>Accept-Language</code> or <code>Sec-Fetch-Mode: navigate</code></td><td>Reported normally; a non-navigation <code>Sec-Fetch-Mode</code> does not vouch for it</td><td class="where">tests/test-bot-filtering.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">BOT-09</td><td>The link requested with <code>HEAD</code>, or <code>POST</code> carrying the parameter in the URL</td><td>Caught like the <code>GET</code>; a POST form (parameter in the body), the AJAX add and the Store API stay outside the rule</td><td class="where">tests/test-bot-rule-scope.php · tests/test-bot-filtering.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">BOT-10</td><td>Product already in the cart, so the quantity-update hook produces the AddToCart</td><td>The same rule applies</td><td class="where">tests/test-bot-filtering.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">BOT-11</td><td>Cookieless link from a visitor who has not answered the banner, or who declined</td><td>Held and flushed on accept, not dropped as automation; a decline is reported as <code>denied</code></td><td class="where">tests/test-bot-filtering.php · e2e/live/tests/cookieless-add-to-cart.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">BOT-12</td><td>A Purchase from <code>guzzle</code>, <code>httpx</code> or <code>aiohttp</code> — a headless store or a mobile app</td><td>Sent; every other signature, the Meta family and the prefetch rule still suppress a Purchase; a signature a site adds through the filter is not exempt</td><td class="where">tests/test-bot-rule-scope.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">BOT-13</td><td>Debug log of a suppressed AddToCart and of a suppressed Purchase</td><td>Names the signature or rule that fired, in both branches</td><td class="where">tests/test-bot-filtering.php</td><td><span class="tag ok">Covered</span></td></tr>
+</tbody>
+</table></div>
+
+<h2>15. A suppressed or undelivered send leaves no trace <span class="count">— the shopper's real event still goes out</span></h2>
+<div class="scroll"><table>
+<thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id">SET-01</td><td>A prefetched or cookieless add-to-cart, then the shopper's own click within the dedupe window</td><td>The shopper's AddToCart is sent — from either producer</td><td class="where">tests/test-automation-dedupe-release.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">SET-02</td><td>A prefetch of the checkout page, then the shopper's own visit with the same cart</td><td>InitiateCheckout is sent; the per-cart guard was left open</td><td class="where">tests/test-automation-dedupe-release.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">SET-03</td><td>A send skipped for a missing credential, a private client IP, or a transport failure</td><td>Dedupe window and guard stay open, so the event reports on a later request</td><td class="where">tests/test-automation-dedupe-release.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">SET-04</td><td>A pending or declined consent decision</td><td>Still consumes the window and the guard: one hold, one beacon, not one per page view</td><td class="where">tests/test-automation-dedupe-release.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">SET-05</td><td>A genuine send</td><td>Closes the guard; one request still produces at most one event</td><td class="where">tests/test-automation-dedupe-release.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">SET-06</td><td>Prefetch followed by the real checkout in a live browser</td><td>InitiateCheckout is logged once, for the real visit</td><td class="where">—</td><td><span class="tag gap">Not covered</span></td></tr>
+</tbody>
+</table></div>
+
+<h2>16. Configuration gate <span class="count">— a site missing its site id or API key</span></h2>
+<div class="scroll"><table>
+<thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id">CFG-01</td><td>Both credentials set</td><td>Hooks registered; the event and the beacon reach the API</td><td class="where">tests/test-configuration-gate.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">CFG-02</td><td>Either credential empty</td><td>No event and no blocked-events beacon leaves the site</td><td class="where">tests/test-unconfigured-recording.php · tests/test-automation-dedupe-release.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">CFG-03</td><td>An order placed, or a consent decision made, while a credential is empty</td><td>The order still gets its tracking-cookie snapshot and the decision still reaches it</td><td class="where">tests/test-unconfigured-recording.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">CFG-04</td><td>Held events while a credential is empty</td><td>The queue is kept — from a page view and from the AJAX route — and flushes once the credentials are back</td><td class="where">tests/test-unconfigured-recording.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">CFG-05</td><td>A deferred blocked-purchase report that cannot be sent</td><td>The order stays open and one retry is re-armed; it is reported and closed once sending works</td><td class="where">tests/test-unconfigured-recording.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">CFG-06</td><td>Retired cookie names <code>pf_clkid</code>, <code>clkId</code>, <code>pf_fbc</code></td><td>Read nowhere — neither payload nor log; <code>fbc</code> comes from <code>_fbc</code> on the order or the buyer's own request</td><td class="where">tests/test-configuration-gate.php · tests/test-purchase-customer-data.php</td><td><span class="tag ok">Covered</span></td></tr>
 </tbody>
 </table></div>
 
