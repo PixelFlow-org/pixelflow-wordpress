@@ -67,9 +67,7 @@ class PixelFlow
         add_action('admin_init', array($this, 'migrate_product_id_format'));
         add_action('admin_init', array($this, 'handle_disable_debug_action'));
         add_action('admin_notices', array($this, 'display_debug_notice'));
-        // Unconfigured-site notice hidden until its wording and placement are reworked;
-        // display_unconfigured_notice() is kept for that.
-        // add_action('admin_notices', array($this, 'display_unconfigured_notice'));
+        add_action('admin_notices', array($this, 'display_unconfigured_notice'));
         add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
         add_action('wp_print_scripts', array($this, 'inject_script'));
         add_action('wp_enqueue_scripts', array($this, 'enqueue_held_events_script'));
@@ -601,6 +599,12 @@ class PixelFlow
      */
     public function display_unconfigured_notice(): void
     {
+        // Off by default until the notice's wording and placement are reworked; a site can opt in
+        // with add_filter('pixelflow_show_unconfigured_notice', '__return_true').
+        if ( ! apply_filters('pixelflow_show_unconfigured_notice', false)) {
+            return;
+        }
+
         if ( ! current_user_can('manage_options')) {
             return;
         }

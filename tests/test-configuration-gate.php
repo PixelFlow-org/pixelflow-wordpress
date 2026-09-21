@@ -233,10 +233,12 @@ function pf_reset_hooks_instance(): void
  *
  * @return string
  */
-function pf_render_unconfigured_notice(): string
+function pf_render_unconfigured_notice(bool $enabled = true): string
 {
+    $GLOBALS['__pf_test_filters']['pixelflow_show_unconfigured_notice'] = $enabled;
     ob_start();
     PixelFlow::get_instance()->display_unconfigured_notice();
+    unset($GLOBALS['__pf_test_filters']['pixelflow_show_unconfigured_notice']);
 
     return (string) ob_get_clean();
 }
@@ -359,6 +361,23 @@ foreach (
 // ---------------------------------------------------------------------
 // The notice that explains the gate.
 // ---------------------------------------------------------------------
+
+pf_run_gate_case(
+    'The notice is off by default, even with a credential empty',
+    /** @return bool|string */
+    function () {
+        $GLOBALS['__pf_test_options']['pixelflow_script_params'] = [
+            'siteExternalId' => PF_SITE,
+            'apiKey'         => '',
+        ];
+
+        return pf_render_unconfigured_notice(false) === ''
+            ? true
+            : 'the notice rendered without pixelflow_show_unconfigured_notice opting in';
+    },
+    $failures,
+    $passes
+);
 
 pf_run_gate_case(
     'The notice renders when a credential is empty, and links to the settings screen',

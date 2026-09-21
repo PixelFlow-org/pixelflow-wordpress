@@ -81,9 +81,9 @@ to fix in one release.
 **Not in scope**
 
 - The wp-admin notice telling an unconfigured site why it is silent. It was implemented
-  (`display_unconfigured_notice()` in `pixelflow.php`) and is deliberately left unregistered in
-  this release: its wording and placement are being reworked, and the requirement will come back
-  with that change. The credential gate itself ships — a site without both credentials sends
+  (`display_unconfigured_notice()` in `pixelflow.php`) and ships switched off: it renders only
+  when the `pixelflow_show_unconfigured_notice` filter returns true, and defaults to false while
+  its wording and placement are reworked. The requirement comes back with that change. The credential gate itself ships — a site without both credentials sends
   nothing, silently.
 
 - Event de-duplication. A guard already exists in `should_send_event()`, and the product
@@ -130,8 +130,8 @@ to fix in one release.
   the bot skip's debug line (:1947) names the matched signature instead of `BOT_UA`.
 - `includes/woo/class-woocommerce-integration.php` — `load_hooks()` (:52) gains the
   configuration gate.
-- `pixelflow.php` — `display_unconfigured_notice()`, written but left unregistered until the
-  notice is reworked (see Not in scope).
+- `pixelflow.php` — `display_unconfigured_notice()`, off by default behind the
+  `pixelflow_show_unconfigured_notice` filter until the notice is reworked (see Not in scope).
 - `includes/helpers.php` — `PIXELFLOW_BOT_PATTERNS` (:~715) gains four signatures; the default
   cookie map (:679) loses the dead names; `pixelflow_resolve_attribution_visitor_id()` (:572)
   becomes the single source of the visitor id for identity as well as attribution. The existing

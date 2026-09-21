@@ -269,7 +269,7 @@
       order-meta cookie list (`class-woocommerce-hooks.php:628`), the second cookie map
       (`:1230`) and the debug-log key list (`:1803`); read `_fbc` into `fbc` directly, as `_fbp`
       already is.
-- [x] 5.3 *(Shipped unregistered — see 7.12.)* Add an `admin_notices` callback that renders a `notice-error` when either
+- [x] 5.3 *(Shipped off by default — see 7.12.)* Add an `admin_notices` callback that renders a `notice-error` when either
       `siteExternalId` or `apiKey` is empty, saying PixelFlow is not fully configured and no events
       are being sent, with a link to `options-general.php?page=pixelflow-settings`. Follow the
       existing `display_debug_notice()` pattern (`pixelflow.php:69` registers it, `:573` renders
@@ -379,8 +379,9 @@ not new scope; the operator approved every spec edit they required.
       `:1029`, `:2235`, and `trait-held-woo-events.php:134`, `:162`. `ajax_resolve_held_events()`
       and `resolve_held_events_on_page_view()` both reach the flush only through
       `resolve_held_events()`, so its credential guard (`:99`) is the single chokepoint.
-- [x] 7.12 Leave the unconfigured-site notice unregistered in this release. Its wording and
-      placement are being reworked, so only the `admin_notices` registration in `pixelflow.php` is
-      commented out; `display_unconfigured_notice()` and its tests stay, and the requirement "An
+- [x] 7.12 Ship the unconfigured-site notice switched off. Its wording and placement are being
+      reworked, so `display_unconfigured_notice()` stays registered but renders only when the
+      `pixelflow_show_unconfigured_notice` filter returns true, defaulting to false; a test pins the
+      default, and the existing render tests opt in. The requirement "An
       unconfigured site is told why it is silent" is removed from this change's delta, to return
       with the rework.
