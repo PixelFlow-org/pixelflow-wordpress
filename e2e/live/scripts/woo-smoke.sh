@@ -4,14 +4,29 @@
 # duration of the check because the site's FPM log is root-only.
 set -euo pipefail
 
-SSH_KEY="${PF_SSH_KEY:-$HOME/.claude/keys/rift}"
-SSH_HOST="${PF_SSH_HOST:-claude@rift.kskonovalov.me}"
-WP_ROOT="${PF_WP_ROOT:-/var/www/rift.kskonovalov.me/www}"
+# Optional: unset means the ~/.ssh/config entry for $SSH_HOST supplies the key.
+SSH_KEY="${PF_SSH_KEY:-}"
+SSH_HOST="${PF_SSH_HOST:?PF_SSH_HOST is not set (see e2e/live/.env.example)}"
+WP_ROOT="${PF_WP_ROOT:?PF_WP_ROOT is not set (see e2e/live/.env.example)}"
 WP="${PF_WP_CLI:-~/bin/wp}"
-BASE_URL="${PF_BASE_URL:-https://rift.kskonovalov.me}"
+BASE_URL="${PF_BASE_URL:?PF_BASE_URL is not set (see e2e/live/.env.example)}"
+
+# Shares the run's multiplexed connection (same socket as helpers/ssh.ts), so
+# this script does not open a fresh SSH session per command either.
+CONTROL_PATH="${TMPDIR:-/tmp}/pf-live-ssh-${USER:-run}"
+
+# With no explicit key, the operator's ~/.ssh/config entry for $SSH_HOST picks
+# the identity; forcing one here would override it.
+if [ -n "$SSH_KEY" ]; then
+  KEY_ARGS=(-i "${SSH_KEY/#\~/$HOME}" -o IdentitiesOnly=yes)
+else
+  KEY_ARGS=()
+fi
 
 remote() {
-  ssh -i "$SSH_KEY" -o IdentitiesOnly=yes -o BatchMode=yes "$SSH_HOST" "cd $WP_ROOT && $*"
+  ssh "${KEY_ARGS[@]}" -o BatchMode=yes \
+    -o ControlMaster=auto -o ControlPath="$CONTROL_PATH" -o ControlPersist=120 \
+    "$SSH_HOST" "cd $WP_ROOT && $*"
 }
 
 restore() {
@@ -26,7 +41,7 @@ echo "→ enabling PHP error capture"
 remote "$WP config set WP_DEBUG true --raw" >/dev/null
 remote "$WP config set WP_DEBUG_LOG true --raw" >/dev/null
 remote "$WP config set WP_DEBUG_DISPLAY false --raw" >/dev/null
-remote ": > wp-content/debug.log"
+remote "rm -f wp-content/debug.log"
 
 echo "→ deactivating WooCommerce"
 remote "$WP plugin deactivate woocommerce" >/dev/null

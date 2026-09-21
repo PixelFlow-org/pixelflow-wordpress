@@ -6,7 +6,7 @@
  * link that navigates instead.
  */
 import { expect, type Locator, type Page } from '@playwright/test';
-import { URLS, type Fixture } from '../site';
+import { offSiteRequests, URLS, type Fixture } from '../site';
 
 export class ShopPage {
   constructor(private readonly page: Page) {}
@@ -64,9 +64,9 @@ export class ShopPage {
       `${product.sku} unexpectedly renders an add-to-cart button on the listing`
     ).toBeVisible();
 
-    await this.page.route(/^(?!https:\/\/rift\.kskonovalov\.me).*$/, (route) => route.abort());
+    await this.page.route(offSiteRequests(), (route) => route.abort());
     await control.click().catch(() => undefined);
     await this.page.waitForTimeout(1_000);
-    await this.page.unroute(/^(?!https:\/\/rift\.kskonovalov\.me).*$/);
+    await this.page.unroute(offSiteRequests());
   }
 }

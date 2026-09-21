@@ -28,7 +28,7 @@ untested.
 
 **Test site prerequisite (already applied)**
 
-- `rift.kskonovalov.me` now runs WP Consent API 2.0.1 and Complianz 7.5.4, configured
+- the live test site now runs WP Consent API 2.0.1 and Complianz 7.5.4, configured
   for the EU region so `wp_get_consent_type()` returns `optin` and the banner renders
   in opt-in mode with a `cmplz_marketing` category. This is a standing property of the
   test site, not something a test run installs.

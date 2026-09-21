@@ -147,20 +147,6 @@ function pixelflow_normalize_country(string $country): string
 }
 
 /**
- * Normalize external ID
- *
- * @param string $external_id External ID to normalize
- * @return string Normalized external ID
- */
-function pixelflow_normalize_external_id(string $external_id): string
-{
-    $external_id = trim($external_id);
-    $external_id = mb_strtolower($external_id, 'UTF-8');
-
-    return $external_id;
-}
-
-/**
  * Hash value with SHA256 if not empty
  *
  * @param string $value Value to hash
@@ -567,9 +553,12 @@ function pixelflow_sanitize_touch_snapshot( $snapshot ): ?array {
  *
  * @param array       $data         Decoded attribution JSON (may be empty)
  * @param string|null $uid_override Saved `_pf_uid` from order meta
+ * @param bool        $allow_cookie False when the request is not the buyer's, so the live
+ *                                  `_pf_uid` cookie identifies someone other than the buyer.
+ *                                  An absent override is not permission to read it.
  * @return string|null
  */
-function pixelflow_resolve_attribution_visitor_id( array $data, ?string $uid_override = null ): ?string {
+function pixelflow_resolve_attribution_visitor_id( array $data, ?string $uid_override = null, bool $allow_cookie = true ): ?string {
     if ( isset( $data['visitor_id'] ) && is_string( $data['visitor_id'] ) ) {
         $visitor_id = substr( sanitize_text_field( $data['visitor_id'] ), 0, 64 );
         if ( $visitor_id !== '' ) {
@@ -578,7 +567,7 @@ function pixelflow_resolve_attribution_visitor_id( array $data, ?string $uid_ove
     }
 
     $uid = $uid_override;
-    if ( ( $uid === null || $uid === '' ) && isset( $_COOKIE['_pf_uid'] ) && is_string( $_COOKIE['_pf_uid'] ) ) {
+    if ( $allow_cookie && ( $uid === null || $uid === '' ) && isset( $_COOKIE['_pf_uid'] ) && is_string( $_COOKIE['_pf_uid'] ) ) {
         $uid = sanitize_text_field( wp_unslash( $_COOKIE['_pf_uid'] ) );
     }
     if ( ! is_string( $uid ) || $uid === '' ) {
@@ -597,12 +586,14 @@ function pixelflow_resolve_attribution_visitor_id( array $data, ?string $uid_ove
  *
  * @param string|null $raw_override When provided, parses this string instead of $_COOKIE['_pf_attribution']
  * @param string|null $uid_override Saved `_pf_uid` from order meta when live cookies are absent
+ * @param bool        $allow_cookie False when the request is not the buyer's, so no live cookie
+ *                                  may be read here or in the visitor-id resolver below
  * @return array|null
  */
-function pixelflow_get_attribution_from_cookie( ?string $raw_override = null, ?string $uid_override = null ): ?array {
+function pixelflow_get_attribution_from_cookie( ?string $raw_override = null, ?string $uid_override = null, bool $allow_cookie = true ): ?array {
     if ( $raw_override !== null ) {
         $raw = urldecode( wp_unslash( $raw_override ) );
-    } elseif ( isset( $_COOKIE['_pf_attribution'] ) && is_string( $_COOKIE['_pf_attribution'] ) ) {
+    } elseif ( $allow_cookie && isset( $_COOKIE['_pf_attribution'] ) && is_string( $_COOKIE['_pf_attribution'] ) ) {
         $raw = urldecode( wp_unslash( $_COOKIE['_pf_attribution'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON; sanitization is applied field-by-field after json_decode()
     } else {
         $raw = '';
@@ -616,7 +607,7 @@ function pixelflow_get_attribution_from_cookie( ?string $raw_override = null, ?s
         }
     }
 
-    $visitor_id = pixelflow_resolve_attribution_visitor_id( $data, $uid_override );
+    $visitor_id = pixelflow_resolve_attribution_visitor_id( $data, $uid_override, $allow_cookie );
     if ( $visitor_id === null ) {
         return null;
     }
@@ -667,6 +658,48 @@ function pixelflow_append_attribution_from_cookie( array &$payload ): void {
 }
 
 /**
+ * Resolves the `external_id` for an event: sha256( site_external_id . '_' . visitor_id ).
+ *
+ * The visitor id is the only source — no WordPress user id, no `_fbp`, no email, no order id —
+ * because the plugin and the browser script must emit one shared format, and the script emits
+ * only this one. Returns null when no visitor id resolves, so the caller omits the field.
+ *
+ * The hash input is deliberately not normalised: the script concatenates the raw values and
+ * hashes them directly, so any trim or case-fold added here would split one shopper into two
+ * identities. The visitor id is hashed exactly as pixelflow_resolve_attribution_visitor_id()
+ * returns it, including that function's 64-character cap.
+ *
+ * @param string      $site_external_id The site's configured identifier, which namespaces the hash
+ * @param string|null $attribution_raw  Raw `_pf_attribution` stored on the order, when there is one
+ * @param string|null $uid_override     Saved `_pf_uid` from order meta
+ * @param bool        $request_is_buyer False when the request is not the buyer's, suppressing
+ *                                      every live-cookie read so a staff member's own identity
+ *                                      cannot be attributed to the shopper
+ * @return string|null Hashed identifier, or null when nothing identifies the request
+ */
+function pixelflow_resolve_external_id(
+    string $site_external_id,
+    ?string $attribution_raw = null,
+    ?string $uid_override = null,
+    bool $request_is_buyer = true
+): ?string {
+    if ($site_external_id === '') {
+        return null;
+    }
+
+    $attribution = pixelflow_get_attribution_from_cookie($attribution_raw, $uid_override, $request_is_buyer);
+    $visitor_id  = is_array($attribution) && isset($attribution['visitor_id'])
+        ? (string) $attribution['visitor_id']
+        : '';
+
+    if ($visitor_id === '') {
+        return null;
+    }
+
+    return hash('sha256', $site_external_id . '_' . $visitor_id);
+}
+
+/**
  * Append cookie parameters to payload
  *
  * @param array &$payload Payload array (passed by reference)
@@ -676,8 +709,7 @@ function pixelflow_append_attribution_from_cookie( array &$payload ): void {
 function pixelflow_append_cookie_params(
     array &$payload,
     array $map = [
-        'clkId'    => 'pf_clkid',
-        'fbc'      => 'pf_fbc',
+        'fbc'      => '_fbc',
         'fbp'      => '_fbp',
     ]
 ): void {
@@ -719,8 +751,20 @@ define('PIXELFLOW_BOT_PATTERNS', [
     'headless',
     'phantom',
     'selenium',
+    // Scrapy sends Accept-Language and keeps cookies, so request_looks_like_a_browser_navigation()
+    // spares it and its default agent is the only signal left.
+    'scrapy',
     'facebookexternalhit',
+    // Meta ships a family of crawlers under the meta-external prefix. The two we have seen in
+    // production are listed exactly and report themselves, so the backend can still separate
+    // them; the prefix below is the catch-all that covers the next one without a plugin release,
+    // reporting the generic 'meta-external'.
+    //
+    // Order is the mechanism, not an accident: pixelflow_get_bot_detail_pattern() returns the
+    // first pattern that matches, so specific entries must precede the prefix that subsumes them.
     'meta-externalagent',
+    'meta-externalads',
+    'meta-external',
     'python-requests',
     'python-urllib',
     'curl/',
@@ -733,6 +777,30 @@ define('PIXELFLOW_BOT_PATTERNS', [
     'geedoshopproductfinder',
     'shopproductfinder',
     'pricefinder',
+    // Generic HTTP client libraries. Broad enough to catch a store's own integration, so a
+    // suppression names the matched signature in the debug log, the
+    // pixelflow_useragent_bot_patterns filter can remove any of them, and
+    // PIXELFLOW_PURCHASE_EXEMPT_BOT_PATTERNS below keeps them from deciding a Purchase.
+    'guzzle',
+    'httpx',
+    'aiohttp',
+]);
+
+/**
+ * Signatures that never suppress a Purchase; see pixelflow_resolve_bot_detail().
+ *
+ * An order in the database is evidence that a human paid, and a headless store or a mobile app
+ * legitimately reports that order with one of these clients — where a suppressed Purchase is
+ * lost for good, because the blocked row closes the order permanently. They keep suppressing
+ * AddToCart and InitiateCheckout, which no order backs.
+ *
+ * Only the plugin's own names are listed: a signature a site adds through
+ * pixelflow_useragent_bot_patterns is its own decision and is not exempt.
+ */
+define('PIXELFLOW_PURCHASE_EXEMPT_BOT_PATTERNS', [
+    'guzzle',
+    'httpx',
+    'aiohttp',
 ]);
 
 /**

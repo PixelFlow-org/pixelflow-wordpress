@@ -38,3 +38,17 @@ not kept in sync with the plugin version.
 
 Releases increment the third segment (1.1.16 → 1.1.17 → 1.1.18), for both
 fixes and feature additions. The changelog entry is a single line, in English.
+
+## Test Scenario Report
+
+`docs/test-scenarios.html` is the test scenario matrix. After every full test run — the PHP
+suite, the frontend suite, the admin E2E (`e2e/tests`) and the live storefront matrix
+(`e2e/live`) — update it before calling the run done:
+
+- the plugin version in the title and the `<h1>` (`PixelFlow X.Y.Z — Test Scenario Matrix`);
+- the header line: generation date, branch and OpenSpec change;
+- the "Last full run" line: date, revision, and the result of each suite;
+- any scenario whose status changed, and the header counts, recomputed from the rows.
+
+Then publish it to the test site with `e2e/live/scripts/publish-report.sh`, which reads the
+site's location from `e2e/live/.env`. A partial run does not update the report.

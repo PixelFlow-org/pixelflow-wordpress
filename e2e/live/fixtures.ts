@@ -4,9 +4,9 @@
  * Each test starts from a known state: carts cleared server-side, then the
  * debug log truncated, so every record read afterwards belongs to that test.
  */
-import { test as base, type Page } from '@playwright/test';
+import { test as base, request, type APIRequestContext, type Page } from '@playwright/test';
 import path from 'node:path';
-import { ARTIFACTS_DIR } from './playwright.config';
+import { ARTIFACTS_DIR, STOREFRONT_USER_AGENT } from './playwright.config';
 import { CartPage } from './pages/cart-page';
 import { ConsentBanner } from './pages/consent-banner';
 import { CheckoutPage } from './pages/checkout-page';
@@ -138,6 +138,37 @@ export async function withStrangerPage(
     await fn(page);
   } finally {
     await context.close();
+  }
+}
+
+/**
+ * Runs a block as a bare HTTP client that behaves like a crawler: no cookies of any kind, and
+ * none of the headers a browser navigation carries.
+ *
+ * It is a request context and not a browser page, because a crawler *is* an HTTP client. Modelling
+ * one as a browser with JavaScript switched off does not work, and the earlier attempt to do so
+ * made this scenario fail on behaviour that was right: Chromium sends `Accept-Language` and
+ * `Sec-Fetch-*` on every navigation whether or not scripts run, deleting them in a `page.route()`
+ * handler does not reach the wire, and the request still arrived carrying positive evidence of a
+ * browser — which the rule spares, deliberately, so that an ad-blocked shopper is never mistaken
+ * for a crawler. A request context sends only the headers it is given, which is exactly the client
+ * the rule targets.
+ *
+ * The user agent is an ordinary browser string on purpose, the same one the headless storefront
+ * runs present. A client-library agent would be suppressed by the signature list instead, and the
+ * scenario would go green on the wrong rule.
+ */
+export async function withCrawlerRequest(
+  fn: (client: APIRequestContext) => Promise<void>
+): Promise<void> {
+  const client = await request.newContext({
+    ignoreHTTPSErrors: true,
+    userAgent: STOREFRONT_USER_AGENT,
+  });
+  try {
+    await fn(client);
+  } finally {
+    await client.dispose();
   }
 }
 

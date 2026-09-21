@@ -5,7 +5,7 @@ import path from 'node:path';
 import { SITE } from './site';
 
 /**
- * Live verification suite — runs against the real rift test site and sends real
+ * Live verification suite — runs against the real live test site and sends real
  * events. Deliberately separate from ../playwright.config.ts so the admin suite
  * can never trigger it by accident.
  *
@@ -26,7 +26,7 @@ export const HEADED = process.env.PF_HEADED === '1';
  * skips the event for — so a headless run would report success while sending nothing. This is
  * the same string a headed run on this machine sends, minus that marker.
  */
-const STOREFRONT_USER_AGENT =
+export const STOREFRONT_USER_AGENT =
   'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36';
 
 export default defineConfig({

@@ -61,9 +61,20 @@ function remove_filter($hook, $callback, $priority = 10)
  * WordPress's own behavior when no callback is hooked to the given tag. A test
  * that needs a filtered value sets $GLOBALS['__pf_test_filters'][$tag] instead
  * of registering a callback, since add_filter() here is a no-op.
+ *
+ * A test that needs the arguments a filter was called with — the $context of
+ * pixelflow_external_id, say — registers a callable under the same tag in
+ * $GLOBALS['__pf_test_filter_callbacks'] and receives ($value, ...$args).
  */
 function apply_filters($tag, $value, ...$args)
 {
+    if (isset($GLOBALS['__pf_test_filter_callbacks'][$tag])) {
+        return call_user_func_array(
+            $GLOBALS['__pf_test_filter_callbacks'][$tag],
+            array_merge([$value], $args)
+        );
+    }
+
     if (isset($GLOBALS['__pf_test_filters'][$tag])) {
         return $GLOBALS['__pf_test_filters'][$tag];
     }
@@ -103,5 +114,8 @@ function wp_json_encode($data, $options = 0, $depth = 512)
 function wc_get_product($id)
 {
     $GLOBALS['__pf_test_last_wc_get_product_id'] = $id;
-    return null;
+
+    // Defaults to null, which is what the null-variation test needs. A test that has to drive a
+    // hook past the product lookup registers its own product under this key instead.
+    return $GLOBALS['__pf_test_products'][$id] ?? null;
 }
