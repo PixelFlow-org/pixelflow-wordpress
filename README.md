@@ -407,6 +407,9 @@ For more information:
 
 ## Changelog
 
+### 1.1.19
+AddToCart now reports product prices excluding tax, matching InitiateCheckout and Purchase, on stores that display prices including tax.
+
 ### 1.1.18
 The plugin now derives external_id itself from the visitor id, using the same formula as the PixelFlow browser script, so guests are no longer collapsed onto a single site-wide identifier; added guzzle, httpx, aiohttp and meta-externalads to the bot signatures plus a meta-external catch-all for the rest of Meta's crawler family, stopped reporting speculative browser prefetch and anonymous cookieless add-to-cart URLs, named the matched rule in the debug log instead of BOT_UA, and a site missing its credentials now stops sending events.
 

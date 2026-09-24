@@ -270,6 +270,11 @@ function wc_get_price_to_display($product, $args = [])
     return 25.0;
 }
 
+function wc_get_price_excluding_tax($product, $args = [])
+{
+    return 25.0;
+}
+
 function get_woocommerce_currency()
 {
     return 'USD';

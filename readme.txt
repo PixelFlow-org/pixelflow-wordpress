@@ -4,7 +4,7 @@ Tags: facebook pixel, conversions api, meta pixel, woocommerce tracking, ecommer
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.18
+Stable tag: 1.1.19
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -179,6 +179,9 @@ The plugin does not send events for requests whose user agent matches a known au
 Each entry is matched as a case-insensitive substring of the user agent.
 
 == Changelog ==
+
+= 1.1.19 =
+AddToCart now reports product prices excluding tax, matching InitiateCheckout and Purchase, on stores that display prices including tax.
 
 = 1.1.18 =
 The plugin now derives external_id itself from the visitor id, using the same formula as the PixelFlow browser script, so guests are no longer collapsed onto a single site-wide identifier; added guzzle, httpx, aiohttp and meta-externalads to the bot signatures plus a meta-external catch-all for the rest of Meta's crawler family, stopped reporting speculative browser prefetch and anonymous cookieless add-to-cart URLs, named the matched rule in the debug log instead of BOT_UA, and a site missing its credentials now stops sending events.
