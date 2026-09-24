@@ -449,7 +449,8 @@ class PixelFlow_WooCommerce_Cart_Hooks
      */
     private function build_additional_data(WC_Product $product, int $quantity): array
     {
-        $price = (float)wc_get_price_to_display($product);
+        // Excluding tax, like InitiateCheckout and Purchase, whatever the shop displays
+        $price = (float)wc_get_price_excluding_tax($product);
 
         $name = (string)$product->get_name();
         if ($product instanceof WC_Product_Variation) {
