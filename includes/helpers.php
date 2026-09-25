@@ -739,6 +739,91 @@ function pixelflow_append_cookie_params(
             $payload['eventData']['fbc'] = $val;
         }
     }
+
+    pixelflow_append_tiktok_params($payload);
+}
+
+/**
+ * Reads TikTok's browser id from a raw `_ttp` value. PixelFlow never mints one.
+ *
+ * @param string|null $raw Saved or live cookie value
+ * @return string|null Non-empty browser id, or null when absent
+ */
+function pixelflow_ttp_from_raw(?string $raw): ?string
+{
+    if ( ! is_string($raw) || $raw === '') {
+        return null;
+    }
+
+    $val = sanitize_text_field($raw);
+
+    return $val !== '' ? $val : null;
+}
+
+/**
+ * Reads `ttclid` from a `_pf_click_ids` query string. Other click ids stay unread.
+ *
+ * @param string|null $raw Saved or live cookie value (`ttclid=...&gclid=...`)
+ * @return string|null Non-empty click id, or null when absent
+ */
+function pixelflow_ttclid_from_click_ids_raw(?string $raw): ?string
+{
+    if ( ! is_string($raw) || $raw === '') {
+        return null;
+    }
+
+    $raw = sanitize_text_field($raw);
+    if ($raw === '') {
+        return null;
+    }
+
+    parse_str($raw, $parsed);
+    if ( ! is_array($parsed) || ! isset($parsed['ttclid']) || ! is_scalar($parsed['ttclid'])) {
+        return null;
+    }
+
+    $ttclid = sanitize_text_field((string) $parsed['ttclid']);
+
+    return $ttclid !== '' ? $ttclid : null;
+}
+
+/**
+ * Appends `ttp` and `ttclid`. A non-empty override wins for that field; live cookies
+ * are read only when the request may speak for the shopper.
+ *
+ * @param array       &$payload            Event payload
+ * @param string|null $ttp_override        Saved `_ttp`, when the order has one
+ * @param string|null $click_ids_override  Saved `_pf_click_ids`, when the order has one
+ * @param bool        $allow_live          False when the request is not the buyer's
+ * @return void
+ */
+function pixelflow_append_tiktok_params(
+    array &$payload,
+    ?string $ttp_override = null,
+    ?string $click_ids_override = null,
+    bool $allow_live = true
+): void {
+    if ( ! isset($payload['eventData']) || ! is_array($payload['eventData'])) {
+        return;
+    }
+
+    $ttp_raw = (is_string($ttp_override) && $ttp_override !== '') ? $ttp_override : null;
+    if ($ttp_raw === null && $allow_live && isset($_COOKIE['_ttp']) && is_string($_COOKIE['_ttp'])) {
+        $ttp_raw = wp_unslash($_COOKIE['_ttp']);
+    }
+    $ttp = pixelflow_ttp_from_raw($ttp_raw);
+    if ($ttp !== null) {
+        $payload['eventData']['ttp'] = $ttp;
+    }
+
+    $click_raw = (is_string($click_ids_override) && $click_ids_override !== '') ? $click_ids_override : null;
+    if ($click_raw === null && $allow_live && isset($_COOKIE['_pf_click_ids']) && is_string($_COOKIE['_pf_click_ids'])) {
+        $click_raw = wp_unslash($_COOKIE['_pf_click_ids']);
+    }
+    $ttclid = pixelflow_ttclid_from_click_ids_raw($click_raw);
+    if ($ttclid !== null) {
+        $payload['eventData']['ttclid'] = $ttclid;
+    }
 }
 
 
