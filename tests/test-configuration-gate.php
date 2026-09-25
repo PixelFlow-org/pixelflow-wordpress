@@ -475,6 +475,51 @@ pf_run_gate_case(
     $passes
 );
 
+pf_run_gate_case(
+    'Live cookies copy ttp and ttclid only',
+    /** @return bool|string */
+    function () {
+        $_COOKIE['_ttp']          = 'tiktok-browser-1';
+        $_COOKIE['_pf_click_ids'] = 'ttclid=E_C_P_abc&gclid=other';
+
+        $payload = ['eventData' => ['eventName' => 'AddToCart']];
+        pixelflow_append_cookie_params($payload);
+
+        $event = $payload['eventData'];
+        if (($event['ttp'] ?? null) !== 'tiktok-browser-1') {
+            return 'ttp did not reach the payload: ' . wp_json_encode($event);
+        }
+        if (($event['ttclid'] ?? null) !== 'E_C_P_abc') {
+            return 'ttclid did not reach the payload: ' . wp_json_encode($event);
+        }
+        if (array_key_exists('gclid', $event)) {
+            return 'gclid was forwarded from the click-id bag';
+        }
+
+        return true;
+    },
+    $failures,
+    $passes
+);
+
+pf_run_gate_case(
+    'A missing TikTok cookie omits the field',
+    /** @return bool|string */
+    function () {
+        $payload = ['eventData' => ['eventName' => 'AddToCart']];
+        pixelflow_append_cookie_params($payload);
+
+        $event = $payload['eventData'];
+        if (array_key_exists('ttp', $event) || array_key_exists('ttclid', $event)) {
+            return 'an absent cookie still emitted a TikTok field: ' . wp_json_encode($event);
+        }
+
+        return true;
+    },
+    $failures,
+    $passes
+);
+
 echo "\n{$passes} passed, " . count($failures) . " failed\n";
 
 exit(count($failures) > 0 ? 1 : 0);
