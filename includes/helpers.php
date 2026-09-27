@@ -809,7 +809,7 @@ function pixelflow_append_tiktok_params(
 
     $ttp_raw = (is_string($ttp_override) && $ttp_override !== '') ? $ttp_override : null;
     if ($ttp_raw === null && $allow_live && isset($_COOKIE['_ttp']) && is_string($_COOKIE['_ttp'])) {
-        $ttp_raw = wp_unslash($_COOKIE['_ttp']);
+        $ttp_raw = sanitize_text_field(wp_unslash($_COOKIE['_ttp']));
     }
     $ttp = pixelflow_ttp_from_raw($ttp_raw);
     if ($ttp !== null) {
@@ -818,7 +818,7 @@ function pixelflow_append_tiktok_params(
 
     $click_raw = (is_string($click_ids_override) && $click_ids_override !== '') ? $click_ids_override : null;
     if ($click_raw === null && $allow_live && isset($_COOKIE['_pf_click_ids']) && is_string($_COOKIE['_pf_click_ids'])) {
-        $click_raw = wp_unslash($_COOKIE['_pf_click_ids']);
+        $click_raw = sanitize_text_field(wp_unslash($_COOKIE['_pf_click_ids']));
     }
     $ttclid = pixelflow_ttclid_from_click_ids_raw($click_raw);
     if ($ttclid !== null) {
