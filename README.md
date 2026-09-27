@@ -407,6 +407,9 @@ For more information:
 
 ## Changelog
 
+### 1.1.20
+WooCommerce AddToCart, InitiateCheckout and Purchase now include TikTok's ttp and ttclid when the shopper's cookies carry them.
+
 ### 1.1.19
 AddToCart now reports product prices excluding tax, matching InitiateCheckout and Purchase, on stores that display prices including tax.
 
