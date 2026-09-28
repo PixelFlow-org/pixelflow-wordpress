@@ -502,6 +502,166 @@ pf_run_customer_data_case(
     $passes
 );
 
+// ---------------------------------------------------------------------
+// ttp and ttclid: order meta first, the buyer's own live cookie second.
+// ---------------------------------------------------------------------
+
+pf_run_customer_data_case(
+    'ttp and ttclid saved on the order at creation reach the Purchase',
+    /** @return bool|string */
+    function () {
+        $order = pf_phone_order(406);
+        $order->meta['_pf_cookie__ttp']          = 'tiktok-browser-saved';
+        $order->meta['_pf_cookie__pf_click_ids'] = 'ttclid=E_C_P_saved&gclid=other';
+
+        pf_hooks()->pf_purchase_hook(406);
+
+        $event = pf_last_event();
+        $data  = $event['payload']['eventData'] ?? [];
+
+        if (($data['ttp'] ?? null) !== 'tiktok-browser-saved') {
+            return 'ttp did not reach the payload: ' . ($event['body'] ?? 'no event');
+        }
+        if (($data['ttclid'] ?? null) !== 'E_C_P_saved') {
+            return 'ttclid did not reach the payload: ' . ($event['body'] ?? 'no event');
+        }
+        if (array_key_exists('gclid', $data)) {
+            return 'gclid was forwarded from the saved click-id bag';
+        }
+
+        return true;
+    },
+    $failures,
+    $passes
+);
+
+pf_run_customer_data_case(
+    'The buyer\'s live ttp and ttclid reach the Purchase when the request is theirs',
+    /** @return bool|string */
+    function () {
+        $order = pf_phone_order(407);
+        $order->meta['_pf_cookie__pf_uid'] = '1757000000.123';
+        $_COOKIE['_pf_uid']          = '1757000000.123';
+        $_COOKIE['_ttp']             = 'tiktok-browser-live';
+        $_COOKIE['_pf_click_ids']    = 'ttclid=E_C_P_live';
+
+        pf_hooks()->pf_purchase_hook(407);
+
+        $event = pf_last_event();
+        $data  = $event['payload']['eventData'] ?? [];
+
+        return ($data['ttp'] ?? null) === 'tiktok-browser-live'
+            && ($data['ttclid'] ?? null) === 'E_C_P_live'
+            ? true
+            : 'live TikTok ids did not reach the payload: ' . ($event['body'] ?? 'no event');
+    },
+    $failures,
+    $passes
+);
+
+pf_run_customer_data_case(
+    'A stranger\'s ttp and ttclid stay off the Purchase',
+    /** @return bool|string */
+    function () {
+        pf_phone_order(408);
+        $_COOKIE['_ttp']          = 'tiktok-browser-stranger';
+        $_COOKIE['_pf_click_ids'] = 'ttclid=E_C_P_stranger';
+
+        pf_hooks()->pf_purchase_hook(408);
+
+        $event = pf_last_event();
+        $data  = $event['payload']['eventData'] ?? [];
+
+        return isset($data['ttp']) || isset($data['ttclid'])
+            ? 'someone else\'s TikTok cookie was attributed to the buyer: ' . $event['body']
+            : true;
+    },
+    $failures,
+    $passes
+);
+
+/**
+ * Sends the Purchase of an order that saved one TikTok cookie, from a request carrying both live.
+ *
+ * @param int                  $order_id Fresh order id
+ * @param array<string,string> $saved    Order meta to save (`_pf_cookie__ttp` or `_pf_cookie__pf_click_ids`)
+ * @param bool                 $buyer    Whether the request belongs to the buyer
+ * @return array<string, mixed> The Purchase eventData
+ */
+function pf_purchase_with_one_saved_id(int $order_id, array $saved, bool $buyer): array
+{
+    $order = pf_phone_order($order_id);
+    foreach ($saved as $key => $value) {
+        $order->meta[$key] = $value;
+    }
+    if ($buyer) {
+        $order->meta['_pf_cookie__pf_uid'] = '1757000000.123';
+        $_COOKIE['_pf_uid']                = '1757000000.123';
+    }
+    $_COOKIE['_ttp']          = 'tiktok-browser-live';
+    $_COOKIE['_pf_click_ids'] = 'ttclid=E_C_P_live';
+
+    pf_hooks()->pf_purchase_hook($order_id);
+
+    return pf_last_event()['payload']['eventData'] ?? [];
+}
+
+pf_run_customer_data_case(
+    'Only ttp saved: the buyer\'s Purchase takes the saved ttp and the live ttclid',
+    /** @return bool|string */
+    function () {
+        $data = pf_purchase_with_one_saved_id(409, ['_pf_cookie__ttp' => 'tiktok-browser-saved'], true);
+
+        return ($data['ttp'] ?? null) === 'tiktok-browser-saved' && ($data['ttclid'] ?? null) === 'E_C_P_live'
+            ? true
+            : 'expected the saved ttp and the live ttclid: ' . wp_json_encode($data);
+    },
+    $failures,
+    $passes
+);
+
+pf_run_customer_data_case(
+    'Only ttclid saved: the buyer\'s Purchase takes the saved ttclid and the live ttp',
+    /** @return bool|string */
+    function () {
+        $data = pf_purchase_with_one_saved_id(410, ['_pf_cookie__pf_click_ids' => 'ttclid=E_C_P_saved'], true);
+
+        return ($data['ttclid'] ?? null) === 'E_C_P_saved' && ($data['ttp'] ?? null) === 'tiktok-browser-live'
+            ? true
+            : 'expected the saved ttclid and the live ttp: ' . wp_json_encode($data);
+    },
+    $failures,
+    $passes
+);
+
+pf_run_customer_data_case(
+    'Only ttp saved: a stranger\'s Purchase takes the saved ttp and no ttclid',
+    /** @return bool|string */
+    function () {
+        $data = pf_purchase_with_one_saved_id(411, ['_pf_cookie__ttp' => 'tiktok-browser-saved'], false);
+
+        return ($data['ttp'] ?? null) === 'tiktok-browser-saved' && ! array_key_exists('ttclid', $data)
+            ? true
+            : 'expected the saved ttp and no ttclid: ' . wp_json_encode($data);
+    },
+    $failures,
+    $passes
+);
+
+pf_run_customer_data_case(
+    'Only ttclid saved: a stranger\'s Purchase takes the saved ttclid and no ttp',
+    /** @return bool|string */
+    function () {
+        $data = pf_purchase_with_one_saved_id(412, ['_pf_cookie__pf_click_ids' => 'ttclid=E_C_P_saved'], false);
+
+        return ($data['ttclid'] ?? null) === 'E_C_P_saved' && ! array_key_exists('ttp', $data)
+            ? true
+            : 'expected the saved ttclid and no ttp: ' . wp_json_encode($data);
+    },
+    $failures,
+    $passes
+);
+
 echo "\n{$passes} passed, " . count($failures) . " failed\n";
 
 exit(count($failures) > 0 ? 1 : 0);

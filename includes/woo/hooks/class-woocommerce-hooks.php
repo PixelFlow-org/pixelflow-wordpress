@@ -743,7 +743,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return;
         }
 
-        $cookie_keys = ['_fbp', '_fbc', 'pf_loc', '_pf_utm', '_pf_attribution', '_pf_consent', '_pf_no_consent_decision', '_pf_consent_source', '_pf_uid'];
+        $cookie_keys = ['_fbp', '_fbc', '_ttp', '_pf_click_ids', 'pf_loc', '_pf_utm', '_pf_attribution', '_pf_consent', '_pf_no_consent_decision', '_pf_consent_source', '_pf_uid'];
 
         foreach ($cookie_keys as $key) {
             if (isset($_COOKIE[$key]) && is_string($_COOKIE[$key]) && $_COOKIE[$key] !== '') {
@@ -1385,6 +1385,15 @@ class PixelFlow_WooCommerce_Cart_Hooks
                 $payload['eventData'][$param] = $val;
             }
         }
+
+        $ttp_meta   = $order->get_meta('_pf_cookie__ttp', true);
+        $click_meta = $order->get_meta('_pf_cookie__pf_click_ids', true);
+        pixelflow_append_tiktok_params(
+            $payload,
+            is_string($ttp_meta) && $ttp_meta !== '' ? $ttp_meta : null,
+            is_string($click_meta) && $click_meta !== '' ? $click_meta : null,
+            $request_is_buyer
+        );
     }
 
 
@@ -1979,7 +1988,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
             $response_summary = $response;
         }
 
-        $cookie_keys = ['_pf_utm', '_fbp', '_fbc', 'pf_loc'];
+        $cookie_keys = ['_pf_utm', '_fbp', '_fbc', '_ttp', '_pf_click_ids', 'pf_loc'];
         $cookies     = array_intersect_key($_COOKIE, array_flip($cookie_keys));
 
         $server_keys = ['REQUEST_URI', 'HTTP_ORIGIN', 'HTTP_REFERER', 'SERVER_NAME', 'SERVER_ADDR', 'QUERY_STRING', 'REQUEST_TIME'];

@@ -353,6 +353,35 @@ pf_run_replay_case(
     $passes
 );
 
+pf_run_replay_case(
+    'The real flush takes ttp and ttclid from the replaying request\'s cookies',
+    /** @return bool|string */
+    function () {
+        // The recipe stores no TikTok ids: the rebuild reads them from the request that grants
+        // consent, the same way the live event would have.
+        pf_queue_recipe(17, 0, hash('sha256', PF_SITE . '_' . PF_VISITOR));
+        $_COOKIE[PIXELFLOW_CONSENT_COOKIE_NAME] = pf_consent_cookie('granted');
+        $_COOKIE['_ttp']                        = 'tiktok-browser-1';
+        $_COOKIE['_pf_click_ids']               = 'ttclid=E_C_P_abc&gclid=other';
+
+        pf_hooks()->resolve_held_events_on_page_view();
+
+        $event = pf_last_event();
+        if ($event === null) {
+            return 'the queue was not flushed';
+        }
+
+        $data = $event['eventData'] ?? [];
+        if (($data['ttp'] ?? null) !== 'tiktok-browser-1' || ($data['ttclid'] ?? null) !== 'E_C_P_abc') {
+            return 'the replay lost the TikTok ids: ' . json_encode($data);
+        }
+
+        return array_key_exists('gclid', $data) ? 'gclid was forwarded on the replay' : true;
+    },
+    $failures,
+    $passes
+);
+
 echo "\n{$passes} passed, " . count($failures) . " failed\n";
 
 exit(count($failures) > 0 ? 1 : 0);

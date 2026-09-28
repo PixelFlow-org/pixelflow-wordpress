@@ -4,7 +4,7 @@ Tags: facebook pixel, conversions api, meta pixel, woocommerce tracking, ecommer
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.19
+Stable tag: 1.1.20
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -179,6 +179,9 @@ The plugin does not send events for requests whose user agent matches a known au
 Each entry is matched as a case-insensitive substring of the user agent.
 
 == Changelog ==
+
+= 1.1.20 =
+WooCommerce AddToCart, InitiateCheckout and Purchase now include TikTok's ttp and ttclid when the shopper's cookies carry them.
 
 = 1.1.19 =
 AddToCart now reports product prices excluding tax, matching InitiateCheckout and Purchase, on stores that display prices including tax.

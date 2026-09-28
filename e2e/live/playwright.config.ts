@@ -29,6 +29,17 @@ export const HEADED = process.env.PF_HEADED === '1';
 export const STOREFRONT_USER_AGENT =
   'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36';
 
+/**
+ * The proxy the browser reaches the internet through, set by scripts/run.sh.
+ *
+ * PixelFlow decides the consent regime from the visitor's IP: outside the EU it answers
+ * `opt_out`, the tracking script drops `_pf_no_consent_decision`, and nothing is ever held,
+ * so every consent scenario would test the wrong regime. run.sh tunnels the browser through
+ * the test server to give it an EU address. Set at launch rather than per context, because
+ * the suite also opens contexts of its own with `browser.newContext()`.
+ */
+const BROWSER_PROXY = process.env.PF_BROWSER_PROXY;
+
 export default defineConfig({
   testDir: './tests',
   outputDir: path.join(artifactsDir, 'test-results'),
@@ -51,6 +62,7 @@ export default defineConfig({
     // filter matches — every event would be skipped with "USER AGENT MATCHED BOT SIGNATURE"
     // and the suite would go green while proving nothing. A headed run keeps its real UA.
     ...(HEADED ? {} : { userAgent: STOREFRONT_USER_AGENT }),
+    ...(BROWSER_PROXY ? { launchOptions: { proxy: { server: BROWSER_PROXY } } } : {}),
     viewport: { width: 1280, height: 900 },
     actionTimeout: 20_000,
     navigationTimeout: 45_000,

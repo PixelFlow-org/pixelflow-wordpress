@@ -697,6 +697,110 @@ pf_run_dedupe_case(
     $passes
 );
 
+// ---------------------------------------------------------------------
+// TikTok ids through the real hooks. They sit here because this is the harness that drives the
+// storefront hooks end to end: a test that calls the cookie helper directly would not notice a
+// hook losing its call to it.
+// ---------------------------------------------------------------------
+
+/** The eventData of the last event that reached /event, or null. */
+function pf_last_event_data(): ?array
+{
+    foreach (array_reverse($GLOBALS['__pf_test_posts']) as $post) {
+        if (substr((string) $post['url'], -6) === '/event') {
+            return $post['payload']['eventData'] ?? [];
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Checks that the last sent event carries the request's TikTok ids and nothing else from the bag.
+ *
+ * @param string $event_name Expected event
+ * @return bool|string
+ */
+function pf_assert_tiktok_ids(string $event_name)
+{
+    if (pf_sent_events() !== [$event_name]) {
+        return "expected one {$event_name}, got " . json_encode(pf_sent_events());
+    }
+
+    $event = pf_last_event_data();
+    if (($event['ttp'] ?? null) !== 'tiktok-browser-1' || ($event['ttclid'] ?? null) !== 'E_C_P_abc') {
+        return "the {$event_name} lost the TikTok ids: " . json_encode($event);
+    }
+    if (array_key_exists('gclid', $event)) {
+        return "gclid was forwarded on the {$event_name}";
+    }
+
+    return true;
+}
+
+pf_run_dedupe_case(
+    'AddToCart carries ttp and ttclid from the shopper\'s cookies',
+    /** @return bool|string */
+    function () {
+        $_COOKIE['_ttp']          = 'tiktok-browser-1';
+        $_COOKIE['_pf_click_ids'] = 'ttclid=E_C_P_abc&gclid=other';
+
+        pf_request()->pf_add_to_cart_hook('line-key', 4242, 1);
+
+        return pf_assert_tiktok_ids('AddToCart');
+    },
+    $failures,
+    $passes
+);
+
+pf_run_dedupe_case(
+    'InitiateCheckout carries ttp and ttclid from the shopper\'s cookies',
+    /** @return bool|string */
+    function () {
+        $_COOKIE['_ttp']          = 'tiktok-browser-1';
+        $_COOKIE['_pf_click_ids'] = 'ttclid=E_C_P_abc&gclid=other';
+
+        pf_request()->pf_initiate_checkout_hook();
+
+        return pf_assert_tiktok_ids('InitiateCheckout');
+    },
+    $failures,
+    $passes
+);
+
+pf_run_dedupe_case(
+    'The debug log lists the TikTok cookies of the request',
+    /** @return bool|string */
+    function () {
+        // The log file outlives a case, so start from an empty one.
+        $path = pixelflow_get_debug_log_path();
+        if ($path !== '' && file_exists($path)) {
+            unlink($path);
+        }
+
+        $_COOKIE['_ttp']          = 'tiktok-browser-1';
+        $_COOKIE['_pf_click_ids'] = 'ttclid=E_C_P_abc';
+
+        pf_request()->pf_initiate_checkout_hook();
+
+        $log     = $path !== '' && file_exists($path) ? (string) file_get_contents($path) : '';
+        $entries = array_values(array_filter(array_map('trim', explode("\n---\n", $log))));
+        if ($entries === []) {
+            return 'nothing was written to the debug log';
+        }
+
+        $entry   = json_decode((string) end($entries), true);
+        $cookies = array_keys($entry['cookies'] ?? []);
+        if ( ! in_array('_ttp', $cookies, true) || ! in_array('_pf_click_ids', $cookies, true)) {
+            return 'the log entry\'s cookie list misses a TikTok cookie: ' . json_encode($cookies);
+        }
+
+        return true;
+    },
+    $failures,
+    $passes
+);
+
 echo "\n{$passes} passed, " . count($failures) . " failed\n";
 
 exit(count($failures) > 0 ? 1 : 0);
