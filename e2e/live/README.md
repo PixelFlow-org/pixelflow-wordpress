@@ -33,3 +33,13 @@ tests) so it can never run by accident.
 
 The run stops at the first failing scenario. Artifacts land in a temp directory
 whose path is printed at the start and end of the run.
+
+### EU egress
+
+PixelFlow picks the consent regime from the visitor's IP address, not from the site's
+consent banner: outside the EU it answers `opt_out`, and the tracking script then clears
+`_pf_no_consent_decision` and sends events before any answer. The consent scenarios only
+mean something under `opt_in`, so `run.sh` sends the browser through a SOCKS tunnel to
+`PF_SSH_HOST` (`ssh -D`, local port `PF_EU_PROXY_PORT`, default 1089) and refuses to start
+unless the tunnel exits in an EEA country. On a machine that already has an EU address,
+`PF_EU_EGRESS=off` skips the tunnel.

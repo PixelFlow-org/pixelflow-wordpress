@@ -24,6 +24,46 @@ export PF_PLUGIN_ZIP="$PLUGIN_DIR/build/pixelflow.zip"
 export PF_PLUGIN_VERSION="$(sed -n "s/^ \* Version: *//p" "$PLUGIN_DIR/pixelflow.php" | head -1 | tr -d '[:space:]')"
 echo "Built $PF_PLUGIN_ZIP (version $PF_PLUGIN_VERSION)"
 
+# EU egress for the browser. PixelFlow picks the consent regime from the visitor's IP, and
+# outside the EU it answers opt_out: the tracking script then drops _pf_no_consent_decision
+# and every consent scenario tests the wrong regime while the banner still shows. The browser
+# therefore reaches the internet through a SOCKS tunnel to the test server, and the run
+# refuses to start unless that exit is in the EEA. PF_EU_EGRESS=off skips it, for a machine
+# that already has an EU address.
+if [ "${PF_EU_EGRESS:-on}" != "off" ]; then
+  : "${PF_SSH_HOST:?PF_SSH_HOST is not set (see e2e/live/.env.example)}"
+  PROXY_PORT="${PF_EU_PROXY_PORT:-1089}"
+  KEY_ARGS=()
+  if [ -n "${PF_SSH_KEY:-}" ]; then
+    KEY_ARGS=(-i "${PF_SSH_KEY/#\~/$HOME}" -o IdentitiesOnly=yes)
+  fi
+
+  # A connection of its own, outside the suite's multiplexed one, so closing it touches nothing else.
+  ssh "${KEY_ARGS[@]}" -o BatchMode=yes -o ExitOnForwardFailure=yes \
+    -o ControlMaster=no -o ControlPath=none \
+    -N -D "127.0.0.1:$PROXY_PORT" "$PF_SSH_HOST" &
+  TUNNEL_PID=$!
+  trap 'kill "$TUNNEL_PID" 2>/dev/null || true' EXIT
+
+  EXIT_COUNTRY=""
+  for _ in $(seq 1 15); do
+    EXIT_COUNTRY="$(curl -s --max-time 5 --socks5-hostname "127.0.0.1:$PROXY_PORT" https://ipinfo.io/country | tr -d '[:space:]' || true)"
+    [ -n "$EXIT_COUNTRY" ] && break
+    kill -0 "$TUNNEL_PID" 2>/dev/null || break
+    sleep 1
+  done
+
+  EEA=" AT BE BG HR CY CZ DK EE FI FR DE GR HU IE IT LV LT LU MT NL PL PT RO SK SI ES SE IS LI NO "
+  if [ -z "$EXIT_COUNTRY" ] || [[ "$EEA" != *" $EXIT_COUNTRY "* ]]; then
+    echo "The browser's exit is '${EXIT_COUNTRY:-unreachable}', not an EEA country: the consent" >&2
+    echo "scenarios would run under PixelFlow's opt_out regime. Check the tunnel to $PF_SSH_HOST," >&2
+    echo "or set PF_EU_EGRESS=off on a machine that already has an EU address." >&2
+    exit 1
+  fi
+  export PF_BROWSER_PROXY="socks5://127.0.0.1:$PROXY_PORT"
+  echo "Browser egress: $EXIT_COUNTRY through $PF_SSH_HOST"
+fi
+
 echo
 echo "== 2/4 deploy through the WordPress plugin installer =="
 ( cd "$LIVE_DIR" && npx playwright test --config=playwright.config.ts --project=deploy )
