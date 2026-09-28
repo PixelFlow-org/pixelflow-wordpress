@@ -26,7 +26,8 @@ that follow-up together so the behaviour ships with a written contract.
   `InputNotSanitized` warnings on `includes/helpers.php`.
 - Tests: the live-cookie cases move to a dedicated `tests/test-tiktok-cookies.php`; new cases
   drive AddToCart, InitiateCheckout, held-event replay and the debug log through their real code
-  paths, and cover an order that saved only one of the two ids, in either direction.
+  paths, and cover an order that saved only one of the two ids, in either direction. A live
+  storefront spec checks the same ids on the test site, and the scenarios join the test matrix.
 - Version 1.1.19 → 1.1.20 with a one-line changelog entry.
 
 ## Capabilities
@@ -45,7 +46,8 @@ that follow-up together so the behaviour ships with a written contract.
   debug log).
 - Tests: `tests/test-tiktok-cookies.php` (new), `tests/test-configuration-gate.php` (two cases
   moved out), `tests/test-automation-dedupe-release.php`, `tests/test-held-replay-context.php`,
-  `tests/test-purchase-customer-data.php`.
+  `tests/test-purchase-customer-data.php`, `e2e/live/tests/tiktok-ids.spec.ts` (new),
+  `docs/test-scenarios.html`.
 - Outbound payload: two optional fields in `eventData`; no field is removed or renamed.
 - Release: `pixelflow.php`, `readme.txt`, `README.md` (version 1.1.20).
 - Delivery: commits on the PR #24 branch `fix/tiktok-ttp-ttclid`, plus a short "review

@@ -37,8 +37,12 @@
   changelog: "WooCommerce AddToCart, InitiateCheckout and Purchase now include TikTok's ttp and
   ttclid when the shopper's cookies carry them."
 - [x] 3.3 `README.md`: the same line under a new `### 1.1.20` at the top of `## Changelog`
-- [x] 3.4 `docs/test-scenarios.html` is not updated: only the PHP suite runs here, and the
-  project updates that report after a full run only
+- [x] 3.4 Add the change's scenarios to `docs/test-scenarios.html` (rows `TTK-01`..`TTK-14`)
+- [x] 3.5 Add `e2e/live/tests/tiktok-ids.spec.ts`: AddToCart, InitiateCheckout and Purchase carry
+  `ttp`/`ttclid` from browser cookies, neither/only-one cookie cases, the debug-log cookie list,
+  and a held-then-flushed AddToCart
+- [x] 3.6 Full run (PHP, component tests, admin E2E, live matrix), then update the report's
+  version, header and "Last full run" line and publish it with `e2e/live/scripts/publish-report.sh`
 
 ## 4. Delivery
 
@@ -52,5 +56,5 @@
   Plugin Check warnings); move the live-cookie cases to tests/test-tiktok-cookies.php; test
   AddToCart, InitiateCheckout, held-event replay and the debug log through their real paths, and
   an order with only one id saved; bump version to 1.1.20."
-- [ ] 4.4 After CI finishes, confirm the Plugin Check comment no longer lists
+- [x] 4.4 After CI finishes, confirm the Plugin Check comment no longer lists
   `includes/helpers.php`
