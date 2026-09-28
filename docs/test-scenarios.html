@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PixelFlow 1.1.18 — Test Scenario Matrix</title>
+<title>PixelFlow 1.1.20 — Test Scenario Matrix</title>
 <style>
   :root {
     --bg: #f7f7f5;
@@ -80,15 +80,15 @@
 <div class="wrap">
 
 <header>
-  <h1>PixelFlow 1.1.18 — Test Scenario Matrix</h1>
-  <p class="sub">What the plugin's behaviour is actually verified against, organised by capability rather than by test file. Generated 2026-09-18 from <code>feature/fix-external-id-and-filter-junk-events</code>, for the OpenSpec change <code>fix-external-id-and-filter-junk-events</code>.</p>
-  <p class="sub"><strong>Last full run:</strong> 2026-09-18 on <code>f23ad0b</code> — PHP 242/242 (21 files) · component tests 16/16 · admin E2E 3/3 · live storefront matrix 80/89. None of the nine live failures is a plugin assertion: eight consent-hold scenarios found the visitor already treated as consented (the storefront set the Meta pixel cookies with the banner unanswered, and the test machine's outbound address differed from runs where the same scenarios passed — the opt-in/opt-out region is decided per visitor address), and one page load exceeded its 45-second timeout. The previous full run, on <code>55c0033</code>, passed 89/89.</p>
+  <h1>PixelFlow 1.1.20 — Test Scenario Matrix</h1>
+  <p class="sub">What the plugin's behaviour is actually verified against, organised by capability rather than by test file. Generated 2026-09-28 from <code>fix/tiktok-ttp-ttclid</code>, for the OpenSpec change <code>add-tiktok-ttp-ttclid</code>.</p>
+  <p class="sub"><strong>Last full run:</strong> 2026-09-27 on <code>2f2d5b2</code> — PHP 261/261 (23 files) · component tests 16/16 · admin E2E 3/3 · live storefront matrix 93/102. None of the nine live failures is a plugin assertion: all nine are the scenarios that start with the consent banner unanswered, and each stopped in the shared setup step because the PixelFlow tracking script never wrote <code>_pf_no_consent_decision</code>, although the Complianz banner was showing in opt-in mode. The same family failed on the 2026-09-18 run. The held-then-flushed TikTok case is one of the nine; its behaviour is covered by <code>tests/test-held-replay-context.php</code>. The previous full run, on <code>f23ad0b</code>, passed 80/89.</p>
 
   <div class="stats">
-    <div class="stat"><b>140</b><span>scenarios in this matrix</span></div>
-    <div class="stat"><b>128</b><span>covered</span></div>
+    <div class="stat"><b>154</b><span>scenarios in this matrix</span></div>
+    <div class="stat"><b>142</b><span>covered</span></div>
     <div class="stat"><b>12</b><span>partial or uncovered</span></div>
-    <div class="stat"><b>350</b><span>automated cases (242 PHP · 16 vitest · 3 admin E2E · 89 live E2E)</span></div>
+    <div class="stat"><b>382</b><span>automated cases (261 PHP · 16 vitest · 3 admin E2E · 102 live E2E)</span></div>
   </div>
 
   <div class="legend">
@@ -267,6 +267,20 @@
 <tr><td class="id">LOC-01</td><td>Storefront sets the location cookie</td><td><code>pf_loc</code> is written</td><td class="where">e2e/live/tests/user-location.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
 <tr><td class="id">LOC-02</td><td>Anonymous visitor vs. logged-in customer</td><td>Guest takes location from <code>pf_loc</code>; the account address wins for a customer</td><td class="where">e2e/live/tests/user-location.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
 <tr><td class="id">LOC-03</td><td>The <code>pf_loc</code> cookie is removed</td><td>Location still resolves from the remaining sources</td><td class="where">e2e/live/tests/user-location.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">TTK-01</td><td>Both TikTok cookies present on AddToCart</td><td><code>eventData.ttp</code> from <code>_ttp</code>, <code>eventData.ttclid</code> from the <code>ttclid</code> key of <code>_pf_click_ids</code>; other keys (e.g. <code>gclid</code>) are not forwarded</td><td class="where">tests/test-tiktok-cookies.php · tests/test-automation-dedupe-release.php · e2e/live/tests/tiktok-ids.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">TTK-02</td><td>InitiateCheckout carries both TikTok cookies</td><td>Same terms as AddToCart</td><td class="where">tests/test-automation-dedupe-release.php · e2e/live/tests/tiktok-ids.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">TTK-03</td><td>A held AddToCart or InitiateCheckout is replayed</td><td>The replayed event carries <code>ttp</code> and <code>ttclid</code> from the flushing request's cookies, not the hold-time request</td><td class="where">tests/test-held-replay-context.php · e2e/live/tests/tiktok-ids.spec.ts <em>(live case stopped at the undecided-consent setup on the 2026-09-27 run)</em></td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">TTK-04</td><td><code>_pf_click_ids</code> present but malformed (no <code>ttclid</code> key, or <code>ttclid[]=x</code>)</td><td>No <code>ttclid</code> key on the event</td><td class="where">tests/test-tiktok-cookies.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">TTK-05</td><td>Neither TikTok cookie present</td><td><code>eventData</code> has neither a <code>ttp</code> nor a <code>ttclid</code> key</td><td class="where">tests/test-tiktok-cookies.php · e2e/live/tests/tiktok-ids.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">TTK-06</td><td>Only <code>_ttp</code> present, no <code>_pf_click_ids</code></td><td><code>ttp</code> is sent; no <code>ttclid</code> key</td><td class="where">tests/test-tiktok-cookies.php · e2e/live/tests/tiktok-ids.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">TTK-07</td><td>Purchase: both ids saved on the order at creation</td><td>Purchase takes <code>ttp</code> and <code>ttclid</code> from order meta, not the live cookies</td><td class="where">tests/test-purchase-customer-data.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">TTK-08</td><td>Purchase: nothing saved, buyer's own request</td><td>Falls back to the live cookies of the request that belongs to the buyer</td><td class="where">tests/test-purchase-customer-data.php · e2e/live/tests/tiktok-ids.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">TTK-09</td><td>Purchase: nothing saved, someone else's request</td><td>Neither <code>ttp</code> nor <code>ttclid</code> is attributed from a non-buyer request</td><td class="where">tests/test-purchase-customer-data.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">TTK-10</td><td>Purchase: one id saved on the order, the other only live, buyer's request</td><td>Each field resolves independently — saved value wins for its own field, the other falls back to live</td><td class="where">tests/test-purchase-customer-data.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">TTK-11</td><td>Purchase: only <code>_pf_click_ids</code> saved, <code>_ttp</code> only live, buyer's request</td><td><code>ttclid</code> from order meta, <code>ttp</code> from the live cookie</td><td class="where">tests/test-purchase-customer-data.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">TTK-12</td><td>Purchase: only <code>_ttp</code> saved, someone else's request</td><td><code>ttp</code> from order meta; no <code>ttclid</code> key</td><td class="where">tests/test-purchase-customer-data.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">TTK-13</td><td>Purchase: only <code>_pf_click_ids</code> saved, someone else's request</td><td><code>ttclid</code> from order meta; no <code>ttp</code> key</td><td class="where">tests/test-purchase-customer-data.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">TTK-14</td><td>Debug log enabled, request carries both TikTok cookies</td><td>The log entry's cookie list includes <code>_ttp</code> and <code>_pf_click_ids</code></td><td class="where">tests/test-automation-dedupe-release.php · e2e/live/tests/tiktok-ids.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
 </tbody>
 </table></div>
 
