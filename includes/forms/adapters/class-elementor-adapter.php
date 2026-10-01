@@ -270,7 +270,6 @@ class PixelFlow_Form_Adapter_Elementor extends PixelFlow_Form_Adapter
             'meta_key'         => '_elementor_data', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- admin-only listing
             'orderby'          => 'ID',
             'order'            => 'ASC',
-            'suppress_filters' => true,
         ]);
 
         return array_map('intval', is_array($ids) ? $ids : []);

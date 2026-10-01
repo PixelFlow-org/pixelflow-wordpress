@@ -90,6 +90,7 @@ Execution order on the submitting request: 5.3 → 5.1 → 5.2 → 5.4 → 5.5, 
 - [x] 8.14 Component tests for the Forms UI's loading and failure paths: the loader is shown until the list arrives and is gone afterwards and on a failed load; a failed load states it, shows no rows and keeps the master toggle; a failed save states it, keeps the previous event and re-enables the controls; the list and the plugin line are hidden with the master toggle off and return with the stored choices; every identifier offers the same options, the dash is stored as a refusal only where a field is detected, and choosing the detected field returns to detection; the name hint expands and collapses its explanation
 - [x] 8.15 `app/source/src/test/forms-api.test.ts`: the read and save endpoints POST their admin-ajax action with the nonce, unwrap a successful envelope, and turn a refused envelope and a network failure into an error carrying the server's message or the fallback one
 - [x] 8.16 Extend the admin E2E spec: a Contact Form 7 form created for the test with a `company-name` text field is flagged on its row, shows `Unconfirmed` for the first and last name and sends the email only; choosing the field moves both to `Custom`, and the choice survives a reload; the form and its record are removed afterwards
+- [x] 8.17 `tests/test-uninstall.php`: `uninstall.php`, included from inside a function as `uninstall_plugin()` does, deletes the form settings and the repeat-window rows without an error when removal is on, and deletes nothing when it is off
 
 ## 9. Live verification
 

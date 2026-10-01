@@ -14,6 +14,9 @@ if (!defined('WP_UNINSTALL_PLUGIN')) {
     exit;
 }
 
+// WordPress includes this file from inside uninstall_plugin(), so its top level is function scope.
+global $wpdb;
+
 // Check if user has opted to remove data on uninstall
 $pixelflow_general_options = get_option('pixelflow_general_options', array());
 
