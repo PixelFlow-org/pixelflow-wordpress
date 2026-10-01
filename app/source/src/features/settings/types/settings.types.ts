@@ -13,6 +13,8 @@ export interface PixelFlowGeneralOptions {
   woo_product_id_format: string; // 'product_id' | 'prefixed' | 'sku' | 'legacy' | 'off'
   remove_on_uninstall: number; // Remove all plugin settings when plugin is uninstalled
   woo_debug_enabled: number; // Log WooCommerce event data to a debug file
+  forms_enabled: number; // Send form submissions as Meta events
+  forms_debug_enabled: number; // Log form event outcomes to the debug file
 }
 
 // User role structure parsed from WordPress

@@ -399,6 +399,8 @@ PixelFlow integrates with Meta's Conversions API to track customer actions on yo
 * Purchase events
 * Form submissions
 
+Form submissions are sent only when form tracking is turned on in the Forms settings. A form event carries the event name, the form title, and the visitor's contact details (email, phone, name, city, state, postcode, country) normalised and SHA-256 hashed before they leave the server. Message bodies and other free-text fields are never sent, stored or logged.
+
 All data is processed according to Meta's privacy policies and your local privacy regulations. Please ensure you have appropriate user consent mechanisms in place if required by law (e.g., GDPR, CCPA).
 
 For more information:
@@ -406,6 +408,9 @@ For more information:
 * [Meta Business Tools](https://www.facebook.com/business/tools)
 
 ## Changelog
+
+### 1.2.0
+Form submissions from Contact Form 7, Elementor Pro, Fluent Forms, Gravity Forms, Ninja Forms and WPForms can now be sent as Meta events from the server, off by default and configured per form.
 
 ### 1.1.20
 WooCommerce AddToCart, InitiateCheckout and Purchase now include TikTok's ttp and ttclid when the shopper's cookies carry them.

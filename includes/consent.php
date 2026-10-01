@@ -91,6 +91,19 @@ function pixelflow_register_consent_cookie_info(): void
             false,
             'HTTP'
         );
+        if (defined('PIXELFLOW_HELD_FORM_EVENTS_COOKIE_NAME')) {
+            wp_add_cookie_info(
+                PIXELFLOW_HELD_FORM_EVENTS_COOKIE_NAME,
+                'PixelFlow',
+                'functional',
+                __('48 hours', 'pixelflow'),
+                __('Keeps form submissions made before a consent decision until the visitor decides (a random token, no visitor identifiers).', 'pixelflow'),
+                '',
+                false,
+                false,
+                'HTTP'
+            );
+        }
         if (defined('PIXELFLOW_HELD_WOO_EVENTS_COOKIE_NAME')) {
             wp_add_cookie_info(
                 PIXELFLOW_HELD_WOO_EVENTS_COOKIE_NAME,

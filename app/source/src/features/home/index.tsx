@@ -51,6 +51,7 @@ import {
   WooCommerceSettings,
 } from '@/features/settings';
 import { useSettingsContext } from '@/features/settings/contexts/useSettingsContext.ts';
+import { FormsSettings } from '@/features/forms/components/FormsSettings';
 import TopControls from '@/shared/components/TopControls/TopControls.tsx';
 import Notification from '@/shared/components/Notification/Notification.tsx';
 import Header from '@/shared/components/Header/Header.tsx';
@@ -398,6 +399,7 @@ const Home = ({ adapter }: HomeProps): ReactElement => {
         config={navConfig}
       />
       {activeTab === 'woocommerce' && <WooCommerceSettings />}
+      {activeTab === 'forms' && <FormsSettings />}
       {activeTab === 'account' && (
         <AuthScreen adapter={adapter} onAuthSuccess={handleAuthSuccess} />
       )}

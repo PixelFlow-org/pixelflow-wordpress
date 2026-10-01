@@ -14,6 +14,9 @@ if (!defined('WP_UNINSTALL_PLUGIN')) {
     exit;
 }
 
+// WordPress includes this file from inside uninstall_plugin(), so its top level is function scope.
+global $wpdb;
+
 // Check if user has opted to remove data on uninstall
 $pixelflow_general_options = get_option('pixelflow_general_options', array());
 
@@ -25,6 +28,9 @@ if (isset($pixelflow_general_options['remove_on_uninstall']) && $pixelflow_gener
     delete_option('pixelflow_debug_options');
     delete_option('pixelflow_code');
     delete_option('pixelflow_db_version');
+    delete_option('pixelflow_form_settings');
+    // Repeat windows of form submissions, claimed as raw options rows.
+    $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $wpdb->esc_like('pf_form_dedupe_') . '%')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- raw rows, no API deletes by prefix
 
     // For multisite installations, delete options from all sites
     if (is_multisite()) {
@@ -45,6 +51,8 @@ if (isset($pixelflow_general_options['remove_on_uninstall']) && $pixelflow_gener
             delete_option('pixelflow_debug_options');
             delete_option('pixelflow_code');
             delete_option('pixelflow_db_version');
+            delete_option('pixelflow_form_settings');
+            $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $wpdb->esc_like('pf_form_dedupe_') . '%')); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- raw rows, no API deletes by prefix
 
             restore_current_blog();
         }

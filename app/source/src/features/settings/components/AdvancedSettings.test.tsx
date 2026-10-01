@@ -39,7 +39,12 @@ const generalOptions: PixelFlowGeneralOptions = {
   woo_product_id_format: 'product_id',
   remove_on_uninstall: 0,
   woo_debug_enabled: 1,
+  forms_enabled: 0,
+  forms_debug_enabled: 0,
 };
+
+/** Per-test overrides of the mocked context, reset before each test. */
+const contextOverrides: Record<string, unknown> = {};
 
 vi.mock('@/features/settings/contexts/useSettingsContext.ts', () => ({
   useSettingsContext: () => ({
@@ -51,6 +56,7 @@ vi.mock('@/features/settings/contexts/useSettingsContext.ts', () => ({
     updateGeneralOption: vi.fn(),
     isWooCommerceActive: true,
     wooDebugLogUrl: 'https://example.test/wp-content/uploads/pixelflow-woo-debug.log',
+    ...contextOverrides,
   }),
 }));
 
@@ -157,5 +163,77 @@ describe('AdvancedSettings — Debug Log Refresh (T-002)', () => {
 
     await waitFor(() => screen.getByText('Failed to load log file'));
     expect(screen.queryByText('initial log content')).not.toBeInTheDocument();
+  });
+});
+
+describe('AdvancedSettings — excluded roles and WooCommerce event sending', () => {
+  const roles = [{ key: 'administrator', label: 'Administrator' }];
+
+  beforeEach(() => {
+    Object.keys(contextOverrides).forEach((key) => delete contextOverrides[key]);
+  });
+
+  it('states the limitation when WooCommerce tracking is on', () => {
+    Object.assign(contextOverrides, { availableRoles: roles });
+    render(<AdvancedSettings />);
+
+    expect(screen.getByTestId('excluded-roles-woo-note')).toHaveTextContent(
+      'not applied to WooCommerce event sending'
+    );
+  });
+
+  it('does not state it with WooCommerce tracking off', () => {
+    Object.assign(contextOverrides, {
+      availableRoles: roles,
+      generalOptions: { ...generalOptions, woo_enabled: 0 },
+    });
+    render(<AdvancedSettings />);
+
+    expect(screen.queryByTestId('excluded-roles-woo-note')).not.toBeInTheDocument();
+  });
+
+  it('does not state it with WooCommerce inactive', () => {
+    Object.assign(contextOverrides, { availableRoles: roles, isWooCommerceActive: false });
+    render(<AdvancedSettings />);
+
+    expect(screen.queryByTestId('excluded-roles-woo-note')).not.toBeInTheDocument();
+  });
+});
+
+describe('AdvancedSettings — debug switches', () => {
+  beforeEach(() => {
+    Object.keys(contextOverrides).forEach((key) => delete contextOverrides[key]);
+  });
+
+  it('offers both debug switches when WooCommerce tracking is on', () => {
+    render(<AdvancedSettings />);
+
+    expect(screen.getByRole('switch', { name: 'Debug WooCommerce events' })).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'Debug form events' })).toBeInTheDocument();
+  });
+
+  it('offers the form debug switch and the log without WooCommerce', () => {
+    Object.assign(contextOverrides, { isWooCommerceActive: false });
+    render(<AdvancedSettings />);
+
+    expect(screen.queryByRole('switch', { name: 'Debug WooCommerce events' })).toBeNull();
+    expect(screen.getByRole('switch', { name: 'Debug form events' })).toBeEnabled();
+    expect(screen.getByText(/See logs/)).toBeInTheDocument();
+  });
+
+  it('saves the form debug switch on its own option', async () => {
+    const saveSettings = vi.fn();
+    const updateGeneralOption = vi.fn();
+    Object.assign(contextOverrides, { saveSettings, updateGeneralOption });
+    render(<AdvancedSettings />);
+
+    fireEvent.click(screen.getByRole('switch', { name: 'Debug form events' }));
+
+    await waitFor(() =>
+      expect(saveSettings).toHaveBeenCalledWith({
+        generalOptionsOverride: { forms_debug_enabled: 1 },
+      })
+    );
+    expect(updateGeneralOption).toHaveBeenCalledWith('forms_debug_enabled', 1);
   });
 });

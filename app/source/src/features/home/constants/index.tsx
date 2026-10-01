@@ -13,6 +13,12 @@ export const wordPressNavPanelConfigAuth: NavPanelConfig<WordPressNavPanelTab> =
       width: '!w-[140px]',
       visible: true,
     },
+    {
+      id: 'forms',
+      label: 'Form Settings',
+      width: '!w-[140px]',
+      visible: true,
+    },
     ...DEFAULT_NAV_PANEL_CONFIG.tabs.map((tab) => ({
       ...tab,
       id: tab.id as WordPressNavPanelTab,
@@ -27,6 +33,7 @@ export const wordPressNavPanelConfigAuth: NavPanelConfig<WordPressNavPanelTab> =
   getButton: (activeTab) => {
     switch (activeTab) {
       case 'woocommerce':
+      case 'forms':
         return {
           icon: <StoreIcon />,
           label: 'Configure',
@@ -61,6 +68,12 @@ export const wordPressNavPanelConfigNotAuth: NavPanelConfig<WordPressNavPanelTab
     {
       id: 'woocommerce',
       label: 'WooCommerce Settings',
+      width: '!w-[140px]',
+      visible: true,
+    },
+    {
+      id: 'forms',
+      label: 'Form Settings',
       width: '!w-[140px]',
       visible: true,
     },
