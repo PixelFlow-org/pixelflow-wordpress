@@ -36,8 +36,9 @@ The plugin version lives in 5 places across 3 files; all must be updated togethe
 `app/source/package.json` carries its own version (1.0.0) and is deliberately
 not kept in sync with the plugin version.
 
-Releases increment the third segment (1.1.16 → 1.1.17 → 1.1.18), for both
-fixes and feature additions. The changelog entry is a single line, in English.
+A fix increments the third segment (1.2.0 → 1.2.1); a feature addition increments
+the second and resets the third (1.1.20 → 1.2.0). The changelog entry is a single
+line, in English.
 
 ## Test Scenario Report
 

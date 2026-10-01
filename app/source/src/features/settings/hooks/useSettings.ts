@@ -50,6 +50,8 @@ const defaultGeneralOptions: PixelFlowGeneralOptions = {
   woo_disable_initiate_checkout_freebies: 0,
   woo_disable_purchase_freebies: 0,
   woo_debug_enabled: 0,
+  forms_enabled: 0,
+  forms_debug_enabled: 0,
   woo_excluded_skus: [],
   woo_product_id_format: 'product_id',
 };

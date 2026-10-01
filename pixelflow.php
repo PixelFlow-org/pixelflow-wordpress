@@ -2,7 +2,7 @@
 /**
  * Plugin Name: PixelFlow
  * Description: PixelFlow Official Plugin for WordPress. Easily Install Meta's Conversions API on Your Website
- * Version: 1.1.20
+ * Version: 1.2.0
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: PixelFlow Team
@@ -19,7 +19,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('PIXELFLOW_VERSION', '1.1.20');
+define('PIXELFLOW_VERSION', '1.2.0');
 define('PIXELFLOW_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('PIXELFLOW_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('PIXELFLOW_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -59,6 +59,7 @@ class PixelFlow
     private function __construct()
     {
         $this->load_dependencies();
+        pixelflow_forms_bootstrap();
         add_action('plugins_loaded', 'pixelflow_register_wp_consent_api_consumer');
         add_action('init', 'pixelflow_register_consent_cookie_info');
         add_action('init', array($this, 'init'));
@@ -94,6 +95,7 @@ class PixelFlow
         require_once PIXELFLOW_PLUGIN_PATH . 'includes/consent.php';
         require_once PIXELFLOW_PLUGIN_PATH . 'includes/blocked-events.php';
         require_once PIXELFLOW_PLUGIN_PATH . 'includes/held-events.php';
+        require_once PIXELFLOW_PLUGIN_PATH . 'includes/forms/forms.php';
         require_once PIXELFLOW_PLUGIN_PATH . 'includes/woo/class-woocommerce-integration.php';
     }
 
@@ -220,6 +222,8 @@ class PixelFlow
             'woo_disable_initiate_checkout_freebies',
             'woo_disable_purchase_freebies',
             'woo_debug_enabled',
+            'forms_enabled',
+            'forms_debug_enabled',
         );
 
         // Set all checkboxes: 1 if checked, 0 if not
@@ -402,36 +406,9 @@ class PixelFlow
      */
     private function should_exclude_current_user($pixelflow_general_options)
     {
-        // If user is not logged in, never exclude (allow script injection for guests)
-        if ( ! is_user_logged_in()) {
-            return false;
-        }
-
-        // Get excluded user roles from settings
-        $excluded_roles = isset($pixelflow_general_options['excluded_user_roles']) && is_array(
-            $pixelflow_general_options['excluded_user_roles']
-        )
-            ? $pixelflow_general_options['excluded_user_roles']
-            : array();
-
-        // If no roles are excluded, don't exclude anyone
-        if (empty($excluded_roles)) {
-            return false;
-        }
-
-        // Get current user
-        $current_user = wp_get_current_user();
-
-        // Check if any of the user's roles are in the excluded list
-        if ($current_user && ! empty($current_user->roles)) {
-            foreach ($current_user->roles as $role) {
-                if (in_array($role, $excluded_roles, true)) {
-                    return true; // User has an excluded role
-                }
-            }
-        }
-
-        return false; // User's roles are not excluded
+        return pixelflow_current_user_has_excluded_role(
+            is_array($pixelflow_general_options) ? $pixelflow_general_options : array()
+        );
     }
 
     /**
@@ -534,8 +511,9 @@ class PixelFlow
         if ( ! current_user_can('manage_options')) {
             return;
         }
-        $options                      = get_option('pixelflow_general_options', array());
-        $options['woo_debug_enabled'] = 0;
+        $options                        = get_option('pixelflow_general_options', array());
+        $options['woo_debug_enabled']   = 0;
+        $options['forms_debug_enabled'] = 0;
         update_option('pixelflow_general_options', $options);
         wp_safe_redirect(remove_query_arg(array('pixelflow_disable_debug', '_wpnonce')));
         exit;
@@ -550,14 +528,13 @@ class PixelFlow
             return;
         }
 
-        $options = get_option('pixelflow_general_options', array());
-        if (empty($options['woo_debug_enabled'])) {
+        $options    = get_option('pixelflow_general_options', array());
+        $woo_debug  = ! empty($options['woo_debug_enabled']) && PixelFlow_WooCommerce_Integration::is_woocommerce_active();
+        $form_debug = ! empty($options['forms_debug_enabled']);
+        if ( ! $woo_debug && ! $form_debug) {
             return;
         }
-
-        if ( ! PixelFlow_WooCommerce_Integration::is_woocommerce_active()) {
-            return;
-        }
+        $what = $woo_debug && $form_debug ? 'Woo and form events' : ($woo_debug ? 'Woo events' : 'Form events');
 
         $log_path  = pixelflow_get_debug_log_path();
         $file_size = ( ! empty($log_path) && file_exists($log_path))
@@ -573,12 +550,13 @@ class PixelFlow
         printf(
             '<div class="notice notice-warning"><p>'
             . '<strong>PixelFlow:</strong> '
-            . 'Woo events debug logging is <strong>enabled</strong>. '
+            . '%s debug logging is <strong>enabled</strong>. '
             . 'Events are being saved to a log file (current size: <strong>%s</strong>). '
             . 'This may slow down your site &mdash; disable it when not in use. '
             . '<a href="%s">Disable debug logging</a> &nbsp;|&nbsp; '
             . '<a href="%s">Go to settings</a>'
             . '</p></div>',
+            esc_html($what),
             esc_html($file_size),
             esc_url($disable_url),
             esc_url($settings_url)

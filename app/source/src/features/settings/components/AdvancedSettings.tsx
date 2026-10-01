@@ -65,6 +65,15 @@ export function AdvancedSettings() {
     await saveSettings({ generalOptionsOverride: { woo_debug_enabled: newValue } });
   };
 
+  const handleFormsDebugToggle = async (checked: boolean) => {
+    const newValue = checked ? 1 : 0;
+    updateGeneralOption('forms_debug_enabled', newValue);
+
+    await saveSettings({ generalOptionsOverride: { forms_debug_enabled: newValue } });
+  };
+
+  const wooTrackingOn = isWooCommerceActive && generalOptions.woo_enabled === 1;
+
   const [clearDebugLogMutation] = useClearDebugLogMutation();
   const [isClearing, setIsClearing] = useState(false);
 
@@ -157,6 +166,12 @@ export function AdvancedSettings() {
                   injected.
                 </p>
               )}
+              {isWooCommerceActive && generalOptions.woo_enabled === 1 && (
+                <p className="text-xs text-gray-600 mt-2" data-testid="excluded-roles-woo-note">
+                  This setting is not applied to WooCommerce event sending: add to cart, checkout
+                  and purchase events are still sent for these roles. Form events are not.
+                </p>
+              )}
             </section>
           )}
 
@@ -199,52 +214,72 @@ export function AdvancedSettings() {
             </p>
           </section>
 
-          {/* Debug Section — only visible when WooCommerce tracking is enabled */}
-          {isWooCommerceActive && generalOptions.woo_enabled === 1 && (
-            <section className="mt-6 pt-6 border-t border-gray-200">
-              <h3 className="text-base font-semibold mb-2 !text-foreground">Debug</h3>
-              <p className="text-sm text-foreground ml-12 mb-4">
-                Log WooCommerce event data (hook, payload, cookies, server vars) to a file for
-                troubleshooting.
-              </p>
-              <div className="flex items-center gap-3">
-                <UI.Switch.Root
-                  checked={generalOptions.woo_debug_enabled === 1}
-                  onCheckedChange={handleDebugToggle}
-                  id="woo-debug-enabled"
-                  variant={'green'}
-                  disabled={isSaving}
-                />
-                <UI.Label.Root className="cursor-pointer" htmlFor="woo-debug-enabled">
-                  <span className="text-sm">Debug WooCommerce events</span>
-                </UI.Label.Root>
-              </div>
-              {wooDebugLogUrl && (
-                <div className="mt-3 ml-11">
-                  <div className="flex items-center gap-2">
-                    <UI.NarrowButton className="justify-center">
-                      <a
-                        href={wooDebugLogUrl}
-                        download
-                        rel="noreferrer"
-                        className="text-xs !text-foreground flex gap-1"
-                      >
-                        Download log file &#x2193;
-                      </a>
-                    </UI.NarrowButton>
-                    <UI.NarrowButton className="justify-center" onClick={handleSeeLogs}>
-                      <span className="text-xs !text-foreground flex gap-1">See logs 📋</span>
-                    </UI.NarrowButton>
-                    <UI.NarrowButton
-                      className="justify-center"
-                      onClick={handleClearLog}
-                      disabled={isClearing}
+          {/* Debug Section — the WooCommerce switch only when WooCommerce tracking is enabled */}
+          <section className="mt-6 pt-6 border-t border-gray-200">
+            <h3 className="text-base font-semibold mb-2 !text-foreground">Debug</h3>
+            {wooTrackingOn && (
+              <>
+                <p className="text-sm text-foreground ml-12 mb-4">
+                  Log WooCommerce event data (hook, payload, cookies, server vars) to a file for
+                  troubleshooting.
+                </p>
+                <div className="flex items-center gap-3">
+                  <UI.Switch.Root
+                    checked={generalOptions.woo_debug_enabled === 1}
+                    onCheckedChange={handleDebugToggle}
+                    id="woo-debug-enabled"
+                    variant={'green'}
+                    disabled={isSaving}
+                  />
+                  <UI.Label.Root className="cursor-pointer" htmlFor="woo-debug-enabled">
+                    <span className="text-sm">Debug WooCommerce events</span>
+                  </UI.Label.Root>
+                </div>
+              </>
+            )}
+            <div className={`flex items-center gap-3 ${wooTrackingOn ? 'mt-4' : ''}`}>
+              <UI.Switch.Root
+                checked={generalOptions.forms_debug_enabled === 1}
+                onCheckedChange={handleFormsDebugToggle}
+                id="forms-debug-enabled"
+                variant={'green'}
+                disabled={isSaving}
+              />
+              <UI.Label.Root className="cursor-pointer" htmlFor="forms-debug-enabled">
+                <span className="text-sm">Debug form events</span>
+              </UI.Label.Root>
+            </div>
+            <p className="text-xs text-gray-600 ml-12 mt-1">
+              Logs each form submission's outcome, which identifiers it carried (hashed, never the
+              values) and the masked client IP to the same log file.
+            </p>
+            {wooDebugLogUrl && (
+              <div className="mt-3 ml-11">
+                <div className="flex items-center gap-2">
+                  <UI.NarrowButton className="justify-center">
+                    <a
+                      href={wooDebugLogUrl}
+                      download
+                      rel="noreferrer"
+                      className="text-xs !text-foreground flex gap-1"
                     >
-                      <span className="text-xs !text-foreground flex gap-1">
-                        {isClearing ? 'Clearing…' : 'Clear log file'} 🗑
-                      </span>
-                    </UI.NarrowButton>
-                  </div>
+                      Download log file &#x2193;
+                    </a>
+                  </UI.NarrowButton>
+                  <UI.NarrowButton className="justify-center" onClick={handleSeeLogs}>
+                    <span className="text-xs !text-foreground flex gap-1">See logs 📋</span>
+                  </UI.NarrowButton>
+                  <UI.NarrowButton
+                    className="justify-center"
+                    onClick={handleClearLog}
+                    disabled={isClearing}
+                  >
+                    <span className="text-xs !text-foreground flex gap-1">
+                      {isClearing ? 'Clearing…' : 'Clear log file'} 🗑
+                    </span>
+                  </UI.NarrowButton>
+                </div>
+                {wooTrackingOn && (
                   <p className="text-xs mt-2">
                     {generalOptions.woo_debug_enabled === 1 ? (
                       <>
@@ -259,10 +294,10 @@ export function AdvancedSettings() {
                       </>
                     )}
                   </p>
-                </div>
-              )}
-            </section>
-          )}
+                )}
+              </div>
+            )}
+          </section>
         </div>
       </div>
       <LogViewerModal

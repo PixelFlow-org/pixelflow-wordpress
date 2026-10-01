@@ -3,11 +3,13 @@ import React from 'react';
 type NotificationType = 'success' | 'error' | 'info' | 'warning';
 
 interface NotificationProps {
-  message: string;
+  message: React.ReactNode;
   type: NotificationType;
+  /** Replaces the icon the type comes with. */
+  icon?: React.ReactNode;
 }
 
-const Notification: React.FC<NotificationProps> = ({ message, type }) => {
+const Notification: React.FC<NotificationProps> = ({ message, type, icon: customIcon }) => {
   const baseStyle =
     'flex items-center gap-3 p-4 rounded-2xl shadow-lg text-sm font-medium transition-all duration-300 border';
 
@@ -105,7 +107,7 @@ const Notification: React.FC<NotificationProps> = ({ message, type }) => {
 
   return (
     <div className={baseStyle} style={customStyle}>
-      {icon}
+      {customIcon ?? icon}
       <span>{message}</span>
     </div>
   );

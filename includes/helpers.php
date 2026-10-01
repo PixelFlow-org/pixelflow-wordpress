@@ -293,6 +293,39 @@ function pixelflow_is_cache_warmer_request(): bool
 }
 
 /**
+ * Whether the signed-in user holds a role the site excluded from tracking.
+ *
+ * Guests are never excluded.
+ *
+ * @param array $general_options `pixelflow_general_options`
+ * @return bool
+ */
+function pixelflow_current_user_has_excluded_role(array $general_options): bool
+{
+    if ( ! is_user_logged_in()) {
+        return false;
+    }
+
+    $excluded_roles = isset($general_options['excluded_user_roles']) && is_array($general_options['excluded_user_roles'])
+        ? $general_options['excluded_user_roles']
+        : array();
+    if (empty($excluded_roles)) {
+        return false;
+    }
+
+    $current_user = wp_get_current_user();
+    if ($current_user && ! empty($current_user->roles)) {
+        foreach ($current_user->roles as $role) {
+            if (in_array($role, $excluded_roles, true)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+/**
  * Get UTM parameters from the current request query string.
  *
  * @return array

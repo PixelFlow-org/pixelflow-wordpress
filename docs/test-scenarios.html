@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PixelFlow 1.1.20 — Test Scenario Matrix</title>
+<title>PixelFlow 1.2.0 — Test Scenario Matrix</title>
 <style>
   :root {
     --bg: #f7f7f5;
@@ -80,15 +80,15 @@
 <div class="wrap">
 
 <header>
-  <h1>PixelFlow 1.1.20 — Test Scenario Matrix</h1>
-  <p class="sub">What the plugin's behaviour is actually verified against, organised by capability rather than by test file. Generated 2026-09-28 from <code>fix/tiktok-ttp-ttclid</code>, for the OpenSpec change <code>add-tiktok-ttp-ttclid</code>.</p>
-  <p class="sub"><strong>Last full run:</strong> 2026-09-28 on <code>e3abc56</code> — PHP 261/261 (23 files) · component tests 16/16 · admin E2E 3/3 (2026-09-27, on the same plugin code) · live storefront matrix 102/102, with the browser leaving through an EU address. The previous full run, on <code>2f2d5b2</code>, reached 93/102 from a non-EU address: PixelFlow picks the consent regime from the visitor's IP, answered <code>opt_out</code>, and the tracking script cleared <code>_pf_no_consent_decision</code>, so every scenario that starts with the banner unanswered failed in setup. <code>e2e/live/scripts/run.sh</code> now tunnels the browser through the test server and refuses to start unless the exit is in the EEA.</p>
+  <h1>PixelFlow 1.2.0 — Test Scenario Matrix</h1>
+  <p class="sub">What the plugin's behaviour is actually verified against, organised by capability rather than by test file. Generated 2026-09-30 from <code>feat/wordpress-form-tracking</code>, for the OpenSpec change <code>add-forms-events</code>.</p>
+  <p class="sub"><strong>Last full run:</strong> 2026-09-30 on the uncommitted <code>add-forms-events</code> working tree over <code>5809e83</code> — PHP 384/384 (32 files, on PHP 8.3; not rerun on PHP 7.4) · component tests 47/47 · admin E2E 5/5 · live storefront matrix 123/123, with the browser leaving through an EU address. The live matrix ran in five parts on one build, each part redeploying it, because a single run outlasts the runner's time limit: no scenario failed in any part, and together the parts cover every spec file.</p>
 
   <div class="stats">
-    <div class="stat"><b>154</b><span>scenarios in this matrix</span></div>
-    <div class="stat"><b>142</b><span>covered</span></div>
-    <div class="stat"><b>12</b><span>partial or uncovered</span></div>
-    <div class="stat"><b>382</b><span>automated cases (261 PHP · 16 vitest · 3 admin E2E · 102 live E2E)</span></div>
+    <div class="stat"><b>192</b><span>scenarios in this matrix</span></div>
+    <div class="stat"><b>179</b><span>covered</span></div>
+    <div class="stat"><b>13</b><span>partial or uncovered</span></div>
+    <div class="stat"><b>559</b><span>automated cases (384 PHP · 47 vitest · 5 admin E2E · 123 live E2E)</span></div>
   </div>
 
   <div class="legend">
@@ -361,6 +361,51 @@
 <tr><td class="id">CFG-04</td><td>Held events while a credential is empty</td><td>The queue is kept — from a page view and from the AJAX route — and flushes once the credentials are back</td><td class="where">tests/test-unconfigured-recording.php</td><td><span class="tag ok">Covered</span></td></tr>
 <tr><td class="id">CFG-05</td><td>A deferred blocked-purchase report that cannot be sent</td><td>The order stays open and one retry is re-armed; it is reported and closed once sending works</td><td class="where">tests/test-unconfigured-recording.php</td><td><span class="tag ok">Covered</span></td></tr>
 <tr><td class="id">CFG-06</td><td>Retired cookie names <code>pf_clkid</code>, <code>clkId</code>, <code>pf_fbc</code></td><td>Read nowhere — neither payload nor log; <code>fbc</code> comes from <code>_fbc</code> on the order or the buyer's own request</td><td class="where">tests/test-configuration-gate.php · tests/test-purchase-customer-data.php</td><td><span class="tag ok">Covered</span></td></tr>
+</tbody>
+</table></div>
+
+<h2>17. Form events <span class="count">— form submissions sent server-side as Meta events</span></h2>
+<div class="scroll"><table>
+<thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id">FRM-01</td><td>Form tracking off, or the plugin itself off</td><td>No submission sends anything</td><td class="where">tests/test-form-events-gate.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-02</td><td>High-confidence form (native email or phone, no deny-list title) submitted</td><td>One <code>Lead</code> is sent with no per-form confirmation</td><td class="where">tests/test-form-events-gate.php · e2e/live/tests/forms-send.spec.ts <em>(all six plugins)</em></td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-03</td><td>Title reads as search, login, password or comment, in any of six languages</td><td>Nothing is sent; the row's switch is off</td><td class="where">tests/test-form-events-gate.php · e2e/live/tests/forms-listing.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-04</td><td>Medium-confidence form, before and after a person switches it on</td><td>Nothing until switched on; choosing an event alone does not enable it</td><td class="where">tests/test-form-events-gate.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-05</td><td>Untouched form gains an email field; a switch a person turned off</td><td>The untouched one starts sending without a save; the person's choice sticks through later saves</td><td class="where">tests/test-form-events-gate.php · app/source/src/test/forms-settings.test.tsx</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-06</td><td>Two plugins each have a form with id 5</td><td>Two independent configurations under <code>&lt;source&gt;:&lt;id&gt;</code></td><td class="where">tests/test-form-events-gate.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-07</td><td>Suggested event</td><td><code>CompleteRegistration</code> for a registration title or an email-only form (consent box and captcha not counted); <code>Lead</code> otherwise</td><td class="where">tests/test-form-detection.php · e2e/live/tests/forms-listing.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-08</td><td>Identifier detection and manual choices</td><td>Native type first, then key/label words in six languages; first field wins; overrides survive edits; a removed chosen field sends nothing and keeps the choice; message fields never searched</td><td class="where">tests/test-form-detection.php · e2e/live/tests/forms-listing.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-09</td><td>One field holds the whole name</td><td>Trimmed, split on the first space; a single word is the first name only</td><td class="where">tests/test-form-detection.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-10</td><td>Payload of a sent form event</td><td>Form title as <code>contentName</code>, hashed identifiers, optional static value, no currency, no message text anywhere</td><td class="where">tests/test-form-payload.php · e2e/live/tests/forms-send.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-11</td><td>Visitor identifier</td><td>Same <code>external_id</code> as WooCommerce events; omitted when there is no visitor cookie</td><td class="where">tests/test-form-payload.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-12</td><td>Browser and click cookies</td><td><code>fbp</code>, <code>ttp</code>, <code>ttclid</code> from the request; no <code>gclid</code></td><td class="where">tests/test-form-payload.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-13</td><td>Site id or API key empty</td><td>Nothing is sent; a held queue is kept</td><td class="where">tests/test-form-payload.php · tests/test-form-hold.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-14</td><td>Submission under an unanswered banner, then a grant</td><td>Held under the plugin's hold cookie (the visitor cookie does not exist yet); sent once after the grant with the original time and id</td><td class="where">tests/test-form-hold.php · e2e/live/tests/forms-consent.spec.ts <em>(all six plugins)</em></td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-15</td><td>Held static value; cookies written only after the grant</td><td>Value replayed without a currency; <code>fbp</code>/<code>ttp</code> taken from the sending request</td><td class="where">tests/test-form-hold.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-16</td><td>Denial, before or after the submission</td><td>One anonymous <code>denied</code> report; no event; nothing stored</td><td class="where">tests/test-form-hold.php · tests/test-form-skips.php · e2e/live/tests/forms-consent.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-17</td><td>Visitor returns without deciding; never returns; 21st held submission</td><td><code>no_decision</code> on return; silent expiry after 48 h; the oldest of 20 evicted silently</td><td class="where">tests/test-form-hold.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-18</td><td>Hold cookie can no longer be set</td><td><code>no_decision</code> reported immediately</td><td class="where">tests/test-form-hold.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-19</td><td>Automated client, prefetch, private IP, ad-blocked visitor</td><td>Bot and prefetch reported as blocked; a private IP sends nothing at all; missing cookies alone are not automation</td><td class="where">tests/test-form-skips.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-20</td><td>Excluded role submits, with or without a banner answer</td><td>No event, no report, nothing held</td><td class="where">tests/test-form-skips.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-21</td><td>Repeat within two minutes, including while held</td><td>One event or one recipe; a bot request does not use up the window; two different forms each send</td><td class="where">tests/test-form-skips.php · tests/test-form-hold.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-22</td><td>Plugin-reported spam, validation failure, aborted; mail delivery failed</td><td>Nothing for the first three; <code>mail_failed</code> still sends</td><td class="where">tests/test-form-skips.php <em>(Contact Form 7)</em> · tests/test-form-adapters.php <em>(Ninja, Gravity)</em></td><td><span class="tag partial">Partial</span></td></tr>
+<tr><td class="id">FRM-23</td><td>Debug logging for forms</td><td>Own switch; identifiers named, values never; IP masked; beacons logged</td><td class="where">tests/test-form-skips.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-24</td><td>Suppression filter, event filter, <code>pixelflow_track_form</code></td><td>Filters run once, before send-or-hold; an unsupported plugin passes the same gates</td><td class="where">tests/test-form-hooks.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-25</td><td>Elementor forms listed from <code>_elementor_data</code></td><td>Pages, templates and popups in every status but trash and auto-draft; unknown nodes and malformed JSON tolerated; global widgets under their placement</td><td class="where">tests/test-form-adapters.php · e2e/live/tests/forms-listing.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-26</td><td>A form the listing missed</td><td>Sends with its computed configuration; adds no row</td><td class="where">tests/test-form-adapters.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-27</td><td>Configured form deleted, trashed, unpublished or deactivated</td><td>Deleted or trashed: missing, locked, config kept, nothing sent; unpublished or deactivated: not missing; reappearing form resumes its config</td><td class="where">tests/test-form-missing.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-28</td><td>Forms tab in the settings page</td><td>Plugin status line, single double-count warning, switches, events, mapping panel, stale-choice highlight, save-only-what-changed</td><td class="where">app/source/src/test/forms-settings.test.tsx · e2e/tests/forms-settings.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-29</td><td>Excluded-roles note</td><td>Shown only with WooCommerce tracking on</td><td class="where">app/source/src/features/settings/components/AdvancedSettings.test.tsx</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-30</td><td>Site without WooCommerce</td><td>Form flush script loads; send, hold and replay work; nothing reaches the WooCommerce queue</td><td class="where">tests/test-form-*.php <em>(no WC())</em> · e2e/live/tests/forms-without-woo.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-31</td><td>Two concurrent requests of one double click</td><td>The request whose repeat-window insert loses sends nothing; closed windows are deleted by the next claim</td><td class="where">tests/test-form-skips.php <em>(the lost insert is simulated)</em></td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-32</td><td>An older held recipe when a later hold saves the queue again; a hint cookie whose queue is gone</td><td>Each recipe expires 48 h after it was stored; the state route removes the stale cookie</td><td class="where">tests/test-form-hold.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-33</td><td>A field whose key or label only contains a name or state word (<code>Company name</code>, <code>Statement</code>)</td><td>Not sent; marked unconfirmed on the row and in the panel; sent once a person chooses it; a field that is the whole word wins</td><td class="where">tests/test-form-detection.php · app/source/src/test/forms-settings.test.tsx · e2e/tests/forms-settings.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-34</td><td>The read route and the save route of the form list</td><td>Settings nonce verified; a user without <code>manage_options</code> is refused, nothing returned or stored; a payload that is not JSON is refused</td><td class="where">tests/test-form-routes.php · app/source/src/test/forms-api.test.tsx</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-35</td><td>Form list still loading, failed to load, or a save failed</td><td>Loader until the list arrives; the failure is stated; the previous configuration stays and the controls are usable</td><td class="where">app/source/src/test/forms-settings.test.tsx</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-36</td><td>Form tracking switched off on the Forms tab</td><td>The list and the plugin line are hidden; the stored choices return when it is switched on</td><td class="where">app/source/src/test/forms-settings.test.tsx</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-37</td><td>Field dropdowns in the mapping panel</td><td>The same options for every identifier; the dash is stored as a refusal only where a field is detected; choosing the detected field returns to detection; the single-name hint explains the split on request</td><td class="where">app/source/src/test/forms-settings.test.tsx · e2e/tests/forms-settings.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-38</td><td>Form debug switch</td><td>In Advanced settings beside the WooCommerce one; offered without WooCommerce; saved on its own option</td><td class="where">app/source/src/features/settings/components/AdvancedSettings.test.tsx</td><td><span class="tag ok">Covered</span></td></tr>
 </tbody>
 </table></div>
 
