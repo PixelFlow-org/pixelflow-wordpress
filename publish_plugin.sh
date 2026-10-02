@@ -128,32 +128,42 @@ rm -rf temp_extract
 echo "✅ Trunk updated"
 echo ""
 
-# Step 4: Copy assets to SVN
-echo "🎨 Step 4: Copying assets to SVN..."
+# Step 4: Mirror listing images (.wordpress-org/) into SVN assets
+echo "🎨 Step 4: Mirroring .wordpress-org/ into SVN assets..."
 
 cd "$SCRIPT_DIR"
 
-# Check if assets directory exists in plugin root
-if [ -d "assets" ]; then
-  echo "📁 Found assets directory, copying to SVN..."
-  
-  # Create SVN assets directory if it doesn't exist
-  if [ ! -d "$SVN_DIR/assets" ]; then
-    cd "$SVN_DIR"
-    svn up assets
-  fi
-  
-  # Copy assets
-  cp -r assets/* "$SVN_DIR/assets/" 2>/dev/null || true
-  
-  # Add new assets to SVN
-  cd "$SVN_DIR/assets"
-  svn add --force * --auto-props --parents --depth infinity -q 2>/dev/null || true
-  
-  echo "✅ Assets copied"
-else
-  echo "⚠️  No assets directory found in plugin root, skipping"
+LISTING_DIR="$SCRIPT_DIR/.wordpress-org"
+
+# An empty or missing source would make the mirror delete every SVN asset
+if [ ! -d "$LISTING_DIR" ] || [ -z "$(ls -A "$LISTING_DIR")" ]; then
+  echo "❌ Error: $LISTING_DIR is missing or empty"
+  exit 1
 fi
+
+# Create SVN assets directory if it doesn't exist
+if [ ! -d "$SVN_DIR/assets" ]; then
+  cd "$SVN_DIR"
+  svn up assets
+fi
+
+# Remove SVN assets that are no longer in .wordpress-org/
+cd "$SVN_DIR/assets"
+for entry in *; do
+  [ -e "$entry" ] || continue
+  if [ ! -e "$LISTING_DIR/$entry" ]; then
+    echo "🗑️  Removing stale asset: $entry"
+    svn rm --force -q "$entry"
+  fi
+done
+
+# Copy listing images
+cp -r "$LISTING_DIR"/* "$SVN_DIR/assets/"
+
+# Add new assets to SVN
+svn add --force * --auto-props --parents --depth infinity -q 2>/dev/null || true
+
+echo "✅ Assets mirrored"
 
 echo ""
 
@@ -239,7 +249,7 @@ echo ""
 echo "📋 Summary:"
 echo "  ✅ Built plugin for production"
 echo "  ✅ Updated SVN trunk"
-echo "  ✅ Copied assets to SVN"
+echo "  ✅ Mirrored .wordpress-org/ into SVN assets"
 echo "  ✅ Committed changes"
 echo "  ✅ Tagged version $VERSION"
 echo ""
