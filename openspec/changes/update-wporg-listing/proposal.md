@@ -11,8 +11,8 @@ screenshots with captions and a 1544×500 banner.
 
 **Listing text (`readme.txt`)**
 
-- Plugin display name becomes "PixelFlow – Meta (Facebook) & TikTok Pixel + Conversions
-  API for WooCommerce"; short description, tags, Description, Installation, FAQ and
+- Plugin display name becomes "PixelFlow – Meta & TikTok Pixel + Conversions API for
+  WooCommerce" (the operator shortened the brief's "Meta (Facebook)" to "Meta"); short description, tags, Description, Installation, FAQ and
   Privacy are replaced with the brief's text, converted to readme.txt syntax.
 - The brief's text is taken verbatim except for three deliberate deviations:
   - Installation step 2 names the real menu location, **Settings → PixelFlow Settings**
@@ -65,7 +65,7 @@ screenshots with captions and a 1544×500 banner.
 **Known, accepted risks** (from the guideline check against the Detailed Plugin
 Guidelines; the operator chose to keep the brief's wording):
 
-- The display name repeats "Meta (Facebook)" and three of the five tags; a reviewer may
+- The display name repeats three of the five tags; a reviewer may
   treat it as keyword stuffing (guidelines 9, 12).
 - The Privacy section says events go to Meta and TikTok and does not mention that the
   plugin posts them to `api.pixelflow.so` first (guideline 7).

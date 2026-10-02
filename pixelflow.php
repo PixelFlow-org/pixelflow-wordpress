@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: PixelFlow – Meta (Facebook) & TikTok Pixel + Conversions API for WooCommerce
+ * Plugin Name: PixelFlow – Meta & TikTok Pixel + Conversions API for WooCommerce
  * Description: Facebook Pixel & TikTok Pixel with server-side Conversions API (CAPI) for WooCommerce & WordPress. Auto-tracks sales & forms. No code, no GTM.
  * Version: 1.2.1
  * Requires at least: 6.5

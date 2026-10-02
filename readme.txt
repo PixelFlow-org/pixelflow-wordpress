@@ -1,4 +1,4 @@
-=== PixelFlow – Meta (Facebook) & TikTok Pixel + Conversions API for WooCommerce ===
+=== PixelFlow – Meta & TikTok Pixel + Conversions API for WooCommerce ===
 Contributors: pixelflow
 Tags: facebook pixel, conversions api, tiktok pixel, meta pixel, server-side tracking
 Requires at least: 6.5

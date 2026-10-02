@@ -13,7 +13,7 @@
 
 ## 3. readme.txt
 
-- [x] 3.1 Title line `=== PixelFlow – Meta (Facebook) & TikTok Pixel + Conversions API for WooCommerce ===`; `Tags:` and the short description from the brief; other header fields unchanged
+- [x] 3.1 Title line `=== PixelFlow – Meta & TikTok Pixel + Conversions API for WooCommerce ===`; `Tags:` and the short description from the brief; other header fields unchanged
 - [x] 3.2 Replace Description with the brief's text, `###` headings converted to `= … =`; in Links use `https://docs.pixelflow.so` (Documentation) and `https://pixelflow.so/contact` (Support), and add `[Source code on GitHub](https://github.com/PixelFlow-org/pixelflow-wordpress)`
 - [x] 3.3 Replace Installation with the brief's five steps, step 2 reading "Go to **Settings → PixelFlow Settings** and click **Go to Dashboard** to create your free account. No credit card needed."
 - [x] 3.4 Replace Frequently Asked Questions with the brief's FAQ in `= Question =` form

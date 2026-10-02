@@ -91,5 +91,4 @@ the same name.
 #### Scenario: Names agree
 
 - **WHEN** the readme title and the plugin header are compared
-- **THEN** both read "PixelFlow – Meta (Facebook) & TikTok Pixel + Conversions API for
-  WooCommerce"
+- **THEN** both read "PixelFlow – Meta & TikTok Pixel + Conversions API for WooCommerce"
