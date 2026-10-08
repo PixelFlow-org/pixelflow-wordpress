@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Verifies the site stays healthy while WooCommerce is deactivated, then puts
-# WooCommerce back. PHP errors are routed into wp-content/debug.log for the
+# WooCommerce back, together with every plugin that was active before: some
+# WooCommerce add-ons deactivate themselves on the first admin request without it
+# (e.g. Subscriptions for WooCommerce), and must not stay off after the check. PHP errors are routed into wp-content/debug.log for the
 # duration of the check because the site's FPM log is root-only.
 set -euo pipefail
 
@@ -29,8 +31,18 @@ remote() {
     "$SSH_HOST" "cd $WP_ROOT && $*"
 }
 
+# Plugins active before the check, restored afterwards; filled before WooCommerce goes off.
+ACTIVE_PLUGINS=""
+
+reactivate() {
+  remote "$WP plugin activate woocommerce" >/dev/null
+  if [ -n "$ACTIVE_PLUGINS" ]; then
+    remote "$WP plugin activate $ACTIVE_PLUGINS" >/dev/null 2>&1
+  fi
+}
+
 restore() {
-  remote "$WP plugin activate woocommerce" >/dev/null 2>&1 || true
+  reactivate >/dev/null 2>&1 || true
   remote "$WP config set WP_DEBUG false --raw" >/dev/null 2>&1 || true
   remote "$WP config delete WP_DEBUG_LOG" >/dev/null 2>&1 || true
   remote "$WP config delete WP_DEBUG_DISPLAY" >/dev/null 2>&1 || true
@@ -42,6 +54,8 @@ remote "$WP config set WP_DEBUG true --raw" >/dev/null
 remote "$WP config set WP_DEBUG_LOG true --raw" >/dev/null
 remote "$WP config set WP_DEBUG_DISPLAY false --raw" >/dev/null
 remote "rm -f wp-content/debug.log"
+
+ACTIVE_PLUGINS=$(remote "$WP plugin list --status=active --field=name" | tr '\n' ' ')
 
 echo "→ deactivating WooCommerce"
 remote "$WP plugin deactivate woocommerce" >/dev/null
@@ -65,8 +79,14 @@ else
   echo "   ✓ no plugin-attributable PHP errors"
 fi
 
-echo "→ reactivating WooCommerce"
-remote "$WP plugin activate woocommerce" >/dev/null
+echo "→ reactivating WooCommerce and the plugins that were active before"
+reactivate
+still_off=$(remote "$WP plugin list --status=inactive --field=name" | tr '\n' ' ')
+for plugin in $ACTIVE_PLUGINS; do
+  case " $still_off " in
+    *" $plugin "*) echo "   ✗ $plugin did not come back on"; failed=1 ;;
+  esac
+done
 code=$(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 30 "${BASE_URL}/" || echo 000)
 echo "   / → HTTP ${code} (WooCommerce restored)"
 [ "$code" = "200" ] || failed=1
