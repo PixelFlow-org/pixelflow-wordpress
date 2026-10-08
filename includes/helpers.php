@@ -983,3 +983,102 @@ function pixelflow_get_site_url() {
 
     return $fallback;
 }
+
+/**
+ * The "only the customer's first purchase" settings, with their defaults for missing keys.
+ *
+ * @param array $general_options `pixelflow_general_options`
+ * @return array{enabled: bool, lookback: string, days: int, ignore_free: bool}
+ */
+function pixelflow_first_purchase_settings(array $general_options): array
+{
+    $lookback = $general_options['woo_purchase_first_only_lookback'] ?? 'all';
+    $days     = pixelflow_parse_whole_days($general_options['woo_purchase_first_only_days'] ?? '');
+
+    return [
+        'enabled'     => ! empty($general_options['woo_purchase_first_only']),
+        'lookback'    => $lookback === 'days' ? 'days' : 'all',
+        'days'        => $days ?? 60,
+        'ignore_free' => (int) ($general_options['woo_purchase_first_only_ignore_free'] ?? 1) === 1,
+    ];
+}
+
+/**
+ * A day count written with the digits 0-9 only, 1 or more, capped at PHP_INT_MAX.
+ *
+ * @param mixed $raw Saved or submitted value
+ * @return int|null Null when the value is not such a number
+ */
+function pixelflow_parse_whole_days($raw): ?int
+{
+    if (is_int($raw)) {
+        return $raw >= 1 ? $raw : null;
+    }
+    if ( ! is_string($raw)) {
+        return null;
+    }
+
+    $digits = trim($raw);
+    if ($digits === '' || ! ctype_digit($digits)) {
+        return null;
+    }
+
+    $digits = ltrim($digits, '0');
+    if ($digits === '') {
+        return null;
+    }
+
+    $max = (string) PHP_INT_MAX;
+    if (strlen($digits) > strlen($max) || (strlen($digits) === strlen($max) && strcmp($digits, $max) > 0)) {
+        return PHP_INT_MAX;
+    }
+
+    return (int) $digits;
+}
+
+/**
+ * Sanitizes the first-purchase lookback, day count and ignore-free control.
+ *
+ * A missing, unknown or invalid value keeps what is stored rather than falling back to a
+ * default: a save from an old tab or another client must not silently widen the window or
+ * turn off a control that defaults to on.
+ *
+ * @param array $input  Submitted general options
+ * @param array $stored Currently saved general options
+ * @return array The three keys, sanitized
+ */
+function pixelflow_sanitize_first_purchase_options(array $input, array $stored): array
+{
+    $current = pixelflow_first_purchase_settings($stored);
+
+    $ignore_free = array_key_exists('woo_purchase_first_only_ignore_free', $input)
+        ? ($input['woo_purchase_first_only_ignore_free'] ? 1 : 0)
+        : ($current['ignore_free'] ? 1 : 0);
+
+    $lookback = $input['woo_purchase_first_only_lookback'] ?? null;
+    $days     = pixelflow_parse_whole_days($input['woo_purchase_first_only_days'] ?? null);
+
+    if ( ! array_key_exists('woo_purchase_first_only_lookback', $input)
+        || ! array_key_exists('woo_purchase_first_only_days', $input)) {
+        // A save that does not carry both keys says nothing about the window.
+        $sanitized_lookback = $current['lookback'];
+        $sanitized_days     = $current['days'];
+    } elseif ($lookback === 'days' && $days !== null) {
+        $sanitized_lookback = 'days';
+        $sanitized_days     = $days;
+    } elseif ($lookback === 'all') {
+        $sanitized_lookback = 'all';
+        $sanitized_days     = $days ?? $current['days'];
+    } else {
+        // Missing or unknown lookback, or `days` with no valid count: keep both.
+        $sanitized_lookback = $current['lookback'];
+        $sanitized_days     = $current['days'];
+    }
+
+    return [
+        'woo_purchase_first_only_lookback'    => $sanitized_lookback,
+        'woo_purchase_first_only_days'        => $sanitized_days,
+        'woo_purchase_first_only_ignore_free' => $ignore_free,
+    ];
+}
+

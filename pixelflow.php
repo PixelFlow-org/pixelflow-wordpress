@@ -221,6 +221,7 @@ class PixelFlow
             'woo_disable_add_to_cart_freebies',
             'woo_disable_initiate_checkout_freebies',
             'woo_disable_purchase_freebies',
+            'woo_purchase_first_only',
             'woo_debug_enabled',
             'forms_enabled',
             'forms_debug_enabled',
@@ -254,6 +255,12 @@ class PixelFlow
         $sanitized['woo_product_id_format'] = in_array($input['woo_product_id_format'] ?? '', $allowed_formats, true)
             ? $input['woo_product_id_format']
             : 'product_id';
+
+        $stored = get_option('pixelflow_general_options', array());
+        $sanitized += pixelflow_sanitize_first_purchase_options(
+            is_array($input) ? $input : array(),
+            is_array($stored) ? $stored : array()
+        );
 
         return $sanitized;
     }

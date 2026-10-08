@@ -14,6 +14,9 @@ import { Dropdown } from '@pixelflow-org/plugin-ui';
 import { useSettingsContext } from '@/features/settings/contexts/useSettingsContext.ts';
 import { PixelFlowGeneralOptions } from '@/features/settings';
 
+/** Components */
+import { FirstPurchaseSettings } from '@/features/settings/components/FirstPurchaseSettings';
+
 /**
  * WooCommerceSettings component
  * @description Manages WooCommerce eCommerce event tracking configuration including
@@ -296,6 +299,7 @@ export function WooCommerceSettings() {
                   </UI.TooltipContent>
                 </UI.TooltipRoot>
               </div>
+              <FirstPurchaseSettings />
             </div>
 
             <div className="flex gap-3 [@media(max-width:1100px)]:flex-wrap flex-col">
