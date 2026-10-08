@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PixelFlow 1.2.0 — Test Scenario Matrix</title>
+<title>PixelFlow 1.3.0 — Test Scenario Matrix</title>
 <style>
   :root {
     --bg: #f7f7f5;
@@ -80,15 +80,15 @@
 <div class="wrap">
 
 <header>
-  <h1>PixelFlow 1.2.0 — Test Scenario Matrix</h1>
-  <p class="sub">What the plugin's behaviour is actually verified against, organised by capability rather than by test file. Generated 2026-09-30 from <code>feat/wordpress-form-tracking</code>, for the OpenSpec change <code>add-forms-events</code>.</p>
-  <p class="sub"><strong>Last full run:</strong> 2026-09-30 on the uncommitted <code>add-forms-events</code> working tree over <code>5809e83</code> — PHP 384/384 (32 files, on PHP 8.3; not rerun on PHP 7.4) · component tests 47/47 · admin E2E 5/5 · live storefront matrix 123/123, with the browser leaving through an EU address. The live matrix ran in five parts on one build, each part redeploying it, because a single run outlasts the runner's time limit: no scenario failed in any part, and together the parts cover every spec file.</p>
+  <h1>PixelFlow 1.3.0 — Test Scenario Matrix</h1>
+  <p class="sub">What the plugin's behaviour is actually verified against, organised by capability rather than by test file. Generated 2026-10-08 from <code>feat/wordpress-first-purchase</code>, for the OpenSpec change <code>add-woo-first-purchase-only</code>.</p>
+  <p class="sub"><strong>Last full run:</strong> 2026-10-08 on the uncommitted <code>add-woo-first-purchase-only</code> working tree over <code>71c8aa0</code> — PHP 468/468 (34 files, on PHP 8.3; not rerun on PHP 7.4) · component tests 72/72 · admin E2E 7/7 (one of four full admin runs failed the first <code>first-purchase-settings</code> case once; three isolated runs and the other full runs passed; cause not found) · live storefront matrix 131/133 in one run, with the browser leaving through an EU address. Both failures were re-run on their own and passed: <code>consent-blocked</code> “an overdue marker is reported once by the scheduled event” (scheduler timing; passed unchanged), and <code>purchase-first-only-renewal</code>, broken by the WooCommerce smoke step leaving a self-deactivating subscription add-on switched off — fixed in <code>woo-smoke.sh</code>, after which the three first-purchase specs ran 12/12 on HPOS and, earlier, 12/12 on legacy order storage.</p>
 
   <div class="stats">
-    <div class="stat"><b>192</b><span>scenarios in this matrix</span></div>
-    <div class="stat"><b>179</b><span>covered</span></div>
-    <div class="stat"><b>13</b><span>partial or uncovered</span></div>
-    <div class="stat"><b>559</b><span>automated cases (384 PHP · 47 vitest · 5 admin E2E · 123 live E2E)</span></div>
+    <div class="stat"><b>206</b><span>scenarios in this matrix</span></div>
+    <div class="stat"><b>191</b><span>covered</span></div>
+    <div class="stat"><b>15</b><span>partial or uncovered</span></div>
+    <div class="stat"><b>680</b><span>automated cases (468 PHP · 72 vitest · 7 admin E2E · 133 live E2E)</span></div>
   </div>
 
   <div class="legend">
@@ -406,6 +406,27 @@
 <tr><td class="id">FRM-36</td><td>Form tracking switched off on the Forms tab</td><td>The list and the plugin line are hidden; the stored choices return when it is switched on</td><td class="where">app/source/src/test/forms-settings.test.tsx</td><td><span class="tag ok">Covered</span></td></tr>
 <tr><td class="id">FRM-37</td><td>Field dropdowns in the mapping panel</td><td>The same options for every identifier; the dash is stored as a refusal only where a field is detected; choosing the detected field returns to detection; the single-name hint explains the split on request</td><td class="where">app/source/src/test/forms-settings.test.tsx · e2e/tests/forms-settings.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
 <tr><td class="id">FRM-38</td><td>Form debug switch</td><td>In Advanced settings beside the WooCommerce one; offered without WooCommerce; saved on its own option</td><td class="where">app/source/src/features/settings/components/AdvancedSettings.test.tsx</td><td><span class="tag ok">Covered</span></td></tr>
+</tbody>
+</table></div>
+
+<h2>18. First purchase only <span class="count">— Purchase only for a customer's first paid order</span></h2>
+<div class="scroll"><table>
+<thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id">FPO-01</td><td>Setting off, or an upgrade with no saved keys</td><td>Purchase sent as before; no order lookup; nothing written to the order</td><td class="where">tests/test-purchase-first-only.php · e2e/live/tests/purchase-first-only.spec.ts <em>(setting off)</em></td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FPO-02</td><td>Purchase itself disabled</td><td>No Purchase, no lookup; the first-purchase controls are disabled and keep their values</td><td class="where">tests/test-purchase-first-only.php · app/source/src/test/first-purchase-settings.test.tsx · e2e/tests/first-purchase-settings.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FPO-03</td><td>A customer's first order</td><td>Purchase sent; the order is recorded <code>first</code></td><td class="where">tests/test-purchase-first-only.php · e2e/live/tests/purchase-first-only.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FPO-04</td><td>A repeat order of the same customer (same user id, or same email in any case or spacing; an invalid email falls back to the user id)</td><td>No <code>/event</code>, no <code>/blocked-events</code>, no <code>_pf_purchase_sent</code>; recorded <code>skipped:&lt;id&gt;</code>; a <code>FIRST_PURCHASE_SKIP</code> debug entry names both orders</td><td class="where">tests/test-purchase-first-only.php · e2e/live/tests/purchase-first-only.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FPO-05</td><td>Another customer's paid order</td><td>Does not count, on legacy storage and on HPOS (catches a top-level OR swallowing the customer clause)</td><td class="where">tests/test-purchase-first-only.php · e2e/live/tests/purchase-first-only-queries.spec.ts <em>(per storage)</em></td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FPO-06</td><td>Statuses of the other order</td><td>Processing, completed and refunded count; on-hold, pending, failed and cancelled do not; a later-created order counts; an on-hold order already sent from the thank-you page does not block a later order (accepted two-Purchase gap)</td><td class="where">tests/test-purchase-first-only.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FPO-07</td><td>Lookback window</td><td>An order inside N days counts, one 61 days old with N = 60 does not; a huge N sends no date clause and counts every order</td><td class="where">tests/test-purchase-first-only.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FPO-08</td><td>Amount paid of the other order</td><td>Free orders ignored or counted per the switch; total 0 with <code>_real_total</code> &gt; 0 is paid; <code>pixelflow_order_amount_paid</code> demotes and promotes (numbers and numeric strings, anything else ignored), at most 20 orders per direction</td><td class="where">tests/test-purchase-first-only.php · e2e/live/tests/purchase-first-only-queries.spec.ts <em>(filter hooked inside one WP-CLI request)</em></td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FPO-09</td><td>The decision is taken once</td><td>A recorded decision is followed on later passes, even with the setting off or the matching order cancelled; a first order whose Purchase was not sent yet still sends after a later order was suppressed because of it</td><td class="where">tests/test-purchase-first-only.php <em>(the consent hold itself is not driven)</em></td><td><span class="tag partial">Partial</span></td></tr>
+<tr><td class="id">FPO-10</td><td>Mutual suppression</td><td>An order other orders were suppressed because of is recorded <code>first</code>, for pairs and for chains</td><td class="where">tests/test-purchase-first-only.php · e2e/live/tests/purchase-first-only-queries.spec.ts <em>(anchor)</em></td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FPO-11</td><td>A real subscription plugin's renewal</td><td>The signup sends Purchase; the renewal produced by the plugin's scheduler is skipped against it</td><td class="where">e2e/live/tests/purchase-first-only-renewal.spec.ts <em>(Subscriptions for WooCommerce, cash on delivery through a test-site filter)</em></td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FPO-12</td><td>Frisbii Billing renewal and split checkout</td><td>The renewal (parent = signup, no product id, amount in its total) is skipped against the signup, whose total Frisbii zeroes into <code>_real_total</code>; a two-subscription checkout split into several orders sends one Purchase with the whole cart's value and skips the split order and the first-invoice child</td><td class="where">— <em>(observed by hand on the test site with Frisbii Pay 1.8.18, Frisbii Billing 1.3.10 and a Frisbii test account; not automated)</em></td><td><span class="tag partial">Partial</span></td></tr>
+<tr><td class="id">FPO-13</td><td>Settings panel</td><td>Under the Purchase free-products toggle; defaults all time and ignore-free on; sub-controls disabled while the switch is off; an invalid day count shows the message and is not saved</td><td class="where">app/source/src/test/first-purchase-settings.test.tsx · e2e/tests/first-purchase-settings.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FPO-14</td><td>Settings sanitizer</td><td>Missing or unknown lookback and N keep the stored values; lookback all with an empty N keeps N; ignore-free stays on when its key is absent; N is digits only, capped at the largest integer</td><td class="where">tests/test-purchase-first-only.php</td><td><span class="tag ok">Covered</span></td></tr>
 </tbody>
 </table></div>
 

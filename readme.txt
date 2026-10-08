@@ -4,7 +4,7 @@ Tags: facebook pixel, conversions api, tiktok pixel, meta pixel, server-side tra
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.2.1
+Stable tag: 1.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -195,6 +195,9 @@ Documentation, video tutorials and email support on all plans. Ask a question in
 10. Exclude admins, shop managers and any user role from tracking.
 
 == Changelog ==
+
+= 1.3.0 =
+WooCommerce: optional setting to send Purchase only for a customer's first paid order, so subscription renewals and repeat orders stop counting as new purchases.
 
 = 1.2.1 =
 Refreshed the WordPress.org listing (description, screenshots, banner); listing images no longer ship inside the plugin zip.
