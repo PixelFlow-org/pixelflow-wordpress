@@ -133,6 +133,6 @@
 
 ## 7. Delivery
 
-- [ ] 7.1 Branch `feat/wordpress-first-purchase` from `main`; separate commits for this
+- [x] 7.1 Branch `feat/wordpress-first-purchase` from `main`; separate commits for this
   OpenSpec change, settings, the check and its tests, live tests, and version/changelog; no
   session links in the messages, no client site names or customer data anywhere
