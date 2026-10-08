@@ -47,13 +47,18 @@ function do_action($hook, ...$args)
 
 function add_filter($hook, $callback, $priority = 10, $accepted_args = 1)
 {
-    // Not exercised by the code paths under test (early-returns happen
-    // before any add_filter() call in pf_add_to_cart_hook), but stub it
-    // so nothing fatals if that changes.
+    // Recorded only, never applied by apply_filters() below: a test that stands in for
+    // WordPress or WooCommerce code running a filter reads the registrations from here.
+    $GLOBALS['__pf_test_added_filters'][$hook][] = $callback;
 }
 
 function remove_filter($hook, $callback, $priority = 10)
 {
+    foreach ($GLOBALS['__pf_test_added_filters'][$hook] ?? [] as $i => $registered) {
+        if ($registered === $callback) {
+            unset($GLOBALS['__pf_test_added_filters'][$hook][$i]);
+        }
+    }
 }
 
 /**

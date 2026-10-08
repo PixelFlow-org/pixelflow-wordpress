@@ -11,6 +11,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 require_once __DIR__ . '/trait-held-woo-events.php';
+require_once __DIR__ . '/trait-first-purchase.php';
 
 /**
  * WooCommerce Cart Hooks class
@@ -18,6 +19,7 @@ require_once __DIR__ . '/trait-held-woo-events.php';
 class PixelFlow_WooCommerce_Cart_Hooks
 {
     use PixelFlow_Held_Woo_Events_Trait;
+    use PixelFlow_First_Purchase_Trait;
 
     /**
      * Plugin options
@@ -826,6 +828,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return;
         }
         $this->sent_in_request[$guard_key] = 1;
+
+        // Taken once per order and recorded on it; nothing is sent or reported on a skip.
+        if ($this->first_purchase_withholds($order)) {
+            return;
+        }
 
         $owns_order = pixelflow_request_owns_order($order);
         if ($owns_order) {

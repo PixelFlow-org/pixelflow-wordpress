@@ -1082,3 +1082,29 @@ function pixelflow_sanitize_first_purchase_options(array $input, array $stored):
     ];
 }
 
+/**
+ * What a customer paid for an order, as the first-purchase check counts it.
+ *
+ * The order total when above 0; otherwise `_real_total`, where a subscription plugin such as
+ * Frisbii Billing moves the charged amount after zeroing the total; otherwise 0. A site can
+ * override it through the `pixelflow_order_amount_paid` filter, which receives the default and
+ * the order; a numeric result (number or numeric string) replaces the default, anything else
+ * is ignored.
+ *
+ * @param WC_Order $order Order to value
+ * @return float
+ */
+function pixelflow_order_amount_paid($order): float
+{
+    $total = (float) $order->get_total();
+    if ($total > 0) {
+        $default = $total;
+    } else {
+        $real_total = $order->get_meta('_real_total', true);
+        $default    = is_numeric($real_total) && (float) $real_total > 0 ? (float) $real_total : 0.0;
+    }
+
+    $filtered = apply_filters('pixelflow_order_amount_paid', $default, $order);
+
+    return is_numeric($filtered) ? (float) $filtered : $default;
+}
