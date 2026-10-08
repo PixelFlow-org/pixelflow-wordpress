@@ -19,6 +19,12 @@ export interface SettingsState {
   /** "Enable <event> event for free products". Defaults to all enabled. */
   freebies?: Partial<Record<EventKey, boolean>>;
   excludedSkus?: string[];
+  /** "Only the customer's first purchase". Off unless given, so every preset restores it. */
+  firstPurchase?: {
+    lookback?: 'all' | 'days';
+    days?: number;
+    ignoreFree?: boolean;
+  };
 }
 
 export async function applySettings(page: Page, state: SettingsState): Promise<void> {
@@ -41,6 +47,18 @@ export async function applySettings(page: Page, state: SettingsState): Promise<v
   for (const event of EVENTS) {
     if ((state.events?.[event] ?? true) === false) continue;
     await settings.setFreebiesEnabled(event, state.freebies?.[event] ?? true);
+  }
+
+  if (state.events?.purchase ?? true) {
+    // The sub-controls are disabled until the switch is on, so it goes first.
+    await settings.setFirstPurchaseOnly(state.firstPurchase !== undefined);
+    if (state.firstPurchase) {
+      await settings.setFirstPurchaseLookback(
+        state.firstPurchase.lookback ?? 'all',
+        state.firstPurchase.days
+      );
+      await settings.setIgnoreFreeOrders(state.firstPurchase.ignoreFree ?? true);
+    }
   }
 
   await settings.clearExcludedSkus();
@@ -69,6 +87,13 @@ export function freebiesDisabledFor(event: EventKey): SettingsState {
     freebies: { [event]: false },
   };
 }
+
+/** Baseline plus "Only the customer's first purchase" (all time, ignore free orders). */
+export const FIRST_PURCHASE_ONLY: SettingsState = {
+  wooIntegration: true,
+  debugLogging: true,
+  firstPurchase: {},
+};
 
 export function skusExcluded(...skus: string[]): SettingsState {
   return { wooIntegration: true, debugLogging: true, excludedSkus: skus };
