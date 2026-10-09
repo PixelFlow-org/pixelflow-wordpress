@@ -30,7 +30,7 @@ subscription plugin, and is what the merchant asked for.
   enabled, records the skip.
 - AddToCart, InitiateCheckout, the free-products settings and consent handling are unchanged.
   Merchants who leave the setting off see no change.
-- Version 1.2.1 → 1.3.0 with a one-line changelog entry.
+- Version 1.2.1 → 1.2.2 with a one-line changelog entry.
 
 ## Capabilities
 
@@ -58,6 +58,6 @@ subscription plugin, and is what the merchant asked for.
   account.
 - Outbound payload: unchanged. A skipped order sends nothing. No API, dashboard or script
   change; no migration.
-- Release: `pixelflow.php`, `readme.txt`, `README.md` (version 1.3.0).
+- Release: `pixelflow.php`, `readme.txt`, `README.md` (version 1.2.2).
 - Source: the PRD "WordPress first purchase only" (draft, 2026-09-29), with the decisions
   recorded in `design.md`.

@@ -122,8 +122,8 @@
 
 ## 6. Release
 
-- [x] 6.1 Version 1.2.1 → 1.3.0 in `pixelflow.php` (header and `PIXELFLOW_VERSION`),
-  `readme.txt` (`Stable tag` and a `= 1.3.0 =` entry) and `README.md` (`### 1.3.0`), one line:
+- [x] 6.1 Version 1.2.1 → 1.2.2 in `pixelflow.php` (header and `PIXELFLOW_VERSION`),
+  `readme.txt` (`Stable tag` and a `= 1.2.2 =` entry) and `README.md` (`### 1.2.2`), one line:
   "WooCommerce: optional setting to send Purchase only for a customer's first paid order, so
   subscription renewals and repeat orders stop counting as new purchases."
 - [x] 6.2 Add the scenarios to `docs/test-scenarios.html`
