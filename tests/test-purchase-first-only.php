@@ -837,6 +837,30 @@ pf_case("Another customer's order does not count with ignore-free off either", f
 // Which other orders count
 // ---------------------------------------------------------------------------
 
+pf_case('The order being sent never counts, and no query uses exclude', function () {
+    // The current order is the customer's newest paid order and matches every query shape.
+    foreach ([['woo_purchase_first_only_ignore_free' => 0], [], ['filter' => true]] as $options) {
+        $GLOBALS['__pf_test_orders']  = [];
+        $GLOBALS['__pf_test_queries'] = [];
+        $GLOBALS['__pf_test_filter_callbacks'] = [];
+        if (isset($options['filter'])) {
+            $GLOBALS['__pf_test_filter_callbacks']['pixelflow_order_amount_paid'] = static fn ($amount, $order) => $amount;
+            unset($options['filter']);
+        }
+        $order = pf_order(1, ['status' => 'processing']);
+        if (pf_withholds($order, $options)) {
+            return 'the order being sent counted as its own previous purchase (' . json_encode($options) . ')';
+        }
+        foreach ($GLOBALS['__pf_test_queries'] as $query) {
+            if (array_key_exists('exclude', $query)) {
+                return 'a query still passes exclude';
+            }
+        }
+    }
+
+    return true;
+}, $failures, $passes);
+
 pf_case('On-hold, pending, failed and cancelled orders do not count', function () {
     $id = 1;
     foreach (['on-hold', 'pending', 'failed', 'cancelled'] as $status) {

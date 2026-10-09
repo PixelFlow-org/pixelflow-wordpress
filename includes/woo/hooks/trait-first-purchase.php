@@ -92,7 +92,6 @@ trait PixelFlow_First_Purchase_Trait
             'customer' => $customer,
             'status'   => self::$first_purchase_statuses,
             'type'     => 'shop_order',
-            'exclude'  => [$order->get_id()],
             'orderby'  => 'date',
             'order'    => 'DESC',
         ];
@@ -101,8 +100,12 @@ trait PixelFlow_First_Purchase_Trait
             $args['date_created'] = '>=' . $cutoff;
         }
 
+        // The order being sent is left out after the query rather than by an `exclude` argument
+        // (a NOT IN clause), so every query asks for one more row than it needs.
+        $current = $order->get_id();
+
         if ( ! $settings['ignore_free']) {
-            $found = wc_get_orders($args + ['limit' => 1]);
+            $found = $this->first_purchase_without($current, wc_get_orders($args + ['limit' => 2]), 1);
 
             return $found ? (int) $found[0]->get_id() : null;
         }
@@ -110,7 +113,7 @@ trait PixelFlow_First_Purchase_Trait
         $filtered = has_filter('pixelflow_order_amount_paid');
         $limit    = $filtered ? self::$first_purchase_filter_scan : 1;
 
-        foreach ($this->first_purchase_paid_candidates($args, $limit) as $candidate) {
+        foreach ($this->first_purchase_paid_candidates($args, $limit, $current) as $candidate) {
             if (pixelflow_order_amount_paid($candidate) > 0) {
                 return (int) $candidate->get_id();
             }
@@ -121,7 +124,7 @@ trait PixelFlow_First_Purchase_Trait
         }
 
         // Orders the default amount calls free, in case the site's filter knows better.
-        foreach ($this->first_purchase_free_candidates($args) as $candidate) {
+        foreach ($this->first_purchase_free_candidates($args, $current) as $candidate) {
             if (pixelflow_order_amount_paid($candidate) > 0) {
                 return (int) $candidate->get_id();
             }
@@ -200,24 +203,25 @@ trait PixelFlow_First_Purchase_Trait
     /**
      * Orders paid by their total or by `_real_total`, newest first.
      *
-     * @param array $args  Customer, status, type, exclude and window arguments
-     * @param int   $limit How many to return
+     * @param array $args    Customer, status, type and window arguments
+     * @param int   $limit   How many to return
+     * @param int   $current Id of the order being sent, left out of the result
      * @return WC_Order[]
      */
-    private function first_purchase_paid_candidates(array $args, int $limit): array
+    private function first_purchase_paid_candidates(array $args, int $limit, int $current): array
     {
-        $args['limit'] = $limit;
+        $args['limit'] = $limit + 1;
 
         if ( ! $this->first_purchase_uses_hpos()) {
             // Nested, not top-level: WooCommerce appends the customer clause to the top level
             // of meta_query, and a top-level OR would match any customer's paid order.
-            return $this->first_purchase_orders($args, [
+            return $this->first_purchase_without($current, $this->first_purchase_orders($args, [
                 [
                     'relation' => 'OR',
                     ['key' => '_order_total', 'value' => 0, 'compare' => '>', 'type' => 'DECIMAL(19,4)'],
                     ['key' => '_real_total', 'value' => 0, 'compare' => '>', 'type' => 'DECIMAL(19,4)'],
                 ],
-            ]);
+            ]), $limit);
         }
 
         // In HPOS the total is a column, which field_query cannot OR with a meta clause.
@@ -232,7 +236,9 @@ trait PixelFlow_First_Purchase_Trait
 
         $orders = [];
         foreach (array_merge(wc_get_orders($by_total), $by_real_total) as $candidate) {
-            $orders[$candidate->get_id()] = $candidate;
+            if ($candidate->get_id() !== $current) {
+                $orders[$candidate->get_id()] = $candidate;
+            }
         }
         uasort($orders, static function ($a, $b): int {
             return $b->get_date_created() <=> $a->get_date_created() ?: $b->get_id() <=> $a->get_id();
@@ -244,12 +250,13 @@ trait PixelFlow_First_Purchase_Trait
     /**
      * Orders the default amount calls free: total 0, `_real_total` missing or not above 0.
      *
-     * @param array $args Customer, status, type, exclude and window arguments
+     * @param array $args    Customer, status, type and window arguments
+     * @param int   $current Id of the order being sent, left out of the result
      * @return WC_Order[]
      */
-    private function first_purchase_free_candidates(array $args): array
+    private function first_purchase_free_candidates(array $args, int $current): array
     {
-        $args['limit'] = self::$first_purchase_filter_scan;
+        $args['limit'] = self::$first_purchase_filter_scan + 1;
 
         $no_real_total = [
             'relation' => 'OR',
@@ -262,16 +269,35 @@ trait PixelFlow_First_Purchase_Trait
                 ['field' => 'total', 'value' => 0, 'compare' => '=', 'type' => 'DECIMAL(19,4)'],
             ];
 
-            return $this->first_purchase_orders($args, [$no_real_total]);
+            $found = $this->first_purchase_orders($args, [$no_real_total]);
+        } else {
+            $found = $this->first_purchase_orders($args, [
+                [
+                    'relation' => 'AND',
+                    ['key' => '_order_total', 'value' => 0, 'compare' => '=', 'type' => 'DECIMAL(19,4)'],
+                    $no_real_total,
+                ],
+            ]);
         }
 
-        return $this->first_purchase_orders($args, [
-            [
-                'relation' => 'AND',
-                ['key' => '_order_total', 'value' => 0, 'compare' => '=', 'type' => 'DECIMAL(19,4)'],
-                $no_real_total,
-            ],
-        ]);
+        return $this->first_purchase_without($current, $found, self::$first_purchase_filter_scan);
+    }
+
+    /**
+     * Orders other than the one being sent, at most `$limit` of them, in the order given.
+     *
+     * @param int        $current Id of the order being sent
+     * @param WC_Order[] $orders  Query result, one row longer than needed
+     * @param int        $limit   How many to keep
+     * @return WC_Order[]
+     */
+    private function first_purchase_without(int $current, array $orders, int $limit): array
+    {
+        $others = array_filter($orders, static function ($candidate) use ($current): bool {
+            return $candidate->get_id() !== $current;
+        });
+
+        return array_slice(array_values($others), 0, $limit);
     }
 
     /**
