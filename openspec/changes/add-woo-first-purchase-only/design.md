@@ -86,7 +86,11 @@ with:
   (`OrdersTableQuery::generate_customer_query()`,
   `WC_Order_Data_Store_CPT::get_orders_generate_customer_meta_query()`);
 - `status => [processing, completed, refunded]`, `type => shop_order`;
-- `exclude => [current id]`;
+- no `exclude`: each query asks for one row more than it needs and the order being sent is
+  dropped from the result in PHP. `exclude` became a `NOT IN` clause, which Plugin Check flags
+  (`WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_exclude`); the id is unique, so it
+  removes at most one row and one extra row keeps the result the same. Measured, the clause
+  itself cost 2-6 ms of a 40-65 ms legacy query (see Risks);
 - `date_created => '>=' . (time() - N * DAY_IN_SECONDS)` when lookback is `days`;
 - with ignore-free on, "paid": total > 0, or total = 0 and `_real_total` > 0. In legacy
   storage the total is the `_order_total` meta, so both arms go into one OR group, nested as
@@ -124,7 +128,7 @@ When something is hooked to the filter (`has_filter('pixelflow_order_amount_paid
 total 0 and no positive `_real_total` — the meta missing, or 0 or less, i.e. exactly the
 orders the default amount calls free; a nested group "`_real_total` NOT EXISTS OR <= 0"
 (numeric), ANDed with total = 0 (`_order_total` meta in legacy storage, `field_query` on
-`total_amount` in HPOS) — (same customer, status, window and exclude clauses), newest
+`total_amount` in HPOS) — (same customer, status and window clauses), newest
 first, and asks the filter about each (a separate limit of 20 from the demotion walk, so the
 filter runs at most 40 times for one order); the first it values above 0 counts. This lets a plugin
 that keeps the amount in its own meta promote such orders, as the PRD's "can override the
@@ -256,9 +260,16 @@ entries.
   that never sent because of consent, still count").
 - [Guest typo or a new account with a different email] → seen as a new customer; this is the
   limit of the order data.
-- [Legacy order storage] → the billing email is matched in `wp_postmeta.meta_value`, which is
-  not indexed; the query is still bounded by status, type and limit. Stores on HPOS use the
-  `billing_email` and `customer_id` indexes of `wc_orders`.
+- [Legacy order storage is slow on large stores] → the billing email is matched in
+  `wp_postmeta.meta_value`, which is not indexed, so the lookup reads the `_billing_email` meta
+  of every order and grows linearly with the store. Measured locally (WooCommerce 10.2.3,
+  MySQL 8.0, synthetic guest orders, first call of the check including order loading): legacy
+  storage 80-155 ms at 50,000 orders and 265-455 ms at 200,000 (one cold run 1.24 s), its main
+  query 40-65 ms and 180-420 ms; HPOS 2-13 ms at either size, every query under ~1 ms on the
+  `billing_email` index of `wc_orders`. The cost is paid once per order, in the request that
+  moves it to processing or completed, and only on stores that turn the setting on. Accepted
+  and documented by the maintainer; an indexed email lookup of the plugin's own for legacy
+  storage would be a separate change.
 - [Orders that never sent Purchase still count] → an order made only of excluded SKUs or of
   free products with free-product Purchase off is a paid order and suppresses later ones, so
   a store that excludes products from tracking can lose a customer's first tracked purchase.

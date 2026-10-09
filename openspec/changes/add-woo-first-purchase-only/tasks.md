@@ -29,7 +29,8 @@
   lowercased and kept only when `is_email()` accepts it; neither → no lookup, record `first`
 - [x] 2.3 The anchor lookup first (any order with `_pf_purchase_first_only = skipped:<current
   id>` → record `first`), then the lookup through `wc_get_orders()` as in design.md:
-  `customer`, statuses, `type`, `exclude`, `date_created` for `days` and, with ignore-free on,
+  `customer`, statuses, `type`, `date_created` for `days` (no `exclude`: one extra row, the
+  current order dropped in PHP) and, with ignore-free on,
   the "paid" condition (one `meta_query` in legacy storage; `total_amount > 0` then
   `total_amount = 0` with `_real_total > 0` in HPOS), newest first, `limit => 1`
 - [x] 2.4 Apply `pixelflow_order_amount_paid` to the order found; only when it returns 0 (with

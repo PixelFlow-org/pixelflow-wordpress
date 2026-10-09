@@ -53,6 +53,7 @@
   }
   h2 .count { color: var(--muted); text-transform: none; letter-spacing: 0; font-weight: 400; }
   h2 { scroll-margin-top: 16px; }
+  .note { color: var(--muted); font-size: 13px; margin: 6px 0 10px; }
   h2 a.anchor { color: inherit; text-decoration: none; }
   h2 a.anchor:hover { text-decoration: underline; }
   h2 a.anchor::after { content: " #"; opacity: 0; transition: opacity 0.15s; }
@@ -434,6 +435,19 @@
 <tr><td class="id">FPO-14</td><td>Settings sanitizer</td><td>Missing or unknown lookback and N keep the stored values; lookback all with an empty N keeps N; ignore-free stays on when its key is absent; N is digits only, capped at the largest integer</td><td class="where">tests/test-purchase-first-only.php</td><td><span class="tag ok">Covered</span></td></tr>
 </tbody>
 </table></div>
+
+<h2 id="load-first-purchase-lookup"><a class="anchor" href="#load-first-purchase-lookup">19. Load: first-purchase lookup</a> <span class="count">— what the previous-order check costs as a store grows</span></h2>
+<p class="note">Measured on 2026-10-09 against the code that replaces <code>exclude</code> with one extra row (after the last full run above), on a local WordPress with WooCommerce 10.2.3 and MySQL 8.0, with synthetic guest orders seeded directly into both order storages. Each figure is the first call of <code>find_previous_purchase()</code> for a fresh order, which includes loading the matching order; repeated calls in one request hit WordPress's query cache and are not shown. Ranges cover three runs and both "ignore previous free orders" settings, for a customer with earlier orders and one without. Not a benchmark of any particular server: an order of magnitude.</p>
+<div class="scroll"><table>
+<thead><tr><th>Order storage</th><th>Orders in the store</th><th>Main lookup query</th><th>Whole check, first call</th><th>Why</th></tr></thead>
+<tbody>
+<tr class="perf"><td>HPOS (<code>wc_orders</code>)</td><td>50,000</td><td>under ~1 ms</td><td>3–13 ms</td><td>index on <code>billing_email</code></td></tr>
+<tr class="perf"><td>HPOS (<code>wc_orders</code>)</td><td>200,000</td><td>under ~1 ms</td><td>2–12 ms</td><td>same index; flat with store size</td></tr>
+<tr class="perf"><td>Legacy (posts and post meta)</td><td>50,000</td><td>40–65 ms</td><td>80–155 ms</td><td><code>_billing_email</code> meta of every order is read; <code>meta_value</code> is not indexed</td></tr>
+<tr class="perf"><td>Legacy (posts and post meta)</td><td>200,000</td><td>180–420 ms</td><td>265–455 ms (one cold run 1.24 s)</td><td>grows linearly with the number of orders</td></tr>
+</tbody>
+</table></div>
+<p class="note">The former <code>exclude</code> argument (a <code>NOT IN</code> clause) cost 2–6 ms of the 40–65 ms legacy query at 50,000 orders. The cost is paid once per order, in the request that moves it to processing or completed, and only on stores that turn the setting on. Accepted and documented; an indexed email lookup for legacy storage would be a separate change.</p>
 
 <footer>
   <p><strong>How to run.</strong> PHP suites are plain scripts: <code>php tests/test-&lt;name&gt;.php</code> (exit 0 = green). Component tests: <code>npm run test</code> from <code>app/source/</code>. Local admin E2E: Playwright from <code>e2e/</code>. The live storefront suite runs against the live test site — invoke it through the <code>test-live-woo-events</code> skill rather than by hand, since it builds and installs the plugin first.</p>
