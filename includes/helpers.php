@@ -1108,3 +1108,41 @@ function pixelflow_order_amount_paid($order): float
 
     return is_numeric($filtered) ? (float) $filtered : $default;
 }
+
+/**
+ * Fills city, state, postcode and country from the pf_loc cookie where they are missing.
+ *
+ * PixelFlow's browser script writes pf_loc as a JSON object whose `ct`, `st`, `zp` and
+ * `country` are already hashed, so each value is copied as stored. A key already present in
+ * `$customer_data` is kept; a field that is not a non-empty plain value is ignored.
+ *
+ * @param array $customer_data `customerData` of an event payload, filled in place
+ * @return string[] Keys added from the cookie
+ */
+function pixelflow_append_location_from_cookie(array &$customer_data): array
+{
+    $raw = isset($_COOKIE['pf_loc']) ? wp_unslash($_COOKIE['pf_loc']) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON; each field is sanitized after decoding
+    if ( ! is_string($raw) || $raw === '') {
+        return [];
+    }
+
+    $decoded = json_decode($raw, true);
+    if ( ! is_array($decoded)) {
+        return [];
+    }
+
+    $added = [];
+    foreach (['st', 'zp', 'ct', 'country'] as $key) {
+        if (isset($customer_data[$key]) || ! isset($decoded[$key]) || ! is_scalar($decoded[$key])) {
+            continue;
+        }
+        $value = sanitize_text_field((string) $decoded[$key]);
+        if ($value === '') {
+            continue;
+        }
+        $customer_data[$key] = $value;
+        $added[]             = $key;
+    }
+
+    return $added;
+}

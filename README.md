@@ -447,7 +447,7 @@ Documentation, video tutorials and email support on all plans. Ask a question in
 ## Changelog
 
 ### 1.2.2
-WooCommerce: optional setting to send Purchase only for a customer's first paid order, so subscription renewals and repeat orders stop counting as new purchases.
+WooCommerce: optional setting to send Purchase only for a customer's first paid order, so subscription renewals and repeat orders stop counting as new purchases. Forms: events now include city, state, postcode and country from the visitor's location when the form has no such fields.
 
 ### 1.2.1
 Refreshed the WordPress.org listing (description, screenshots, banner); listing images no longer ship inside the plugin zip.

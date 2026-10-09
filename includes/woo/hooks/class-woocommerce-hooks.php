@@ -2347,17 +2347,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
         }
         $cd = &$payload['eventData']['customerData'];
 
-        $cookie_pf_loc = filter_input(INPUT_COOKIE, 'pf_loc', FILTER_UNSAFE_RAW);
-        if (is_string($cookie_pf_loc) && $cookie_pf_loc !== '') {
-            $decoded = json_decode(wp_unslash($cookie_pf_loc), true);
-            if (is_array($decoded)) {
-                foreach (['st', 'zp', 'ct', 'country'] as $loc_key) {
-                    if ( ! isset($cd[$loc_key]) && ! empty($decoded[$loc_key])) {
-                        $cd[$loc_key] = sanitize_text_field($decoded[$loc_key]);
-                    }
-                }
-            }
-        }
+        pixelflow_append_location_from_cookie($cd);
 
         if ( ! isset($cd['client_user_agent']) && $ua !== '') {
             $cd['client_user_agent'] = $ua;
