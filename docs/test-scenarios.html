@@ -52,6 +52,11 @@
     color: var(--accent); margin: 38px 0 10px;
   }
   h2 .count { color: var(--muted); text-transform: none; letter-spacing: 0; font-weight: 400; }
+  h2 { scroll-margin-top: 16px; }
+  h2 a.anchor { color: inherit; text-decoration: none; }
+  h2 a.anchor:hover { text-decoration: underline; }
+  h2 a.anchor::after { content: " #"; opacity: 0; transition: opacity 0.15s; }
+  h2:hover a.anchor::after, h2 a.anchor:focus::after { opacity: 0.55; }
   .legend { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 0; }
   .legend span { font-size: 12.5px; }
   .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
@@ -98,7 +103,7 @@
   </div>
 </header>
 
-<h2>1. Consent resolution <span class="count">— which decision wins, and what gets stamped on the event</span></h2>
+<h2 id="consent-resolution"><a class="anchor" href="#consent-resolution">1. Consent resolution</a> <span class="count">— which decision wins, and what gets stamped on the event</span></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -116,7 +121,7 @@
 </tbody>
 </table></div>
 
-<h2>2. Send gate <span class="count">— whether an event may leave the site at all</span></h2>
+<h2 id="send-gate"><a class="anchor" href="#send-gate">2. Send gate</a> <span class="count">— whether an event may leave the site at all</span></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -133,7 +138,7 @@
 </tbody>
 </table></div>
 
-<h2>3. Request ownership <span class="count">— whose consent decision may change an order</span></h2>
+<h2 id="request-ownership"><a class="anchor" href="#request-ownership">3. Request ownership</a> <span class="count">— whose consent decision may change an order</span></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -149,7 +154,7 @@
 </tbody>
 </table></div>
 
-<h2>4. Held events — server queue <span class="count">— events parked while the banner is unanswered</span></h2>
+<h2 id="held-events-server-queue"><a class="anchor" href="#held-events-server-queue">4. Held events — server queue</a> <span class="count">— events parked while the banner is unanswered</span></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -166,7 +171,7 @@
 </tbody>
 </table></div>
 
-<h2>5. Held events — flush exactly once</h2>
+<h2 id="held-events-flush-exactly-once"><a class="anchor" href="#held-events-flush-exactly-once">5. Held events — flush exactly once</a></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -177,7 +182,7 @@
 </tbody>
 </table></div>
 
-<h2>6. Held events — storefront script</h2>
+<h2 id="held-events-storefront-script"><a class="anchor" href="#held-events-storefront-script">6. Held events — storefront script</a></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -190,7 +195,7 @@
 </tbody>
 </table></div>
 
-<h2>7. Blocked-event beacons <span class="count">— reporting what was suppressed, anonymously</span></h2>
+<h2 id="blocked-event-beacons"><a class="anchor" href="#blocked-event-beacons">7. Blocked-event beacons</a> <span class="count">— reporting what was suppressed, anonymously</span></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -205,7 +210,7 @@
 </tbody>
 </table></div>
 
-<h2>8. Purchase delivered exactly once</h2>
+<h2 id="purchase-delivered-exactly-once"><a class="anchor" href="#purchase-delivered-exactly-once">8. Purchase delivered exactly once</a></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -224,7 +229,7 @@
 </tbody>
 </table></div>
 
-<h2>9. WooCommerce event capture</h2>
+<h2 id="woocommerce-event-capture"><a class="anchor" href="#woocommerce-event-capture">9. WooCommerce event capture</a></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -240,7 +245,7 @@
 </tbody>
 </table></div>
 
-<h2>10. Payload value &amp; line filtering</h2>
+<h2 id="payload-value-and-line-filtering"><a class="anchor" href="#payload-value-and-line-filtering">10. Payload value &amp; line filtering</a></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -255,7 +260,7 @@
 </tbody>
 </table></div>
 
-<h2>11. Attribution &amp; visitor data</h2>
+<h2 id="attribution-and-visitor-data"><a class="anchor" href="#attribution-and-visitor-data">11. Attribution &amp; visitor data</a></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -284,7 +289,7 @@
 </tbody>
 </table></div>
 
-<h2>12. Admin interface &amp; plugin lifecycle</h2>
+<h2 id="admin-interface-and-plugin-lifecycle"><a class="anchor" href="#admin-interface-and-plugin-lifecycle">12. Admin interface &amp; plugin lifecycle</a></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -301,7 +306,7 @@
 </tbody>
 </table></div>
 
-<h2>13. Event identity <span class="count">— the <code>external_id</code> that lets Meta recognise a shopper</span></h2>
+<h2 id="event-identity"><a class="anchor" href="#event-identity">13. Event identity</a> <span class="count">— the <code>external_id</code> that lets Meta recognise a shopper</span></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -318,7 +323,7 @@
 </tbody>
 </table></div>
 
-<h2>14. Automation &amp; junk filtering <span class="count">— which requests are never reported as shopper activity</span></h2>
+<h2 id="automation-and-junk-filtering"><a class="anchor" href="#automation-and-junk-filtering">14. Automation &amp; junk filtering</a> <span class="count">— which requests are never reported as shopper activity</span></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -338,7 +343,7 @@
 </tbody>
 </table></div>
 
-<h2>15. A suppressed or undelivered send leaves no trace <span class="count">— the shopper's real event still goes out</span></h2>
+<h2 id="a-suppressed-or-undelivered-send-leaves-no-trace"><a class="anchor" href="#a-suppressed-or-undelivered-send-leaves-no-trace">15. A suppressed or undelivered send leaves no trace</a> <span class="count">— the shopper's real event still goes out</span></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -351,7 +356,7 @@
 </tbody>
 </table></div>
 
-<h2>16. Configuration gate <span class="count">— a site missing its site id or API key</span></h2>
+<h2 id="configuration-gate"><a class="anchor" href="#configuration-gate">16. Configuration gate</a> <span class="count">— a site missing its site id or API key</span></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -364,7 +369,7 @@
 </tbody>
 </table></div>
 
-<h2>17. Form events <span class="count">— form submissions sent server-side as Meta events</span></h2>
+<h2 id="form-events"><a class="anchor" href="#form-events">17. Form events</a> <span class="count">— form submissions sent server-side as Meta events</span></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -409,7 +414,7 @@
 </tbody>
 </table></div>
 
-<h2>18. First purchase only <span class="count">— Purchase only for a customer's first paid order</span></h2>
+<h2 id="first-purchase-only"><a class="anchor" href="#first-purchase-only">18. First purchase only</a> <span class="count">— Purchase only for a customer's first paid order</span></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
