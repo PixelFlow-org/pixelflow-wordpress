@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PixelFlow 1.2.0 — Test Scenario Matrix</title>
+<title>PixelFlow 1.2.2 — Test Scenario Matrix</title>
 <style>
   :root {
     --bg: #f7f7f5;
@@ -52,6 +52,12 @@
     color: var(--accent); margin: 38px 0 10px;
   }
   h2 .count { color: var(--muted); text-transform: none; letter-spacing: 0; font-weight: 400; }
+  h2 { scroll-margin-top: 16px; }
+  .note { color: var(--muted); font-size: 13px; margin: 6px 0 10px; }
+  h2 a.anchor { color: inherit; text-decoration: none; }
+  h2 a.anchor:hover { text-decoration: underline; }
+  h2 a.anchor::after { content: " #"; opacity: 0; transition: opacity 0.15s; }
+  h2:hover a.anchor::after, h2 a.anchor:focus::after { opacity: 0.55; }
   .legend { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 0; }
   .legend span { font-size: 12.5px; }
   .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
@@ -80,15 +86,15 @@
 <div class="wrap">
 
 <header>
-  <h1>PixelFlow 1.2.0 — Test Scenario Matrix</h1>
-  <p class="sub">What the plugin's behaviour is actually verified against, organised by capability rather than by test file. Generated 2026-09-30 from <code>feat/wordpress-form-tracking</code>, for the OpenSpec change <code>add-forms-events</code>.</p>
-  <p class="sub"><strong>Last full run:</strong> 2026-09-30 on the uncommitted <code>add-forms-events</code> working tree over <code>5809e83</code> — PHP 384/384 (32 files, on PHP 8.3; not rerun on PHP 7.4) · component tests 47/47 · admin E2E 5/5 · live storefront matrix 123/123, with the browser leaving through an EU address. The live matrix ran in five parts on one build, each part redeploying it, because a single run outlasts the runner's time limit: no scenario failed in any part, and together the parts cover every spec file.</p>
+  <h1>PixelFlow 1.2.2 — Test Scenario Matrix</h1>
+  <p class="sub">What the plugin's behaviour is actually verified against, organised by capability rather than by test file. Generated 2026-10-09 from <code>feat/wordpress-first-purchase</code>, for the OpenSpec change <code>add-woo-first-purchase-only</code>.</p>
+  <p class="sub"><strong>Last full run:</strong> 2026-10-09 on <code>c368c57</code> (committed, clean tree) — PHP 468/468 (34 files, on PHP 8.3; not rerun on PHP 7.4) · component tests 72/72 · admin E2E 7/7 · live storefront matrix 133/133 in one run, with the browser leaving through an EU address.</p>
 
   <div class="stats">
-    <div class="stat"><b>192</b><span>scenarios in this matrix</span></div>
-    <div class="stat"><b>179</b><span>covered</span></div>
-    <div class="stat"><b>13</b><span>partial or uncovered</span></div>
-    <div class="stat"><b>559</b><span>automated cases (384 PHP · 47 vitest · 5 admin E2E · 123 live E2E)</span></div>
+    <div class="stat"><b>206</b><span>scenarios in this matrix</span></div>
+    <div class="stat"><b>191</b><span>covered</span></div>
+    <div class="stat"><b>15</b><span>partial or uncovered</span></div>
+    <div class="stat"><b>680</b><span>automated cases (468 PHP · 72 vitest · 7 admin E2E · 133 live E2E)</span></div>
   </div>
 
   <div class="legend">
@@ -98,7 +104,7 @@
   </div>
 </header>
 
-<h2>1. Consent resolution <span class="count">— which decision wins, and what gets stamped on the event</span></h2>
+<h2 id="consent-resolution"><a class="anchor" href="#consent-resolution">1. Consent resolution</a> <span class="count">— which decision wins, and what gets stamped on the event</span></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -116,7 +122,7 @@
 </tbody>
 </table></div>
 
-<h2>2. Send gate <span class="count">— whether an event may leave the site at all</span></h2>
+<h2 id="send-gate"><a class="anchor" href="#send-gate">2. Send gate</a> <span class="count">— whether an event may leave the site at all</span></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -133,7 +139,7 @@
 </tbody>
 </table></div>
 
-<h2>3. Request ownership <span class="count">— whose consent decision may change an order</span></h2>
+<h2 id="request-ownership"><a class="anchor" href="#request-ownership">3. Request ownership</a> <span class="count">— whose consent decision may change an order</span></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -149,7 +155,7 @@
 </tbody>
 </table></div>
 
-<h2>4. Held events — server queue <span class="count">— events parked while the banner is unanswered</span></h2>
+<h2 id="held-events-server-queue"><a class="anchor" href="#held-events-server-queue">4. Held events — server queue</a> <span class="count">— events parked while the banner is unanswered</span></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -166,7 +172,7 @@
 </tbody>
 </table></div>
 
-<h2>5. Held events — flush exactly once</h2>
+<h2 id="held-events-flush-exactly-once"><a class="anchor" href="#held-events-flush-exactly-once">5. Held events — flush exactly once</a></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -177,7 +183,7 @@
 </tbody>
 </table></div>
 
-<h2>6. Held events — storefront script</h2>
+<h2 id="held-events-storefront-script"><a class="anchor" href="#held-events-storefront-script">6. Held events — storefront script</a></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -190,7 +196,7 @@
 </tbody>
 </table></div>
 
-<h2>7. Blocked-event beacons <span class="count">— reporting what was suppressed, anonymously</span></h2>
+<h2 id="blocked-event-beacons"><a class="anchor" href="#blocked-event-beacons">7. Blocked-event beacons</a> <span class="count">— reporting what was suppressed, anonymously</span></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -205,7 +211,7 @@
 </tbody>
 </table></div>
 
-<h2>8. Purchase delivered exactly once</h2>
+<h2 id="purchase-delivered-exactly-once"><a class="anchor" href="#purchase-delivered-exactly-once">8. Purchase delivered exactly once</a></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -224,7 +230,7 @@
 </tbody>
 </table></div>
 
-<h2>9. WooCommerce event capture</h2>
+<h2 id="woocommerce-event-capture"><a class="anchor" href="#woocommerce-event-capture">9. WooCommerce event capture</a></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -240,7 +246,7 @@
 </tbody>
 </table></div>
 
-<h2>10. Payload value &amp; line filtering</h2>
+<h2 id="payload-value-and-line-filtering"><a class="anchor" href="#payload-value-and-line-filtering">10. Payload value &amp; line filtering</a></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -255,7 +261,7 @@
 </tbody>
 </table></div>
 
-<h2>11. Attribution &amp; visitor data</h2>
+<h2 id="attribution-and-visitor-data"><a class="anchor" href="#attribution-and-visitor-data">11. Attribution &amp; visitor data</a></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -284,7 +290,7 @@
 </tbody>
 </table></div>
 
-<h2>12. Admin interface &amp; plugin lifecycle</h2>
+<h2 id="admin-interface-and-plugin-lifecycle"><a class="anchor" href="#admin-interface-and-plugin-lifecycle">12. Admin interface &amp; plugin lifecycle</a></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -301,7 +307,7 @@
 </tbody>
 </table></div>
 
-<h2>13. Event identity <span class="count">— the <code>external_id</code> that lets Meta recognise a shopper</span></h2>
+<h2 id="event-identity"><a class="anchor" href="#event-identity">13. Event identity</a> <span class="count">— the <code>external_id</code> that lets Meta recognise a shopper</span></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -318,7 +324,7 @@
 </tbody>
 </table></div>
 
-<h2>14. Automation &amp; junk filtering <span class="count">— which requests are never reported as shopper activity</span></h2>
+<h2 id="automation-and-junk-filtering"><a class="anchor" href="#automation-and-junk-filtering">14. Automation &amp; junk filtering</a> <span class="count">— which requests are never reported as shopper activity</span></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -338,7 +344,7 @@
 </tbody>
 </table></div>
 
-<h2>15. A suppressed or undelivered send leaves no trace <span class="count">— the shopper's real event still goes out</span></h2>
+<h2 id="a-suppressed-or-undelivered-send-leaves-no-trace"><a class="anchor" href="#a-suppressed-or-undelivered-send-leaves-no-trace">15. A suppressed or undelivered send leaves no trace</a> <span class="count">— the shopper's real event still goes out</span></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -351,7 +357,7 @@
 </tbody>
 </table></div>
 
-<h2>16. Configuration gate <span class="count">— a site missing its site id or API key</span></h2>
+<h2 id="configuration-gate"><a class="anchor" href="#configuration-gate">16. Configuration gate</a> <span class="count">— a site missing its site id or API key</span></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -364,7 +370,7 @@
 </tbody>
 </table></div>
 
-<h2>17. Form events <span class="count">— form submissions sent server-side as Meta events</span></h2>
+<h2 id="form-events"><a class="anchor" href="#form-events">17. Form events</a> <span class="count">— form submissions sent server-side as Meta events</span></h2>
 <div class="scroll"><table>
 <thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
 <tbody>
@@ -408,6 +414,40 @@
 <tr><td class="id">FRM-38</td><td>Form debug switch</td><td>In Advanced settings beside the WooCommerce one; offered without WooCommerce; saved on its own option</td><td class="where">app/source/src/features/settings/components/AdvancedSettings.test.tsx</td><td><span class="tag ok">Covered</span></td></tr>
 </tbody>
 </table></div>
+
+<h2 id="first-purchase-only"><a class="anchor" href="#first-purchase-only">18. First purchase only</a> <span class="count">— Purchase only for a customer's first paid order</span></h2>
+<div class="scroll"><table>
+<thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id">FPO-01</td><td>Setting off, or an upgrade with no saved keys</td><td>Purchase sent as before; no order lookup; nothing written to the order</td><td class="where">tests/test-purchase-first-only.php · e2e/live/tests/purchase-first-only.spec.ts <em>(setting off)</em></td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FPO-02</td><td>Purchase itself disabled</td><td>No Purchase, no lookup; the first-purchase controls are disabled and keep their values</td><td class="where">tests/test-purchase-first-only.php · app/source/src/test/first-purchase-settings.test.tsx · e2e/tests/first-purchase-settings.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FPO-03</td><td>A customer's first order</td><td>Purchase sent; the order is recorded <code>first</code></td><td class="where">tests/test-purchase-first-only.php · e2e/live/tests/purchase-first-only.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FPO-04</td><td>A repeat order of the same customer (same user id, or same email in any case or spacing; an invalid email falls back to the user id)</td><td>No <code>/event</code>, no <code>/blocked-events</code>, no <code>_pf_purchase_sent</code>; recorded <code>skipped:&lt;id&gt;</code>; a <code>FIRST_PURCHASE_SKIP</code> debug entry names both orders</td><td class="where">tests/test-purchase-first-only.php · e2e/live/tests/purchase-first-only.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FPO-05</td><td>Another customer's paid order</td><td>Does not count, on legacy storage and on HPOS (catches a top-level OR swallowing the customer clause)</td><td class="where">tests/test-purchase-first-only.php · e2e/live/tests/purchase-first-only-queries.spec.ts <em>(per storage)</em></td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FPO-06</td><td>Statuses of the other order</td><td>Processing, completed and refunded count; on-hold, pending, failed and cancelled do not; a later-created order counts; an on-hold order already sent from the thank-you page does not block a later order (accepted two-Purchase gap)</td><td class="where">tests/test-purchase-first-only.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FPO-07</td><td>Lookback window</td><td>An order inside N days counts, one 61 days old with N = 60 does not; a huge N sends no date clause and counts every order</td><td class="where">tests/test-purchase-first-only.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FPO-08</td><td>Amount paid of the other order</td><td>Free orders ignored or counted per the switch; total 0 with <code>_real_total</code> &gt; 0 is paid; <code>pixelflow_order_amount_paid</code> demotes and promotes (numbers and numeric strings, anything else ignored), at most 20 orders per direction</td><td class="where">tests/test-purchase-first-only.php · e2e/live/tests/purchase-first-only-queries.spec.ts <em>(filter hooked inside one WP-CLI request)</em></td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FPO-09</td><td>The decision is taken once</td><td>A recorded decision is followed on later passes, even with the setting off or the matching order cancelled; a first order whose Purchase was not sent yet still sends after a later order was suppressed because of it</td><td class="where">tests/test-purchase-first-only.php <em>(the consent hold itself is not driven)</em></td><td><span class="tag partial">Partial</span></td></tr>
+<tr><td class="id">FPO-10</td><td>Mutual suppression</td><td>An order other orders were suppressed because of is recorded <code>first</code>, for pairs and for chains</td><td class="where">tests/test-purchase-first-only.php · e2e/live/tests/purchase-first-only-queries.spec.ts <em>(anchor)</em></td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FPO-11</td><td>A real subscription plugin's renewal</td><td>The signup sends Purchase; the renewal produced by the plugin's scheduler is skipped against it</td><td class="where">e2e/live/tests/purchase-first-only-renewal.spec.ts <em>(Subscriptions for WooCommerce, cash on delivery through a test-site filter)</em></td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FPO-12</td><td>Frisbii Billing renewal and split checkout</td><td>The renewal (parent = signup, no product id, amount in its total) is skipped against the signup, whose total Frisbii zeroes into <code>_real_total</code>; a two-subscription checkout split into several orders sends one Purchase with the whole cart's value and skips the split order and the first-invoice child</td><td class="where">— <em>(observed by hand on the test site with Frisbii Pay 1.8.18, Frisbii Billing 1.3.10 and a Frisbii test account; not automated)</em></td><td><span class="tag partial">Partial</span></td></tr>
+<tr><td class="id">FPO-13</td><td>Settings panel</td><td>Under the Purchase free-products toggle; defaults all time and ignore-free on; sub-controls disabled while the switch is off; an invalid day count shows the message and is not saved</td><td class="where">app/source/src/test/first-purchase-settings.test.tsx · e2e/tests/first-purchase-settings.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FPO-14</td><td>Settings sanitizer</td><td>Missing or unknown lookback and N keep the stored values; lookback all with an empty N keeps N; ignore-free stays on when its key is absent; N is digits only, capped at the largest integer</td><td class="where">tests/test-purchase-first-only.php</td><td><span class="tag ok">Covered</span></td></tr>
+</tbody>
+</table></div>
+
+<h2 id="load-first-purchase-lookup"><a class="anchor" href="#load-first-purchase-lookup">19. Load: first-purchase lookup</a> <span class="count">— what the previous-order check costs as a store grows</span></h2>
+<p class="note">Measured on 2026-10-09 against the code that replaces <code>exclude</code> with one extra row (after the last full run above), on a local WordPress with WooCommerce 10.2.3 and MySQL 8.0, with synthetic guest orders seeded directly into both order storages. Each figure is the first call of <code>find_previous_purchase()</code> for a fresh order, which includes loading the matching order; repeated calls in one request hit WordPress's query cache and are not shown. Ranges cover three runs and both "ignore previous free orders" settings, for a customer with earlier orders and one without. Not a benchmark of any particular server: an order of magnitude.</p>
+<div class="scroll"><table>
+<thead><tr><th>Order storage</th><th>Orders in the store</th><th>Main lookup query</th><th>Whole check, first call</th><th>Why</th></tr></thead>
+<tbody>
+<tr class="perf"><td>HPOS (<code>wc_orders</code>)</td><td>50,000</td><td>under ~1 ms</td><td>3–13 ms</td><td>index on <code>billing_email</code></td></tr>
+<tr class="perf"><td>HPOS (<code>wc_orders</code>)</td><td>200,000</td><td>under ~1 ms</td><td>2–12 ms</td><td>same index; flat with store size</td></tr>
+<tr class="perf"><td>Legacy (posts and post meta)</td><td>50,000</td><td>40–65 ms</td><td>80–155 ms</td><td><code>_billing_email</code> meta of every order is read; <code>meta_value</code> is not indexed</td></tr>
+<tr class="perf"><td>Legacy (posts and post meta)</td><td>200,000</td><td>180–420 ms</td><td>265–455 ms (one cold run 1.24 s)</td><td>grows linearly with the number of orders</td></tr>
+</tbody>
+</table></div>
+<p class="note">The former <code>exclude</code> argument (a <code>NOT IN</code> clause) cost 2–6 ms of the 40–65 ms legacy query at 50,000 orders. The cost is paid once per order, in the request that moves it to processing or completed, and only on stores that turn the setting on. Accepted and documented; an indexed email lookup for legacy storage would be a separate change.</p>
 
 <footer>
   <p><strong>How to run.</strong> PHP suites are plain scripts: <code>php tests/test-&lt;name&gt;.php</code> (exit 0 = green). Component tests: <code>npm run test</code> from <code>app/source/</code>. Local admin E2E: Playwright from <code>e2e/</code>. The live storefront suite runs against the live test site — invoke it through the <code>test-live-woo-events</code> skill rather than by hand, since it builds and installs the plugin first.</p>

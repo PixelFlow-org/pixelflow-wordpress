@@ -58,3 +58,36 @@ for (const code of Object.keys(FORM_PLUGINS) as FormPluginCode[]) {
     ).toHaveLength(0);
   });
 }
+
+// Every form plugin reaches the same dispatcher, so one plugin covers the location fallback.
+test('A form with no address fields takes city, state, postcode and country from pf_loc', async ({
+  page,
+  context,
+}) => {
+  const fixture = formFixture('PF-CF7 message');
+
+  const form = new FormPage(page);
+  await form.open(fixture.url);
+  // The tracking script resolves the visitor's location asynchronously before writing pf_loc.
+  await expect
+    .poll(async () => (await context.cookies()).some((cookie) => cookie.name === 'pf_loc'), {
+      message: 'pf_loc cookie was never set on the form page',
+      timeout: 30_000,
+    })
+    .toBe(true);
+  const cookie = (await context.cookies()).find((c) => c.name === 'pf_loc')!;
+  const location = JSON.parse(decodeURIComponent(cookie.value)) as Record<string, string>;
+
+  await form.fill({ Email: 'pf-form-location@example.test', Message: 'Location check' });
+  await form.submit();
+
+  const sent = formOutcomes(await waitForFormOutcome(fixture.key, 'sent'), fixture.key, 'sent');
+  expect(sent, 'the submission was sent more than once').toHaveLength(1);
+
+  const customer = (sent[0].payload.eventData?.customerData ?? {}) as Record<string, unknown>;
+  const keys = (['ct', 'st', 'zp', 'country'] as const).filter((key) => location[key]);
+  expect(keys.length, 'pf_loc carried no location at all').toBeGreaterThan(0);
+  for (const key of keys) {
+    expect(customer[key], `customerData.${key} does not match the pf_loc cookie`).toBe(location[key]);
+  }
+});

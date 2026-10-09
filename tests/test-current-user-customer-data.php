@@ -7,6 +7,8 @@
  * order builder is checked: post_event() resolves external_id and overwrites or strips the field
  * on its way out, so a wire-only assertion would pass even if this builder derived one again.
  *
+ * The last case covers the location post_event() adds from the pf_loc cookie on the same path.
+ *
  * Run: php tests/test-current-user-customer-data.php
  */
 
@@ -291,6 +293,45 @@ pf_run_user_case(
         return array_key_exists('external_id', $sent)
             ? 'an account-derived identifier reached the wire: ' . json_encode($sent)
             : true;
+    },
+    $failures,
+    $passes
+);
+
+pf_run_user_case(
+    'AddToCart takes location from pf_loc and keeps a key it already has',
+    /** @return bool|string */
+    function () {
+        $loc = [
+            'ct'      => hash('sha256', 'berlin'),
+            'st'      => hash('sha256', 'be'),
+            'zp'      => hash('sha256', '10115'),
+            'country' => hash('sha256', 'de'),
+        ];
+        $_COOKIE['pf_loc'] = (string) json_encode($loc);
+
+        $payload = [
+            'siteId'    => PF_SITE,
+            'eventData' => [
+                'event_id'     => 'atc-3',
+                'eventName'    => 'AddToCart',
+                'eventTime'    => 1757000000,
+                'customerData' => ['ct' => 'city-from-the-account'],
+            ],
+        ];
+        pf_call(pf_hooks(), 'post_event', [$payload, ['product_id' => 17, 'variation_id' => 0]]);
+
+        $sent = pf_last_customer_data();
+        if ($sent === null) {
+            return 'no event was sent';
+        }
+        if (($sent['ct'] ?? null) !== 'city-from-the-account') {
+            return 'the existing city was replaced: ' . json_encode($sent);
+        }
+
+        return ($sent['st'] ?? null) === $loc['st'] && ($sent['zp'] ?? null) === $loc['zp'] && ($sent['country'] ?? null) === $loc['country']
+            ? true
+            : 'pf_loc did not reach customerData: ' . json_encode($sent);
     },
     $failures,
     $passes

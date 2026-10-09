@@ -114,6 +114,35 @@ export class SettingsPage {
     await this.setSwitch(`woo_disable_${event}_freebies`, enabled);
   }
 
+  /** "Only the customer's first purchase". */
+  async setFirstPurchaseOnly(enabled: boolean): Promise<void> {
+    await this.setSwitch('woo_purchase_first_only', enabled);
+  }
+
+  /** "Ignore previous free orders"; only operable while the first-purchase switch is on. */
+  async setIgnoreFreeOrders(enabled: boolean): Promise<void> {
+    await this.setSwitch('woo_purchase_first_only_ignore_free', enabled);
+  }
+
+  /** "Count previous orders from": All time, or the last `days` days. */
+  async setFirstPurchaseLookback(lookback: 'all' | 'days', days?: number): Promise<void> {
+    const trigger = this.page.locator('#woo_purchase_first_only_lookback');
+    const label = lookback === 'all' ? 'All time' : 'The last N days';
+    if (!(((await trigger.textContent()) ?? '').includes(label))) {
+      await trigger.click();
+      await this.page.getByRole('menuitem', { name: label }).click();
+      await this.expectSaved(`lookback ${lookback}`);
+    }
+    if (lookback === 'days' && days !== undefined) {
+      const input = this.page.locator('#woo_purchase_first_only_days');
+      if ((await input.inputValue()) !== String(days)) {
+        await input.fill(String(days));
+        await input.press('Enter');
+        await this.expectSaved(`lookback of ${days} days`);
+      }
+    }
+  }
+
   async setDebugLogging(enabled: boolean): Promise<void> {
     await this.openAdvancedTab();
     await this.setSwitch('woo-debug-enabled', enabled);

@@ -8,6 +8,10 @@ export interface PixelFlowGeneralOptions {
   woo_disable_add_to_cart_freebies: number; // Disable Add to Cart event tracking for free products
   woo_disable_initiate_checkout_freebies: number; // Disable Initiate Checkout event tracking for free products
   woo_disable_purchase_freebies: number; // Disable Purchase event tracking for free products
+  woo_purchase_first_only: number; // Send Purchase only for a customer's first paid order
+  woo_purchase_first_only_lookback: string; // 'all' | 'days'
+  woo_purchase_first_only_days: number | string; // Window in days when lookback is 'days'; a digit string when too large for a number
+  woo_purchase_first_only_ignore_free: number; // Earlier orders with nothing paid do not count
   excluded_user_roles: string[]; // Array of role keys to exclude from script injection
   woo_excluded_skus: string[]; // Array of product SKUs to exclude from all WooCommerce event tracking
   woo_product_id_format: string; // 'product_id' | 'prefixed' | 'sku' | 'legacy' | 'off'

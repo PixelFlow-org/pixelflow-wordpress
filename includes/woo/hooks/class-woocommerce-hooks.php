@@ -11,6 +11,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 require_once __DIR__ . '/trait-held-woo-events.php';
+require_once __DIR__ . '/trait-first-purchase.php';
 
 /**
  * WooCommerce Cart Hooks class
@@ -18,6 +19,7 @@ require_once __DIR__ . '/trait-held-woo-events.php';
 class PixelFlow_WooCommerce_Cart_Hooks
 {
     use PixelFlow_Held_Woo_Events_Trait;
+    use PixelFlow_First_Purchase_Trait;
 
     /**
      * Plugin options
@@ -826,6 +828,11 @@ class PixelFlow_WooCommerce_Cart_Hooks
             return;
         }
         $this->sent_in_request[$guard_key] = 1;
+
+        // Taken once per order and recorded on it; nothing is sent or reported on a skip.
+        if ($this->first_purchase_withholds($order)) {
+            return;
+        }
 
         $owns_order = pixelflow_request_owns_order($order);
         if ($owns_order) {
@@ -2340,17 +2347,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
         }
         $cd = &$payload['eventData']['customerData'];
 
-        $cookie_pf_loc = filter_input(INPUT_COOKIE, 'pf_loc', FILTER_UNSAFE_RAW);
-        if (is_string($cookie_pf_loc) && $cookie_pf_loc !== '') {
-            $decoded = json_decode(wp_unslash($cookie_pf_loc), true);
-            if (is_array($decoded)) {
-                foreach (['st', 'zp', 'ct', 'country'] as $loc_key) {
-                    if ( ! isset($cd[$loc_key]) && ! empty($decoded[$loc_key])) {
-                        $cd[$loc_key] = sanitize_text_field($decoded[$loc_key]);
-                    }
-                }
-            }
-        }
+        pixelflow_append_location_from_cookie($cd);
 
         if ( ! isset($cd['client_user_agent']) && $ua !== '') {
             $cd['client_user_agent'] = $ua;
