@@ -2,7 +2,7 @@
 /**
  * Plugin Name: PixelFlow – Meta & TikTok Pixel + Conversions API for WooCommerce
  * Description: Facebook Pixel & TikTok Pixel with server-side Conversions API (CAPI) for WooCommerce & WordPress. Auto-tracks sales & forms. No code, no GTM.
- * Version: 1.2.1
+ * Version: 1.2.2
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: PixelFlow Team
@@ -19,7 +19,7 @@ if ( ! defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('PIXELFLOW_VERSION', '1.2.1');
+define('PIXELFLOW_VERSION', '1.2.2');
 define('PIXELFLOW_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('PIXELFLOW_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('PIXELFLOW_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -221,6 +221,7 @@ class PixelFlow
             'woo_disable_add_to_cart_freebies',
             'woo_disable_initiate_checkout_freebies',
             'woo_disable_purchase_freebies',
+            'woo_purchase_first_only',
             'woo_debug_enabled',
             'forms_enabled',
             'forms_debug_enabled',
@@ -254,6 +255,12 @@ class PixelFlow
         $sanitized['woo_product_id_format'] = in_array($input['woo_product_id_format'] ?? '', $allowed_formats, true)
             ? $input['woo_product_id_format']
             : 'product_id';
+
+        $stored = get_option('pixelflow_general_options', array());
+        $sanitized += pixelflow_sanitize_first_purchase_options(
+            is_array($input) ? $input : array(),
+            is_array($stored) ? $stored : array()
+        );
 
         return $sanitized;
     }

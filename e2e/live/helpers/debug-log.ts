@@ -174,6 +174,19 @@ export function blockedRecords(records: EventRecord[], eventNameOrAll?: string):
   );
 }
 
+/** A Purchase withheld because the customer already had a paid order. */
+export interface FirstPurchaseSkip {
+  order_id: number;
+  matched_order_id: number;
+}
+
+/** First-purchase skips, written instead of a Purchase record when the setting withholds one. */
+export function firstPurchaseSkips(records: EventRecord[]): FirstPurchaseSkip[] {
+  return records
+    .filter((record) => record.hook === 'FIRST_PURCHASE_SKIP')
+    .map((record) => record.payload as unknown as FirstPurchaseSkip);
+}
+
 /** The suppressed entries a blocked-events record reports. */
 export function blockedEntries(record: EventRecord): BlockedEntry[] {
   return record.payload?.blocked ?? [];

@@ -45,9 +45,25 @@ if [ "${PF_EU_EGRESS:-on}" != "off" ]; then
   TUNNEL_PID=$!
   trap 'kill "$TUNNEL_PID" 2>/dev/null || true' EXIT
 
+  # The first service that answers with a two-letter code wins. A single lookup service can
+  # rate-limit the test server's address (ipinfo.io answers 429 with a JSON body), and that
+  # must not stop a run whose exit is fine.
+  exit_country() {
+    local url code
+    for url in https://www.cloudflare.com/cdn-cgi/trace https://ifconfig.co/country-iso https://ipinfo.io/country; do
+      # Cloudflare's trace carries the country as `loc=DE`; the others answer with the bare code.
+      code="$(curl -s --max-time 5 --socks5-hostname "127.0.0.1:$PROXY_PORT" "$url" 2>/dev/null \
+        | sed -n -e 's/^loc=//p' -e '/^[A-Z][A-Z][[:space:]]*$/p' | head -n 1 | tr -d '[:space:]')"
+      if [[ "$code" =~ ^[A-Z]{2}$ ]]; then
+        echo "$code"
+        return
+      fi
+    done
+  }
+
   EXIT_COUNTRY=""
   for _ in $(seq 1 15); do
-    EXIT_COUNTRY="$(curl -s --max-time 5 --socks5-hostname "127.0.0.1:$PROXY_PORT" https://ipinfo.io/country | tr -d '[:space:]' || true)"
+    EXIT_COUNTRY="$(exit_country || true)"
     [ -n "$EXIT_COUNTRY" ] && break
     kill -0 "$TUNNEL_PID" 2>/dev/null || break
     sleep 1

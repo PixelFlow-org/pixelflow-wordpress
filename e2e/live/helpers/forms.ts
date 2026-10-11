@@ -90,7 +90,7 @@ export function applyFormTracking(): void {
 export function resetFormState(): void {
   wpEval(`
     global $wpdb;
-    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_pf_form_dedupe_%' OR option_name LIKE '_transient_timeout_pf_form_dedupe_%' OR option_name LIKE '_transient_pf_held_forms_%' OR option_name LIKE '_transient_timeout_pf_held_forms_%'");
+    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE 'pf_form_dedupe_%' OR option_name LIKE '_transient_pf_held_forms_%' OR option_name LIKE '_transient_timeout_pf_held_forms_%'");
     wp_cache_flush();
   `);
 }

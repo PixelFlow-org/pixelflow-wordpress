@@ -289,7 +289,10 @@ class PixelFlow_Form_Dispatcher
     }
 
     /**
-     * POSTs /event with the submitting request's IP and user agent.
+     * POSTs /event with the sending request's IP, user agent and location cookie.
+     *
+     * Location fills only the keys the form did not provide; it is read here, on the request
+     * that sends, so a held submission flushed after a grant takes it from that request.
      *
      * @param array  $payload     Payload
      * @param array  $credentials site_id and api_key
@@ -306,6 +309,10 @@ class PixelFlow_Form_Dispatcher
 
         if ( ! isset($payload['eventData']['customerData']) || ! is_array($payload['eventData']['customerData'])) {
             $payload['eventData']['customerData'] = [];
+        }
+        $from_cookie = pixelflow_append_location_from_cookie($payload['eventData']['customerData']);
+        if ($from_cookie !== []) {
+            $log['identifiers'] = array_values(array_unique(array_merge((array) ($log['identifiers'] ?? []), $from_cookie)));
         }
         if ($ua !== '') {
             $payload['eventData']['customerData']['client_user_agent'] = $ua;

@@ -1,6 +1,7 @@
 /**
  * Form tracking on a site without WooCommerce — the common case for this feature. WooCommerce
- * is deactivated for this file only and reactivated afterwards whatever the outcome.
+ * is deactivated for this file only; it and every plugin active before are reactivated afterwards
+ * whatever the outcome.
  */
 import { test, expect } from '../fixtures';
 import { FormPage } from '../pages/form-page';
@@ -14,16 +15,21 @@ import {
   waitForFormOutcome,
 } from '../helpers/forms';
 import { wp } from '../helpers/ssh';
+import { activePlugins, restorePlugins } from '../helpers/plugins';
 
 const FORM = 'PF-CF7 message';
 
+/** Plugins active before WooCommerce goes off, all restored afterwards. */
+let wasActive: string[] = [];
+
 test.beforeAll(() => {
   applyFormTracking();
+  wasActive = activePlugins();
   wp('plugin deactivate woocommerce');
 });
 
 test.afterAll(() => {
-  wp('plugin activate woocommerce');
+  restorePlugins(wasActive);
 });
 
 test.beforeEach(() => {
