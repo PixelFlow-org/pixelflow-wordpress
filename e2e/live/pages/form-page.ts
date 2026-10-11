@@ -14,6 +14,11 @@ export class FormPage {
     await this.page.goto(url, { waitUntil: 'domcontentloaded' });
     // Ninja Forms renders its form client-side; wait for the button of whichever plugin.
     await this.submitButton().waitFor({ state: 'visible', timeout: 30_000 });
+    // Elementor Pro binds its AJAX submit from a chunk it loads after DOMContentLoaded. A click
+    // before that chunk runs submits the form natively: the page reloads and admin-ajax.php,
+    // where the plugin sees the submission, is never called. Scripts added before the load
+    // event delay it, so waiting for it covers the chunk.
+    await this.page.waitForLoadState('load');
   }
 
   /** Fills fields by their label. */
