@@ -32,6 +32,6 @@
 ## 4. Release
 
 - [x] 4.1 Changelog wording for 1.2.2 to cover both changes, agreed with the maintainer
-- [ ] 4.2 Add the form-location scenarios to `docs/test-scenarios.html`
+- [x] 4.2 Add the form-location scenarios to `docs/test-scenarios.html`
 - [x] 4.3 Commit on `feat/wordpress-first-purchase` (PR #28): artifacts, code and tests in
   separate commits; no session links, no client data
