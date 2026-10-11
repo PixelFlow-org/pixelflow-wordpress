@@ -87,14 +87,14 @@
 
 <header>
   <h1>PixelFlow 1.2.2 — Test Scenario Matrix</h1>
-  <p class="sub">What the plugin's behaviour is actually verified against, organised by capability rather than by test file. Generated 2026-10-09 from <code>feat/wordpress-first-purchase</code>, for the OpenSpec change <code>add-woo-first-purchase-only</code>.</p>
-  <p class="sub"><strong>Last full run:</strong> 2026-10-09 on <code>c368c57</code> (committed, clean tree) — PHP 468/468 (34 files, on PHP 8.3; not rerun on PHP 7.4) · component tests 72/72 · admin E2E 7/7 · live storefront matrix 133/133 in one run, with the browser leaving through an EU address.</p>
+  <p class="sub">What the plugin's behaviour is actually verified against, organised by capability rather than by test file. Generated 2026-10-11 from <code>feat/wordpress-first-purchase</code>, for the OpenSpec changes <code>add-woo-first-purchase-only</code> and <code>add-form-location-from-cookie</code>.</p>
+  <p class="sub"><strong>Last full run:</strong> 2026-10-11 on <code>c52533c</code> — PHP 482/482 (35 files, on PHP 8.3; not rerun on PHP 7.4) · component tests 72/72 · admin E2E 7/7 (these three on <code>8ce5a6f</code>; later commits change no PHP or admin code) · live storefront matrix 133/134 in one run, with the browser leaving through an EU address. The one failure, the Elementor Pro case of the form hold spec, came from the suite itself (a click before Elementor bound its submit, and a repeat window the reset no longer cleared); after the fix in <code>9059e44</code> that case passed five times in a row.</p>
 
   <div class="stats">
-    <div class="stat"><b>206</b><span>scenarios in this matrix</span></div>
-    <div class="stat"><b>191</b><span>covered</span></div>
+    <div class="stat"><b>207</b><span>scenarios in this matrix</span></div>
+    <div class="stat"><b>192</b><span>covered</span></div>
     <div class="stat"><b>15</b><span>partial or uncovered</span></div>
-    <div class="stat"><b>680</b><span>automated cases (468 PHP · 72 vitest · 7 admin E2E · 133 live E2E)</span></div>
+    <div class="stat"><b>695</b><span>automated cases (482 PHP · 72 vitest · 7 admin E2E · 134 live E2E)</span></div>
   </div>
 
   <div class="legend">
@@ -271,7 +271,7 @@
 <tr><td class="id">ATTR-04</td><td>Partial or invalid attribution JSON</td><td>Accepted where partial; invalid falls back to the uid</td><td class="where">tests/test-attribution-cookie.php</td><td><span class="tag ok">Covered</span></td></tr>
 <tr><td class="id">ATTR-05</td><td>No attribution and no uid</td><td>Returns null</td><td class="where">tests/test-attribution-cookie.php</td><td><span class="tag ok">Covered</span></td></tr>
 <tr><td class="id">LOC-01</td><td>Storefront sets the location cookie</td><td><code>pf_loc</code> is written</td><td class="where">e2e/live/tests/user-location.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
-<tr><td class="id">LOC-02</td><td>Anonymous visitor vs. logged-in customer</td><td>Guest takes location from <code>pf_loc</code>; the account address wins for a customer</td><td class="where">e2e/live/tests/user-location.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">LOC-02</td><td>Anonymous visitor vs. logged-in customer</td><td>Guest takes location from <code>pf_loc</code>; the account address wins for a customer</td><td class="where">e2e/live/tests/user-location.spec.ts · tests/test-current-user-customer-data.php <em>(an existing key is kept)</em></td><td><span class="tag ok">Covered</span></td></tr>
 <tr><td class="id">LOC-03</td><td>The <code>pf_loc</code> cookie is removed</td><td>Location still resolves from the remaining sources</td><td class="where">e2e/live/tests/user-location.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
 <tr><td class="id">TTK-01</td><td>Both TikTok cookies present on AddToCart</td><td><code>eventData.ttp</code> from <code>_ttp</code>, <code>eventData.ttclid</code> from the <code>ttclid</code> key of <code>_pf_click_ids</code>; other keys (e.g. <code>gclid</code>) are not forwarded</td><td class="where">tests/test-tiktok-cookies.php · tests/test-automation-dedupe-release.php · e2e/live/tests/tiktok-ids.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
 <tr><td class="id">TTK-02</td><td>InitiateCheckout carries both TikTok cookies</td><td>Same terms as AddToCart</td><td class="where">tests/test-automation-dedupe-release.php · e2e/live/tests/tiktok-ids.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
@@ -412,6 +412,7 @@
 <tr><td class="id">FRM-36</td><td>Form tracking switched off on the Forms tab</td><td>The list and the plugin line are hidden; the stored choices return when it is switched on</td><td class="where">app/source/src/test/forms-settings.test.tsx</td><td><span class="tag ok">Covered</span></td></tr>
 <tr><td class="id">FRM-37</td><td>Field dropdowns in the mapping panel</td><td>The same options for every identifier; the dash is stored as a refusal only where a field is detected; choosing the detected field returns to detection; the single-name hint explains the split on request</td><td class="where">app/source/src/test/forms-settings.test.tsx · e2e/tests/forms-settings.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
 <tr><td class="id">FRM-38</td><td>Form debug switch</td><td>In Advanced settings beside the WooCommerce one; offered without WooCommerce; saved on its own option</td><td class="where">app/source/src/features/settings/components/AdvancedSettings.test.tsx</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-39</td><td>A form with no city, state, postcode or country fields</td><td>Those keys come from the <code>pf_loc</code> cookie, copied as stored; a field the form provides wins; no cookie sends no location; a held submission takes the cookie of the request that sends it; the debug log names the added keys</td><td class="where">tests/test-form-location.php · e2e/live/tests/forms-send.spec.ts <em>(Contact Form 7)</em></td><td><span class="tag ok">Covered</span></td></tr>
 </tbody>
 </table></div>
 
