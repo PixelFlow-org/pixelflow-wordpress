@@ -21,7 +21,6 @@ if ( ! defined('ABSPATH')) {
 class PixelFlow_Form_Dispatcher
 {
     /** Event API origin. */
-    private const API_URL = 'https://api.pixelflow.so';
 
     /** Repeat window for one form and one visitor. */
     private const DEDUPE_WINDOW = 120;
@@ -82,6 +81,9 @@ class PixelFlow_Form_Dispatcher
         if ($credentials === null) {
             return self::finish('skipped', 'SITE ID OR API KEY IS MISSING', $log);
         }
+        if ($credentials['api_url'] === '') {
+            return self::finish('skipped', 'THE PLUGIN HAS NO API ADDRESS CONFIGURED', $log);
+        }
 
         $ip = pixelflow_get_client_ip_address();
         $log['client_ip'] = self::mask_ip($ip);
@@ -121,7 +123,7 @@ class PixelFlow_Form_Dispatcher
      * @param array      $payload     Assembled payload
      * @param array      $submission  Normalised submission
      * @param array|null $blocked     Reason row, or null to send
-     * @param array      $credentials site_id and api_key
+     * @param array      $credentials site_id, api_key and api_url
      * @param string     $ua          Client user agent
      * @param array      $log         Debug-log context
      * @return string
@@ -295,7 +297,7 @@ class PixelFlow_Form_Dispatcher
      * that sends, so a held submission flushed after a grant takes it from that request.
      *
      * @param array  $payload     Payload
-     * @param array  $credentials site_id and api_key
+     * @param array  $credentials site_id, api_key and api_url
      * @param string $ua          Client user agent
      * @param array  $log         Debug-log context
      * @return string sent|skipped|failed
@@ -320,7 +322,7 @@ class PixelFlow_Form_Dispatcher
         $payload['eventData']['customerData']['client_ip_address'] = $ip;
 
         $response = wp_remote_post(
-            self::API_URL . '/event',
+            $credentials['api_url'] . '/event',
             [
                 'method'      => 'POST',
                 'timeout'     => self::timeout($credentials['site_id']),
@@ -346,7 +348,7 @@ class PixelFlow_Form_Dispatcher
     /**
      * POSTs one anonymous blocked-events row.
      *
-     * @param array  $credentials site_id and api_key
+     * @param array  $credentials site_id, api_key and api_url
      * @param string $event_name  Event name
      * @param array  $row         Reason row
      * @param array  $log         Debug-log context
@@ -359,7 +361,7 @@ class PixelFlow_Form_Dispatcher
             return;
         }
 
-        $response = pixelflow_post_blocked_events(self::API_URL, $credentials['api_key'], $payload);
+        $response = pixelflow_post_blocked_events($credentials['api_url'], $credentials['api_key'], $payload);
 
         // Logged as its own entry, as the WooCommerce path logs its beacons, so a reader of the
         // log can tell a report that left the site from an event that was merely refused.
@@ -416,7 +418,7 @@ class PixelFlow_Form_Dispatcher
 
         // Without credentials nothing can be delivered, and every disposition empties the queue.
         $credentials = self::credentials();
-        if ($credentials === null) {
+        if ($credentials === null || $credentials['api_url'] === '') {
             return;
         }
 
@@ -671,7 +673,8 @@ class PixelFlow_Form_Dispatcher
     }
 
     /**
-     * @return array{site_id: string, api_key: string}|null Null when either is missing
+     * @return array{site_id: string, api_key: string, api_url: string}|null Null when the site id
+     *                                                                        or API key is missing
      */
     private static function credentials(): ?array
     {
@@ -679,7 +682,9 @@ class PixelFlow_Form_Dispatcher
         $site_id = is_array($params) && isset($params['siteExternalId']) ? trim((string) $params['siteExternalId']) : '';
         $api_key = is_array($params) && isset($params['apiKey']) ? trim((string) $params['apiKey']) : '';
 
-        return $site_id !== '' && $api_key !== '' ? ['site_id' => $site_id, 'api_key' => $api_key] : null;
+        return $site_id !== '' && $api_key !== ''
+            ? ['site_id' => $site_id, 'api_key' => $api_key, 'api_url' => pixelflow_config()['api_url'] ?? '']
+            : null;
     }
 
     /**

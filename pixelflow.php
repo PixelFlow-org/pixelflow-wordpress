@@ -120,6 +120,7 @@ class PixelFlow
             $pixelflow_general_options = get_option('pixelflow_general_options', array());
             $debug_options             = get_option('pixelflow_debug_options', array());
             $script_params             = get_option('pixelflow_script_params', '');
+            $config                    = pixelflow_config();
 
             $settings = array(
                 'general_options'       => $pixelflow_general_options,
@@ -129,6 +130,12 @@ class PixelFlow
                 'ajax_url'              => admin_url('admin-ajax.php'),
                 'is_woocommerce_active' => PixelFlow_WooCommerce_Integration::is_woocommerce_active(),
                 'woo_debug_log_url'     => $this->get_debug_log_url(),
+                // PixelFlow service addresses of this build; the admin bundle carries none.
+                'config'                => array(
+                    'apiBaseUrl' => $config['api_url'] ?? '',
+                    'uiBaseUrl'  => $config['ui_url'] ?? '',
+                    'cdnUrl'     => $config['cdn_url'] ?? '',
+                ),
             );
 
             // Paths and versions
@@ -287,15 +294,10 @@ class PixelFlow
                     // Extract parameters
                     $site_external_id = isset($params['siteExternalId']) ? $params['siteExternalId'] : '';
                     $api_key          = isset($params['apiKey']) ? $params['apiKey'] : '';
+                    $script           = pixelflow_tracking_snippet((string) $site_external_id, (string) $api_key, pixelflow_config());
 
-                    // Check if required params exist
-                    if ( ! empty($site_external_id) && ! empty($api_key)) {
-                        $script = "!(function(p,i,x,f,l,o,w){p[\"PixelFlowObject\"]=f;p[f]=p[f]||function(){(p[f].q=p[f].q||[]).push(arguments);};p[f].l=1*new Date();o=i.createElement(x);w=i.getElementsByTagName(x)[0];o.src=l;o.async=1;p[f].apiKey=\"" . esc_js(
-                                $api_key
-                            ) . "\";p[f].siteId=\"" . esc_js(
-                                      $site_external_id
-                                  ) . "\";p[f].apiEndpoint=\"https://api.pixelflow.so/event\";w.parentNode.insertBefore(o,w);})(window,document,\"script\",\"pixelFlow\",\"https://slrgkgulru.pixelflow.so/pfm.js\");";
-
+                    // Empty without both credentials or without a configuration
+                    if ($script !== '') {
                         $script = apply_filters('pixelflow_analytics_code', $script);
 
                         wp_register_script(

@@ -34,6 +34,14 @@ export interface PixelFlowSettings {
   ajax_url: string;
   is_woocommerce_active: boolean;
   woo_debug_log_url?: string;
+  /** PixelFlow service addresses of the installed build, from includes/config.php */
+  config?: ServiceConfig;
+}
+
+export interface ServiceConfig {
+  apiBaseUrl: string;
+  uiBaseUrl: string;
+  cdnUrl: string;
 }
 
 // RTK Query types

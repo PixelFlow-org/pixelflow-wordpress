@@ -7,7 +7,7 @@
 import { useEffect, useState, useMemo, ReactElement } from 'react';
 
 /** Store */
-import { getCdnUrl } from '@pixelflow-org/plugin-core';
+import { getApiBaseUrl, getCdnUrl } from '@pixelflow-org/plugin-core';
 
 /** UI Components */
 import { Button } from '@pixelflow-org/plugin-ui';
@@ -203,7 +203,7 @@ const Home = ({ adapter }: HomeProps): ReactElement => {
         await saveScriptCode({
           siteExternalId,
           apiKey,
-          apiEndpoint: `${import.meta.env.VITE_API_BASE_URL || ''}/event`,
+          apiEndpoint: `${getApiBaseUrl()}/event`,
           cdnUrl: getCdnUrl(),
         }).unwrap();
 
@@ -336,7 +336,7 @@ const Home = ({ adapter }: HomeProps): ReactElement => {
       await saveScriptCode({
         siteExternalId,
         apiKey,
-        apiEndpoint: `${import.meta.env.VITE_API_BASE_URL || ''}/event`,
+        apiEndpoint: `${getApiBaseUrl()}/event`,
         cdnUrl: getCdnUrl(),
       }).unwrap();
 

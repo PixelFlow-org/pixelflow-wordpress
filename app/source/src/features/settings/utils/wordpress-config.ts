@@ -3,6 +3,8 @@
  * @description Single source of truth for WordPress settings from window object
  */
 
+import type { ServiceConfig } from '@/features/settings/types/settings.types';
+
 /**
  * Get WordPress configuration from window object
  * @description Extracts WordPress settings once during module initialization.
@@ -24,4 +26,15 @@ export const wordpressSettings = getWordPressSettings();
 export const getWordPressAjaxConfig = () => ({
   nonce: wordpressSettings?.nonce || '',
   ajaxUrl: wordpressSettings?.ajax_url || '',
+});
+
+/**
+ * Get PixelFlow service addresses
+ * @description The plugin passes the addresses of the installed build; the bundle carries none
+ * @returns API origin, dashboard origin and tracking script address, empty when absent
+ */
+export const getServiceConfig = (): ServiceConfig => ({
+  apiBaseUrl: wordpressSettings?.config?.apiBaseUrl || '',
+  uiBaseUrl: wordpressSettings?.config?.uiBaseUrl || '',
+  cdnUrl: wordpressSettings?.config?.cdnUrl || '',
 });
