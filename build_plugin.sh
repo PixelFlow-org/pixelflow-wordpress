@@ -1,74 +1,146 @@
 #!/bin/bash
 
 # PixelFlow Plugin Build Script
-# Builds the frontend and creates a production-ready zip file
-# Usage: ./build_plugin.sh [dev|prod]
+# Packages two archives, each built from one env file:
+#   build/pixelflow.zip      production, addresses from app/source/.env (committed)
+#   build/pixelflow_dev.zip  development, addresses from app/source/.env.dev (local, git-ignored)
+# Each archive gets its own admin bundle (Vite inlines the VITE_* values, which the PixelFlow
+# libraries read at build time) and its own includes/config.php (read by PHP and passed to the
+# admin app). The working tree gets the development bundle and configuration when .env.dev exists.
+# Usage: ./build_plugin.sh
+
+# The script needs bash; `sh build_plugin.sh` on a system whose sh is dash re-runs it under bash.
+if [ -z "${BASH_VERSION:-}" ]; then
+  exec bash "$0" "$@"
+fi
 
 set -e  # Exit on error
 
-# Get build mode (default to prod)
-BUILD_MODE="${1:-prod}"
-
-if [ "$BUILD_MODE" != "dev" ] && [ "$BUILD_MODE" != "prod" ]; then
-  echo "❌ Invalid build mode: $BUILD_MODE"
-  echo "Usage: ./build_plugin.sh [dev|prod]"
+if [ "$#" -ne 0 ]; then
+  echo "❌ build_plugin.sh takes no arguments (got: $*)"
+  echo "Usage: ./build_plugin.sh"
+  echo "It builds build/pixelflow.zip from app/source/.env and build/pixelflow_dev.zip from app/source/.env.dev."
   exit 1
 fi
-
-echo "🚀 Building PixelFlow WordPress Plugin (${BUILD_MODE} mode)..."
 
 # Get the plugin directory (script location)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# Build frontend assets
-echo "📦 Building frontend assets..."
-cd app/source
-
-# Use env file for build (Vite will load it automatically, but we verify it exists)
-if [ "$BUILD_MODE" = "prod" ]; then
-  if [ -f ".env.production" ]; then
-    echo "📋 Using .env.production for build (will NOT be included in zip)"
-    # Vite automatically loads .env.production when running 'vite build'
-  else
-    echo "⚠️  Warning: .env.production not found - build will use default/empty env vars"
-  fi
-  npm run build
-else
-  if [ -f ".env.development" ]; then
-    echo "📋 Using .env.development for build (will NOT be included in zip)"
-  elif [ -f ".env.local" ]; then
-    echo "📋 Using .env.local for build (will NOT be included in zip)"
-  else
-    echo "⚠️  Warning: .env.development or .env.local not found - build will use default/empty env vars"
-  fi
-  npm run build-dev
-fi
-
-cd "$SCRIPT_DIR"
-
-# Create build directory if it doesn't exist
-BUILD_DIR="$SCRIPT_DIR/build"
-mkdir -p "$BUILD_DIR"
-
-# Plugin name and version
 PLUGIN_NAME="pixelflow"
-if [ "$BUILD_MODE" = "prod" ]; then
-  ZIP_NAME="${PLUGIN_NAME}.zip"
-else
-  ZIP_NAME="${PLUGIN_NAME}_dev.zip"
-fi
-ZIP_PATH="$BUILD_DIR/$ZIP_NAME"
+BUILD_DIR="$SCRIPT_DIR/build"
+ENV_DIR="app/source"
+PROD_ENV="$ENV_DIR/.env"
+DEV_ENV="$ENV_DIR/.env.dev"
+PROD_ZIP="$BUILD_DIR/${PLUGIN_NAME}.zip"
+DEV_ZIP="$BUILD_DIR/${PLUGIN_NAME}_dev.zip"
 
-# Remove previous zip file if it exists
-if [ -f "$ZIP_PATH" ]; then
-  echo "🗑️  Removing previous build: $ZIP_NAME"
-  rm -f "$ZIP_PATH"
+fail() {
+  echo "❌ $1"
+  exit 1
+}
+
+# Reads the three service addresses of an env file into ENV_API_URL, ENV_UI_URL and ENV_CDN_URL.
+# The file is parsed, never sourced, so it cannot run commands: KEY=VALUE lines, comments and
+# blank lines, one pair of surrounding quotes stripped. Each of the three keys must be an
+# http(s) URL with no whitespace, quote or backslash, since it is written into a PHP string.
+read_env_file() {
+  local file="$1" line key value line_no=0
+  local assignment='^([A-Za-z_][A-Za-z0-9_]*)=(.*)$'
+  local double_quoted='^"(.*)"$'
+  local single_quoted="^'(.*)'\$"
+
+  ENV_API_URL=""
+  ENV_UI_URL=""
+  ENV_CDN_URL=""
+
+  while IFS= read -r line || [ -n "$line" ]; do
+    line_no=$((line_no + 1))
+    line="${line%$'\r'}"
+    line="${line#"${line%%[![:space:]]*}"}"
+    if [ -z "$line" ] || [[ "$line" == \#* ]]; then
+      continue
+    fi
+    if ! [[ "$line" =~ $assignment ]]; then
+      fail "$file:$line_no is not a KEY=VALUE line"
+    fi
+    key="${BASH_REMATCH[1]}"
+    value="${BASH_REMATCH[2]}"
+    value="${value%"${value##*[![:space:]]}"}"
+    if [[ "$value" =~ $double_quoted ]] || [[ "$value" =~ $single_quoted ]]; then
+      value="${BASH_REMATCH[1]}"
+    fi
+    case "$key" in
+      VITE_API_BASE_URL) ENV_API_URL="$value" ;;
+      VITE_UI_BASE_URL) ENV_UI_URL="$value" ;;
+      VITE_CDN_URL) ENV_CDN_URL="$value" ;;
+    esac
+  done < "$file"
+
+  check_env_value "$file" VITE_API_BASE_URL "$ENV_API_URL"
+  check_env_value "$file" VITE_UI_BASE_URL "$ENV_UI_URL"
+  check_env_value "$file" VITE_CDN_URL "$ENV_CDN_URL"
+}
+
+check_env_value() {
+  local file="$1" key="$2" value="$3"
+  if [ -z "$value" ]; then
+    fail "$file: $key is missing or empty"
+  fi
+  if ! [[ "$value" =~ ^https?:// ]] || [[ "$value" == *[[:space:]\'\"\\]* ]]; then
+    fail "$file: $key is not an http(s) URL without spaces, quotes or backslashes: $value"
+  fi
+}
+
+# Writes a PHP configuration file holding the addresses last read by read_env_file.
+write_config() {
+  local target="$1" source_file="$2"
+  # Trailing slashes are dropped here and again by the PHP reader.
+  cat > "$target" <<EOF
+<?php
+/**
+ * PixelFlow service addresses, generated by build_plugin.sh from ${source_file}.
+ * Do not edit: the next build overwrites this file.
+ */
+
+defined('ABSPATH') || exit;
+
+return array(
+    'api_url' => '${ENV_API_URL%/}',
+    'ui_url'  => '${ENV_UI_URL%/}',
+    'cdn_url' => '${ENV_CDN_URL}',
+);
+EOF
+}
+
+echo "🚀 Building PixelFlow WordPress Plugin..."
+
+# Validate every env file before building anything, so a broken one leaves no new archive.
+[ -f "$PROD_ENV" ] || fail "$PROD_ENV is missing: it holds the production addresses and is committed to the repository"
+read_env_file "$PROD_ENV"
+echo "📋 Production addresses: $PROD_ENV"
+
+HAS_DEV_ENV=0
+if [ -f "$DEV_ENV" ]; then
+  read_env_file "$DEV_ENV"
+  HAS_DEV_ENV=1
+  echo "📋 Development addresses: $DEV_ENV"
+else
+  echo "⚠️  $DEV_ENV not found: the development archive will be skipped"
 fi
+
+for leftover in "$ENV_DIR/.env.local" "$ENV_DIR/.env.production"; do
+  if [ -f "$leftover" ]; then
+    echo "⚠️  $leftover is no longer read by the build; rename it (.env.local → .env.dev, .env.production → .env) or delete it"
+  fi
+done
+
+mkdir -p "$BUILD_DIR"
+rm -f "$PROD_ZIP" "$DEV_ZIP"
 
 # Create temporary staging directory
 STAGING_DIR="$BUILD_DIR/staging"
-PLUGIN_STAGING_DIR="$STAGING_DIR/$PLUGIN_NAME"
+PLUGIN_STAGING_DIR="$STAGING_DIR/common/$PLUGIN_NAME"
 
 # Clean up any existing staging directory
 if [ -d "$STAGING_DIR" ]; then
@@ -78,13 +150,13 @@ fi
 # Create plugin directory in staging
 mkdir -p "$PLUGIN_STAGING_DIR"
 
-echo "📁 Creating deployment package: $ZIP_NAME"
 echo "📋 Copying files to staging directory..."
 
-# Copy production files to staging (NO source directory, NO env files, NO publish script)
-mkdir -p "$PLUGIN_STAGING_DIR/app"
-cp -r app/dist "$PLUGIN_STAGING_DIR/app/" 2>/dev/null || true
+# Copy production files to staging (NO source directory, NO env files, NO publish script).
+# app/dist is added per archive, after the bundle of its environment is built.
 cp -r includes "$PLUGIN_STAGING_DIR/" 2>/dev/null || true
+# The working tree's configuration is not the archive's; each archive gets its own below.
+rm -f "$PLUGIN_STAGING_DIR/includes/config.php"
 [ -d "assets" ] && cp -r assets "$PLUGIN_STAGING_DIR/" || true
 [ -d "admin" ] && cp -r admin "$PLUGIN_STAGING_DIR/" || true
 cp pixelflow.php "$PLUGIN_STAGING_DIR/"
@@ -93,27 +165,65 @@ cp uninstall.php "$PLUGIN_STAGING_DIR/"
 cp readme.txt "$PLUGIN_STAGING_DIR/"
 [ -d "languages" ] && cp -r languages "$PLUGIN_STAGING_DIR/" || true
 
-# Create zip from staging directory
-cd "$STAGING_DIR"
-zip -r "$ZIP_PATH" "$PLUGIN_NAME" \
-  -x "*.DS_Store" \
-  -x "*__MACOSX*" \
-  -x "*.git*" \
-  -x "*build_plugin.sh" \
-  -x "*publish_plugin.sh" \
-  -x "*/svn/*"
+# Builds the admin bundle with one env file's addresses, then copies the staged plugin, adds the
+# bundle and the configuration, and zips it.
+package() {
+  local env_file="$1" zip_path="$2" name="$3"
+  local env_staging="$STAGING_DIR/$name"
+
+  read_env_file "$env_file"
+  echo "📦 Building frontend assets with $env_file..."
+  # Variables already in the environment take precedence over Vite's own env files.
+  (cd "$ENV_DIR" && VITE_API_BASE_URL="$ENV_API_URL" VITE_UI_BASE_URL="$ENV_UI_URL" VITE_CDN_URL="$ENV_CDN_URL" npm run build)
+
+  echo "📁 Creating deployment package: $(basename "$zip_path") (from $env_file)"
+  mkdir -p "$env_staging"
+  cp -r "$PLUGIN_STAGING_DIR" "$env_staging/"
+  mkdir -p "$env_staging/$PLUGIN_NAME/app"
+  cp -r app/dist "$env_staging/$PLUGIN_NAME/app/"
+  write_config "$env_staging/$PLUGIN_NAME/includes/config.php" "$env_file"
+
+  (cd "$env_staging" && zip -qr "$zip_path" "$PLUGIN_NAME" \
+    -x "*.DS_Store" \
+    -x "*__MACOSX*" \
+    -x "*.git*" \
+    -x "*build_plugin.sh" \
+    -x "*publish_plugin.sh" \
+    -x "*/svn/*")
+}
+
+package "$PROD_ENV" "$PROD_ZIP" prod
+if [ "$HAS_DEV_ENV" = 1 ]; then
+  package "$DEV_ENV" "$DEV_ZIP" dev
+fi
 
 # Clean up staging directory
-cd "$SCRIPT_DIR"
 rm -rf "$STAGING_DIR"
 
+# The plugin running from the working tree talks to staging when .env.dev exists. app/dist was
+# built last for the same environment, so the bundle and the configuration agree.
+if [ "$HAS_DEV_ENV" = 1 ]; then
+  read_env_file "$DEV_ENV"
+  write_config includes/config.php "$DEV_ENV"
+  echo "🔧 includes/config.php (working tree): development addresses from $DEV_ENV"
+else
+  read_env_file "$PROD_ENV"
+  write_config includes/config.php "$PROD_ENV"
+  echo "⚠️  includes/config.php (working tree): PRODUCTION addresses from $PROD_ENV, because $DEV_ENV is missing"
+fi
+
 echo "✅ Build complete!"
-echo "📦 Package location: build/$ZIP_NAME"
-echo "🏷️  Build mode: $BUILD_MODE"
+echo "📦 Packages:"
+echo "  build/$(basename "$PROD_ZIP") (production, $PROD_ENV)"
+if [ "$HAS_DEV_ENV" = 1 ]; then
+  echo "  build/$(basename "$DEV_ZIP") (development, $DEV_ENV)"
+else
+  echo "  build/$(basename "$DEV_ZIP") skipped: $DEV_ENV not found"
+fi
 echo ""
 echo "Files included:"
-echo "  ✅ app/dist/"
-echo "  ✅ includes/"
+echo "  ✅ app/dist/ (built for the archive's environment)"
+echo "  ✅ includes/ (with config.php for the archive's environment)"
 [ -d "assets" ] && echo "  ✅ assets/" || echo "  ⚠️  assets/ (not found, skipped)"
 [ -d "admin" ] && echo "  ✅ admin/" || echo "  ⚠️  admin/ (not found, skipped)"
 echo "  ✅ pixelflow.php"
@@ -124,10 +234,9 @@ echo "  ✅ readme.txt"
 echo ""
 echo "Files excluded:"
 echo "  ❌ app/source/ (entire directory)"
-echo "  ❌ .env files (used during build only, not included)"
+echo "  ❌ .env files (read during build only, not included)"
 echo "  ❌ build_plugin.sh (build script)"
 echo "  ❌ publish_plugin.sh (publish script)"
 echo "  ❌ svn/ (SVN directory)"
 echo ""
 echo "🎉 Ready for deployment!"
-

@@ -2025,7 +2025,7 @@ class PixelFlow_WooCommerce_Cart_Hooks
     }
 
     /**
-     * Whether the site has both credentials the API requires.
+     * Whether the site has both credentials the API requires, and the plugin an API address.
      *
      * Checked at the two outbound requests rather than at hook registration: everything the
      * hooks merely record — the attribution snapshot, the consent decision, the held queue —
@@ -2035,12 +2035,16 @@ class PixelFlow_WooCommerce_Cart_Hooks
      */
     private function has_api_credentials(): bool
     {
-        return trim($this->api_key) !== '' && trim($this->site_external_id) !== '';
+        return trim($this->api_key) !== '' && trim($this->site_external_id) !== '' && $this->api_url !== '';
     }
 
     /** Debug-log line for a send the credential gate stopped. */
     private function no_credentials_message(): string
     {
+        if ($this->api_url === '') {
+            return __('EVENT SENDING SKIPPED BECAUSE THE PLUGIN HAS NO API ADDRESS CONFIGURED', 'pixelflow');
+        }
+
         return __('EVENT SENDING SKIPPED BECAUSE THE SITE ID OR API KEY IS MISSING', 'pixelflow');
     }
 

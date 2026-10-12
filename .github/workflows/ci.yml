@@ -111,15 +111,15 @@ jobs:
       # repository. Checking the working tree reports dozens of findings against
       # sources, tests, planning documents and tooling that never reach a user.
       #
-      # `.env.production` is untracked, so the script warns and builds with empty
-      # environment values. That is sufficient for static and activation checks,
-      # and is exactly why this zip must never be published as a release artifact.
+      # `app/source/.env` is committed, so this packages the real production
+      # configuration. `.env.dev` is not, so the script skips the development archive
+      # and says so. Releases are still built and published with publish_plugin.sh.
       - name: Build and package the plugin
         id: package
         if: always() && steps.install.outcome == 'success'
         working-directory: .
         run: |
-          ./build_plugin.sh prod
+          ./build_plugin.sh
           unzip -q build/pixelflow.zip -d tmp/
 
       # Guarded on the packaging step, not on the install: this step consumes

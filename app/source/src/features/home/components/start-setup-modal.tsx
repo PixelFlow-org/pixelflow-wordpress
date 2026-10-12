@@ -5,6 +5,9 @@ import { createPortal } from 'react-dom';
 /** UI Components */
 import { Button } from '@pixelflow-org/plugin-ui';
 
+/** Config */
+import { getDashboardUrl } from '@/config/platform.config';
+
 /** Types */
 type StartSetupModalProps = {
   open: boolean;
@@ -84,9 +87,7 @@ const StartSetupModal = ({ open, onOpenChange }: StartSetupModalProps): ReactEle
               mode="filled"
               size="small"
               className="!w-[160px] min-w-[160px] !max-w-[160px]"
-              onClick={() =>
-                window.open('https://dashboard.pixelflow.so/dashboard/overview', '_blank')
-              }
+              onClick={() => window.open(getDashboardUrl(), '_blank')}
             >
               Start Setup
             </Button.Root>

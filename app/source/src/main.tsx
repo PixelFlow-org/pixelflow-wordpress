@@ -5,13 +5,10 @@
 
 /** Core Configuration */
 import { setPixelFlowConfig } from '@pixelflow-org/plugin-core';
+import { getServiceConfig } from '@/features/settings/utils/wordpress-config';
 
-// Configure core package with platform-specific URLs BEFORE rendering
-setPixelFlowConfig({
-  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || '',
-  uiBaseUrl: import.meta.env.VITE_UI_BASE_URL || '',
-  cdnUrl: import.meta.env.VITE_CDN_URL || '',
-});
+// Configure core package with the installed build's URLs BEFORE rendering
+setPixelFlowConfig(getServiceConfig());
 
 /** External libraries */
 import React from 'react';

@@ -23,7 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 
-# Environment
-.env.production
+# Environment: .env (production) is committed; the rest stay local
+!.env
+.env.dev
 .env.local
+.env.production
 .env.*.local

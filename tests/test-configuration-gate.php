@@ -16,6 +16,9 @@
 
 declare(strict_types=1);
 
+// A built plugin's service addresses, so the sends the gate lets through have somewhere to go.
+define('PIXELFLOW_CONFIG_FILE', __DIR__ . '/fixtures/config.php');
+
 require_once __DIR__ . '/bootstrap-wp-stubs.php';
 
 $_SERVER['REMOTE_ADDR'] = '203.0.113.10';
@@ -305,12 +308,32 @@ pf_run_gate_case(
 
         $urls = array_column($GLOBALS['__pf_test_posts'], 'url');
         foreach (['/event', '/blocked-events'] as $path) {
-            if ( ! in_array('https://api.pixelflow.so' . $path, $urls, true)) {
+            if ( ! in_array('https://api.example.test' . $path, $urls, true)) {
                 return "nothing reached {$path}: " . json_encode($urls);
             }
         }
 
         return true;
+    },
+    $failures,
+    $passes
+);
+
+pf_run_gate_case(
+    'Without an API address the event and the beacon are not sent',
+    /** @return bool|string */
+    function () {
+        $GLOBALS['__pf_test_options']['pixelflow_script_params'] = [
+            'siteExternalId' => PF_SITE,
+            'apiKey'         => 'k',
+        ];
+        // What load_hooks() passes when the plugin carries no configuration.
+        new PixelFlow_WooCommerce_Cart_Hooks('', 'k', PF_SITE, []);
+        pf_drive_one_event();
+
+        return $GLOBALS['__pf_test_posts'] === []
+            ? true
+            : 'something was sent: ' . json_encode(array_column($GLOBALS['__pf_test_posts'], 'url'));
     },
     $failures,
     $passes

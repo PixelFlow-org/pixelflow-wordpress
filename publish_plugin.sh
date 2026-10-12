@@ -52,8 +52,8 @@ echo ""
 # Step 1: Build the plugin
 echo "📦 Step 1: Building plugin for production..."
 if [ -f "build_plugin.sh" ]; then
-  echo "🔨 Running: sh build_plugin.sh prod"
-  sh build_plugin.sh prod
+  echo "🔨 Running: bash build_plugin.sh"
+  bash build_plugin.sh
 else
   echo "❌ Error: build_plugin.sh not found"
   exit 1

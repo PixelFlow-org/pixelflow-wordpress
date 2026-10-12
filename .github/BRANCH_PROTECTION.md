@@ -78,10 +78,10 @@ That permission is set on the `frontend` job rather than on the workflow. Job-le
 permissions replace the workflow-level block instead of extending it, so the job
 restates `contents: read` and `packages: read` alongside it.
 
-> The zip that CI builds is for checking only. `.env.production` is untracked, so
-> the build runs with empty environment values and the resulting plugin is not
-> functionally configured. **Never publish a CI-built zip as a release artifact.**
-> Releases are built locally, where `.env.production` exists.
+> The zip that CI builds is for checking only. It carries the production addresses
+> from the committed `app/source/.env`, but it is not the release: **never publish a
+> CI-built zip as a release artifact.** Releases are built and published locally with
+> `publish_plugin.sh`.
 
 ## The workflow that must NOT be required
 

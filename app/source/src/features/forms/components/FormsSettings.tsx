@@ -20,11 +20,10 @@ import { useLazyGetFormsQuery, useSaveFormSettingsMutation } from '@/features/fo
 import { FormRowItem } from '@/features/forms/components/FormRowItem';
 import { NameSplitHint } from '@/features/forms/components/NameSplitHint';
 import Notification from '@/shared/components/Notification/Notification.tsx';
+import { getDashboardUrl } from '@/config/platform.config';
 
 /** Types */
 import type { FormPatch, FormsListing } from '@/features/forms/types';
-
-const DASHBOARD_URL = 'https://dashboard.pixelflow.so/dashboard/overview';
 
 /**
  * FormsSettings component
@@ -138,7 +137,7 @@ export function FormsSettings() {
                         that trigger, or leave the form off here. A form this list does not show can
                         be tracked from the{' '}
                         <a
-                          href={DASHBOARD_URL}
+                          href={getDashboardUrl()}
                           target="_blank"
                           rel="noreferrer"
                           className="underline"

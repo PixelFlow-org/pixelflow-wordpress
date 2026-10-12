@@ -19,7 +19,7 @@ echo "Artifacts: $PF_ARTIFACTS_DIR"
 
 echo
 echo "== 1/4 build =="
-( cd "$PLUGIN_DIR" && sh build_plugin.sh prod )
+( cd "$PLUGIN_DIR" && bash build_plugin.sh )
 export PF_PLUGIN_ZIP="$PLUGIN_DIR/build/pixelflow.zip"
 export PF_PLUGIN_VERSION="$(sed -n "s/^ \* Version: *//p" "$PLUGIN_DIR/pixelflow.php" | head -1 | tr -d '[:space:]')"
 echo "Built $PF_PLUGIN_ZIP (version $PF_PLUGIN_VERSION)"

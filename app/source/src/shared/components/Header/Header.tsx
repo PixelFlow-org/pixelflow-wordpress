@@ -1,6 +1,7 @@
 import { Currency, NarrowButton, FaqIcon, Dropdown } from '@pixelflow-org/plugin-ui';
 import { User } from '@pixelflow-org/plugin-core';
 import PixelflowIcon from '@/shared/icons/pixelflow.icon.tsx';
+import { getDashboardUrl } from '@/config/platform.config';
 
 type HeaderProps = {
   selectedCurrency: string;
@@ -15,7 +16,7 @@ const Header = ({ selectedCurrency, updateCurrency, user }: HeaderProps) => {
         <NarrowButton className="justify-center">
           <a
             className="text-xs !text-foreground flex gap-2"
-            href="https://dashboard.pixelflow.so/dashboard/overview"
+            href={getDashboardUrl()}
             target="_blank"
             rel="noopener noreferrer"
           >

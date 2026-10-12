@@ -36,6 +36,7 @@ Every event is enriched with the data Meta and TikTok use to match the buyer to 
 - **Exclude SKUs.** Stop specific products (gift cards, samples, wholesale items) from triggering events.
 - **Free products.** Choose whether free products trigger Add to Cart, Checkout and Purchase events.
 - **Pick your events.** Turn Add to Cart, Initiate Checkout or Purchase on or off individually.
+- **Subscriptions.** Send Purchase only for a customer’s first order, not renewals or repeat orders.
 
 ### Automatic form tracking
 
@@ -147,10 +148,31 @@ When WooCommerce integration is active, PixelFlow automatically:
 The plugin includes a React-based admin interface that needs to be built before deployment.
 
 ```bash
-sh build_plugin.sh
+./build_plugin.sh
 ```
 
-This will compile the frontend assets to `app/dist/`.
+The script takes no arguments and builds two archives, each for one PixelFlow environment:
+
+| Archive | Service addresses from | In git |
+|---|---|---|
+| `build/pixelflow.zip` | `app/source/.env` (production) | committed |
+| `build/pixelflow_dev.zip` | `app/source/.env.dev` (staging) | ignored, local only |
+
+Each env file sets `VITE_API_BASE_URL` (API origin), `VITE_UI_BASE_URL` (dashboard origin) and
+`VITE_CDN_URL` (tracking script address). For each archive the script builds the admin bundle
+with those values and writes `includes/config.php` from them; PHP reads that file and passes the
+addresses to the admin app. A missing `.env`, or a missing or empty key in either file, fails
+the build before anything is packaged. Without `.env.dev` only the production archive is built.
+
+The build also writes `includes/config.php` (git-ignored) into the working tree and leaves the
+matching bundle in `app/dist/`: staging addresses when `.env.dev` exists, production ones with a
+warning otherwise. A plugin running from a clone that was never built has no configuration and
+sends nothing. After the first build a local site therefore talks to staging; one connected to a
+production PixelFlow account has to be reconnected on staging.
+
+Upgrading from the old `build_plugin.sh [dev|prod]`: rename `app/source/.env.local` to
+`app/source/.env.dev` and delete `app/source/.env.production` (its values are now in the
+committed `.env`). The build warns while either old file is present.
 
 ### Development Workflow
 
@@ -239,7 +261,7 @@ every job below succeeded. Individual results still show on the pull request.
 | Types | `pnpm typecheck` | `app/source` |
 | Formatting (Prettier) | `pnpm format:check` — `pnpm format` fixes it | `app/source` |
 | Unit tests (vitest) | `pnpm test` | `app/source` |
-| Production build + packaging | `./build_plugin.sh prod` | plugin root |
+| Production build + packaging | `./build_plugin.sh` | plugin root |
 | Plugin Check (WordPress's own checker) | see note below | a WordPress install |
 | PHP syntax + tests, on 7.4 / 8.1 / 8.3 | `php -l <file>` and `php tests/test-*.php` | plugin root |
 
@@ -254,7 +276,7 @@ Notes:
   an authentication failure, not a missing package.
 - There is no separate `pnpm build` step. `build_plugin.sh` runs the production
   build itself, and CI checks the zip it produces, so the build that ships is the
-  build that is verified.
+  build that is verified. CI has no `.env.dev`, so it builds the production archive only.
 - Plugin Check runs against the **packaged** plugin — the unpacked
   `build/pixelflow.zip` — not against this repository. Most of the tree
   (`app/source/`, `e2e/`, `tests/`, `openspec/`, tooling, dotfiles) never ships,
@@ -301,8 +323,9 @@ Use the automated build script to create a production-ready zip file:
 ```
 
 This will:
-1. Build the frontend assets
-2. Create a timestamped zip file in `build/` directory
+1. Build the frontend assets for each environment
+2. Create `build/pixelflow.zip` (production) and, when `app/source/.env.dev` exists,
+   `build/pixelflow_dev.zip` (staging)
 3. Include only production files (excluding `app/source`)
 
 ### Manual Deployment
