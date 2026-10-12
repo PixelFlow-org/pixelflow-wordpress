@@ -8,6 +8,9 @@
 
 declare(strict_types=1);
 
+// These cases send events, which needs the API address a built plugin carries.
+define('PIXELFLOW_CONFIG_FILE', __DIR__ . '/fixtures/config.php');
+
 require_once __DIR__ . '/bootstrap-forms.php';
 
 pixelflow_forms_bootstrap();

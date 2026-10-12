@@ -17,6 +17,12 @@ if ( ! defined('ABSPATH')) {
     define('ABSPATH', __DIR__ . '/');
 }
 
+// No service configuration unless a test opts in with its own PIXELFLOW_CONFIG_FILE, and never
+// the includes/config.php a build writes into the working tree.
+if ( ! defined('PIXELFLOW_CONFIG_FILE')) {
+    define('PIXELFLOW_CONFIG_FILE', __DIR__ . '/fixtures/no-such-config.php');
+}
+
 // ---------------------------------------------------------------------
 // Minimal action hook system (mirrors wp-includes/class-wp-hook.php just
 // enough to reproduce the same call-boundary behavior: do_action() slices
