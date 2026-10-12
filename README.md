@@ -36,6 +36,7 @@ Every event is enriched with the data Meta and TikTok use to match the buyer to 
 - **Exclude SKUs.** Stop specific products (gift cards, samples, wholesale items) from triggering events.
 - **Free products.** Choose whether free products trigger Add to Cart, Checkout and Purchase events.
 - **Pick your events.** Turn Add to Cart, Initiate Checkout or Purchase on or off individually.
+- **Subscriptions.** Send Purchase only for a customer’s first order, not renewals or repeat orders.
 
 ### Automatic form tracking
 
