@@ -149,6 +149,13 @@ export class SettingsPage {
     await this.openWooTab();
   }
 
+  /** One role's switch under "Exclude Tracking for User Roles". */
+  async setRoleExcluded(role: string, excluded: boolean): Promise<void> {
+    await this.openAdvancedTab();
+    await this.setSwitch(`exclude-role-${role}`, excluded);
+    await this.openWooTab();
+  }
+
   private excludedSkuChip(sku: string): Locator {
     return this.page.getByRole('button', { name: `Remove SKU ${sku}` });
   }

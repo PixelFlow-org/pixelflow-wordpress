@@ -159,6 +159,13 @@ export function skippedRecords(records: EventRecord[], name: string): EventRecor
   );
 }
 
+/** Records for one event name that the plugin skipped because the user's role is excluded. */
+export function excludedRoleRecords(records: EventRecord[], name: string): EventRecord[] {
+  return recordsNamed(records, name).filter(
+    (record) => record.response === 'USER ROLE IS EXCLUDED FROM TRACKING'
+  );
+}
+
 /**
  * Blocked-events beacons for one event name.
  *
