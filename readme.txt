@@ -4,7 +4,7 @@ Tags: facebook pixel, conversions api, tiktok pixel, meta pixel, server-side tra
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.2.2
+Stable tag: 1.2.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -160,7 +160,7 @@ Yes. Turn on product IDs in WooCommerce Settings and choose the format that matc
 
 = Can I stop admins and staff being tracked? =
 
-Yes. Under Advanced Settings, choose any user roles (Administrator, Editor, Shop manager and more) that should not have the tracking script loaded.
+Yes. Under Advanced Settings, choose any user roles (Administrator, Editor, Shop manager and more) that should not be tracked. The tracking script is not loaded for them, and their form and WooCommerce events are not sent while they are signed in. A Purchase can still be sent when a payment gateway, automation or another staff member changes the order's status, and a tracking script added to the site by hand is not affected.
 
 = Is PixelFlow GDPR compliant? =
 
@@ -196,6 +196,9 @@ Documentation, video tutorials and email support on all plans. Ask a question in
 10. Exclude admins, shop managers and any user role from tracking.
 
 == Changelog ==
+
+= 1.2.3 =
+Excluded user roles now also stop WooCommerce AddToCart, InitiateCheckout and Purchase events from their own signed-in requests, so sites that exclude roles may see lower event counts
 
 = 1.2.2 =
 WooCommerce: optional setting to send Purchase only for a customer's first paid order, so subscription renewals and repeat orders stop counting as new purchases. Forms: events now include city, state, postcode and country from the visitor's location when the form has no such fields.
