@@ -133,11 +133,12 @@ export function AdvancedSettings() {
           {availableRoles.length > 0 && (
             <section>
               <h3 className="text-base font-semibold mb-2 !text-foreground">
-                Exclude Script for User Roles
+                Exclude Tracking for User Roles
               </h3>
               <p className="text-sm text-foreground ml-12">
-                Select user roles that should NOT have the tracking script injected when they visit
-                the site. Useful for excluding administrators, editors, or other internal users.
+                Select user roles that should not be tracked while signed in. The tracking script is
+                not loaded for them, and their form and WooCommerce events are not sent. Useful for
+                excluding administrators, editors, or other internal users.
               </p>
               <div className="space-y-2">
                 {availableRoles.map((role) => {
@@ -162,14 +163,15 @@ export function AdvancedSettings() {
               </div>
               {excludedRoles.length > 0 && (
                 <p className="text-xs text-gray-600 mt-3">
-                  <strong>Note:</strong> Users with excluded roles will not have tracking script
-                  injected.
+                  <strong>Note:</strong> A tracking script added to the site by hand is not affected
+                  by this setting.
                 </p>
               )}
               {isWooCommerceActive && generalOptions.woo_enabled === 1 && (
                 <p className="text-xs text-gray-600 mt-2" data-testid="excluded-roles-woo-note">
-                  This setting is not applied to WooCommerce event sending: add to cart, checkout
-                  and purchase events are still sent for these roles. Form events are not.
+                  A Purchase can still be sent when a payment gateway, automation or another staff
+                  member changes the order's status, because that request does not belong to the
+                  excluded user.
                 </p>
               )}
             </section>
