@@ -21,7 +21,7 @@ The project includes frontend test tooling for the React admin interface:
 
 ## Documentation Language
 
-All specs and planning artifacts are written in English — OpenSpec proposals, delta specs, design docs and task lists under `openspec/changes/`, PRDs, plans and analysis docs under `.claude/tasks/`, plus the changelog and README. This holds regardless of the language of the conversation that produced them: chat may be in Russian, the written artifact is English.
+All specs and planning artifacts are written in English — OpenSpec proposals, delta specs, design docs and task lists under `openspec/changes/`, PRDs, plans and analysis docs under `.claude/tasks/`, plus the changelog and README. Chat is in English as well.
 
 ## Version Bump
 
