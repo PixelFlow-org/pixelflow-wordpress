@@ -86,15 +86,15 @@
 <div class="wrap">
 
 <header>
-  <h1>PixelFlow 1.2.2 — Test Scenario Matrix</h1>
-  <p class="sub">What the plugin's behaviour is actually verified against, organised by capability rather than by test file. Generated 2026-10-11 from <code>feat/wordpress-first-purchase</code>, for the OpenSpec changes <code>add-woo-first-purchase-only</code> and <code>add-form-location-from-cookie</code>.</p>
-  <p class="sub"><strong>Last full run:</strong> 2026-10-11 on <code>c52533c</code> — PHP 482/482 (35 files, on PHP 8.3; not rerun on PHP 7.4) · component tests 72/72 · admin E2E 7/7 (these three on <code>8ce5a6f</code>; later commits change no PHP or admin code) · live storefront matrix 133/134 in one run, with the browser leaving through an EU address. The one failure, the Elementor Pro case of the form hold spec, came from the suite itself (a click before Elementor bound its submit, and a repeat window the reset no longer cleared); after the fix in <code>9059e44</code> that case passed five times in a row.</p>
+  <h1>PixelFlow 1.2.3 — Test Scenario Matrix</h1>
+  <p class="sub">What the plugin's behaviour is actually verified against, organised by capability rather than by test file. Generated 2026-11-01 from <code>fix/woo-excluded-roles</code>, for the OpenSpec change <code>fix-woo-excluded-roles</code>.</p>
+  <p class="sub"><strong>Last full run:</strong> 2026-11-01 on <code>4ecfab8</code> — PHP 512/512 (38 files, on PHP 8.5.4; not rerun on PHP 7.4) · component tests 80/80 · admin E2E 7/7 · live storefront matrix 140/140 in one run, with the browser leaving through an EU address.</p>
 
   <div class="stats">
-    <div class="stat"><b>207</b><span>scenarios in this matrix</span></div>
-    <div class="stat"><b>192</b><span>covered</span></div>
+    <div class="stat"><b>217</b><span>scenarios in this matrix</span></div>
+    <div class="stat"><b>202</b><span>covered</span></div>
     <div class="stat"><b>15</b><span>partial or uncovered</span></div>
-    <div class="stat"><b>695</b><span>automated cases (482 PHP · 72 vitest · 7 admin E2E · 134 live E2E)</span></div>
+    <div class="stat"><b>739</b><span>automated cases (512 PHP · 80 vitest · 7 admin E2E · 140 live E2E)</span></div>
   </div>
 
   <div class="legend">
@@ -402,7 +402,7 @@
 <tr><td class="id">FRM-26</td><td>A form the listing missed</td><td>Sends with its computed configuration; adds no row</td><td class="where">tests/test-form-adapters.php</td><td><span class="tag ok">Covered</span></td></tr>
 <tr><td class="id">FRM-27</td><td>Configured form deleted, trashed, unpublished or deactivated</td><td>Deleted or trashed: missing, locked, config kept, nothing sent; unpublished or deactivated: not missing; reappearing form resumes its config</td><td class="where">tests/test-form-missing.php</td><td><span class="tag ok">Covered</span></td></tr>
 <tr><td class="id">FRM-28</td><td>Forms tab in the settings page</td><td>Plugin status line, single double-count warning, switches, events, mapping panel, stale-choice highlight, save-only-what-changed</td><td class="where">app/source/src/test/forms-settings.test.tsx · e2e/tests/forms-settings.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
-<tr><td class="id">FRM-29</td><td>Excluded-roles note</td><td>Shown only with WooCommerce tracking on</td><td class="where">app/source/src/features/settings/components/AdvancedSettings.test.tsx</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">FRM-29</td><td>Excluded-roles Purchase note</td><td>Shown only with WooCommerce active and its tracking on</td><td class="where">app/source/src/features/settings/components/AdvancedSettings.test.tsx</td><td><span class="tag ok">Covered</span></td></tr>
 <tr><td class="id">FRM-30</td><td>Site without WooCommerce</td><td>Form flush script loads; send, hold and replay work; nothing reaches the WooCommerce queue</td><td class="where">tests/test-form-*.php <em>(no WC())</em> · e2e/live/tests/forms-without-woo.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
 <tr><td class="id">FRM-31</td><td>Two concurrent requests of one double click</td><td>The request whose repeat-window insert loses sends nothing; closed windows are deleted by the next claim</td><td class="where">tests/test-form-skips.php <em>(the lost insert is simulated)</em></td><td><span class="tag ok">Covered</span></td></tr>
 <tr><td class="id">FRM-32</td><td>An older held recipe when a later hold saves the queue again; a hint cookie whose queue is gone</td><td>Each recipe expires 48 h after it was stored; the state route removes the stale cookie</td><td class="where">tests/test-form-hold.php</td><td><span class="tag ok">Covered</span></td></tr>
@@ -449,6 +449,23 @@
 </tbody>
 </table></div>
 <p class="note">The former <code>exclude</code> argument (a <code>NOT IN</code> clause) cost 2–6 ms of the 40–65 ms legacy query at 50,000 orders. The cost is paid once per order, in the request that moves it to processing or completed, and only on stores that turn the setting on. Accepted and documented; an indexed email lookup for legacy storage would be a separate change.</p>
+
+<h2 id="excluded-user-roles"><a class="anchor" href="#excluded-user-roles">20. Excluded user roles</a> <span class="count">— what a signed-in user with an excluded role still sends</span></h2>
+<div class="scroll"><table>
+<thead><tr><th>ID</th><th>Scenario</th><th>Expected behaviour</th><th>Verified in</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id">ROLE-01</td><td>A signed-in administrator with the role excluded opens a storefront page</td><td>None of the plugin's scripts are on the page</td><td class="where">e2e/live/tests/excluded-role.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">ROLE-02</td><td>That user adds to cart and goes to checkout</td><td>No <code>AddToCart</code> or <code>InitiateCheckout</code> and no <code>/blocked-events</code> report; the debug log records <code>USER ROLE IS EXCLUDED FROM TRACKING</code></td><td class="where">tests/test-woo-excluded-roles.php · e2e/live/tests/excluded-role.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">ROLE-03</td><td>The same events under an unanswered banner or declined consent</td><td>Nothing is held and no blocked report is sent</td><td class="where">tests/test-woo-excluded-roles.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">ROLE-04</td><td>A user with several roles, one of them excluded</td><td>Excluded</td><td class="where">tests/test-woo-excluded-roles.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">ROLE-05</td><td>The excluded user's own checkout</td><td>No <code>Purchase</code>; the order is not recorded as delivered (<code>_pf_purchase_sent</code> stays unset)</td><td class="where">tests/test-woo-excluded-roles.php · e2e/live/tests/excluded-role.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">ROLE-06</td><td>A later request that is not theirs moves that order: a gateway webhook, automation or another staff member <em>(accepted limit)</em></td><td>The skipped <code>Purchase</code> is sent once, because that request does not belong to the excluded user; the settings page states this</td><td class="where">tests/test-woo-excluded-roles.php · e2e/live/tests/excluded-role.spec.ts <em>(status change over WP-CLI)</em></td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">ROLE-07</td><td>An excluded administrator completes a real customer's order in wp-admin</td><td>The customer's <code>Purchase</code> is sent</td><td class="where">tests/test-woo-excluded-roles.php · e2e/live/tests/excluded-role.spec.ts</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">ROLE-08</td><td>A role that is not excluded, a guest, or no roles excluded at all</td><td>Events are sent as before; on the storefront the tracking script is present</td><td class="where">tests/test-woo-excluded-roles.php · e2e/live/tests/excluded-role.spec.ts <em>(guest and customer)</em></td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">ROLE-09</td><td>Events held earlier are replayed on an excluded user's request</td><td>They are sent; the replay is not judged by the current user's role</td><td class="where">tests/test-woo-excluded-roles.php</td><td><span class="tag ok">Covered</span></td></tr>
+<tr><td class="id">ROLE-10</td><td>The setting on the settings page</td><td>Titled <code>Exclude Tracking for User Roles</code>; says a tracking script added by hand is not affected once a role is selected</td><td class="where">app/source/src/features/settings/components/AdvancedSettings.test.tsx</td><td><span class="tag ok">Covered</span></td></tr>
+</tbody>
+</table></div>
 
 <footer>
   <p><strong>How to run.</strong> PHP suites are plain scripts: <code>php tests/test-&lt;name&gt;.php</code> (exit 0 = green). Component tests: <code>npm run test</code> from <code>app/source/</code>. Local admin E2E: Playwright from <code>e2e/</code>. The live storefront suite runs against the live test site — invoke it through the <code>test-live-woo-events</code> skill rather than by hand, since it builds and installs the plugin first.</p>

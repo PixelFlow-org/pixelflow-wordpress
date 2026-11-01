@@ -36,7 +36,7 @@
 
 ## 7. Full run and report
 
-- [ ] 7.1 Run the PHP suite, frontend suite, admin E2E (`e2e/tests`) and live matrix (`e2e/live`); every suite passes
-- [ ] 7.2 Add `ROLE-*` rows to `docs/test-scenarios.html` for the scenarios above, including the accepted Purchase limit
-- [ ] 7.3 Update the report's version, header, "Last full run" line and counts, then publish it with `e2e/live/scripts/publish-report.sh`
-- [ ] 7.4 Check that no commit, spec or report text contains a client name, domain, IP address or absolute event count
+- [x] 7.1 Run the PHP suite, frontend suite, admin E2E (`e2e/tests`) and live matrix (`e2e/live`); every suite passes
+- [x] 7.2 Add `ROLE-*` rows to `docs/test-scenarios.html` for the scenarios above, including the accepted Purchase limit
+- [x] 7.3 Update the report's version, header, "Last full run" line and counts, then publish it with `e2e/live/scripts/publish-report.sh`
+- [x] 7.4 Check that no commit, spec or report text contains a client name, domain, IP address or absolute event count
