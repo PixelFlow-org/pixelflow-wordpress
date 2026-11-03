@@ -19,6 +19,8 @@ export interface SettingsState {
   /** "Enable <event> event for free products". Defaults to all enabled. */
   freebies?: Partial<Record<EventKey, boolean>>;
   excludedSkus?: string[];
+  /** Role keys under "Exclude Tracking for User Roles". None unless given, so every preset restores it. */
+  excludedRoles?: string[];
   /** "Only the customer's first purchase". Off unless given, so every preset restores it. */
   firstPurchase?: {
     lookback?: 'all' | 'days';
@@ -40,6 +42,10 @@ export async function applySettings(page: Page, state: SettingsState): Promise<v
   }
 
   await settings.setDebugLogging(state.debugLogging);
+  await settings.setRoleExcluded(
+    'administrator',
+    (state.excludedRoles ?? []).includes('administrator')
+  );
 
   for (const event of EVENTS) {
     await settings.setEventEnabled(event, state.events?.[event] ?? true);
@@ -97,4 +103,8 @@ export const FIRST_PURCHASE_ONLY: SettingsState = {
 
 export function skusExcluded(...skus: string[]): SettingsState {
   return { wooIntegration: true, debugLogging: true, excludedSkus: skus };
+}
+
+export function rolesExcluded(...roles: string[]): SettingsState {
+  return { wooIntegration: true, debugLogging: true, excludedRoles: roles };
 }

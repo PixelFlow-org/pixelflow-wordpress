@@ -99,6 +99,17 @@ function is_admin(): bool
     return ! empty($GLOBALS['__pf_admin']);
 }
 
+function is_user_logged_in(): bool
+{
+    // Signed out unless a test sets $GLOBALS['__pf_user'] to an object with `roles`.
+    return ($GLOBALS['__pf_user'] ?? null) !== null;
+}
+
+function wp_get_current_user()
+{
+    return $GLOBALS['__pf_user'] ?? null;
+}
+
 function sanitize_text_field($str)
 {
     return is_string($str) ? trim($str) : $str;

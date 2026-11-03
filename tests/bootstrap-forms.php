@@ -120,16 +120,6 @@ function wp_parse_url($url, $component = -1)
     return parse_url((string) $url, $component);
 }
 
-function is_user_logged_in(): bool
-{
-    return $GLOBALS['__pf_user'] !== null;
-}
-
-function wp_get_current_user()
-{
-    return $GLOBALS['__pf_user'];
-}
-
 function wp_doing_ajax(): bool
 {
     return false;

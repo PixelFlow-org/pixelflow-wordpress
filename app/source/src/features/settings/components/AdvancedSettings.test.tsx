@@ -177,12 +177,45 @@ describe('AdvancedSettings — excluded roles and WooCommerce event sending', ()
     Object.keys(contextOverrides).forEach((key) => delete contextOverrides[key]);
   });
 
-  it('states the limitation when WooCommerce tracking is on', () => {
+  it('states what the setting excludes under its new title', () => {
+    Object.assign(contextOverrides, { availableRoles: roles });
+    render(<AdvancedSettings />);
+
+    expect(screen.getByText('Exclude Tracking for User Roles')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /tracking script is not loaded for them, and their form and WooCommerce events are not sent/
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('states the hand-added script limit once a role is selected', () => {
+    Object.assign(contextOverrides, {
+      availableRoles: roles,
+      generalOptions: { ...generalOptions, excluded_user_roles: ['administrator'] },
+    });
+    render(<AdvancedSettings />);
+
+    expect(
+      screen.getByText(/tracking script added to the site by hand is not affected/)
+    ).toBeInTheDocument();
+  });
+
+  it('does not state the hand-added script limit with no role selected', () => {
+    Object.assign(contextOverrides, { availableRoles: roles });
+    render(<AdvancedSettings />);
+
+    expect(
+      screen.queryByText(/tracking script added to the site by hand is not affected/)
+    ).not.toBeInTheDocument();
+  });
+
+  it('states the Purchase limit when WooCommerce tracking is on', () => {
     Object.assign(contextOverrides, { availableRoles: roles });
     render(<AdvancedSettings />);
 
     expect(screen.getByTestId('excluded-roles-woo-note')).toHaveTextContent(
-      'not applied to WooCommerce event sending'
+      "A Purchase can still be sent when a payment gateway, automation or another staff member changes the order's status"
     );
   });
 

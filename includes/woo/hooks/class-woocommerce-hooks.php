@@ -2110,6 +2110,21 @@ class PixelFlow_WooCommerce_Cart_Hooks
         $order              = isset($context['order']) && $context['order'] instanceof WC_Order ? $context['order'] : null;
         $bot_rule           = isset($context['bot_rule']) && is_string($context['bot_rule']) ? $context['bot_rule'] : null;
 
+        // Same rule as form events: an excluded role sends no event and no blocked report, and is
+        // never held. It judges only the user's own request, so a replay of events held earlier
+        // and a request that is not the buyer's (staff completing an order, a gateway webhook)
+        // are unaffected. A skipped Purchase is not recorded as delivered, so such a request can
+        // still send it later.
+        if ( ! $this->flushing_held
+            && $allow_live
+            && pixelflow_current_user_has_excluded_role(is_array($this->options) ? $this->options : [])
+        ) {
+            $event_name = isset($payload['eventData']['eventName']) ? (string) $payload['eventData']['eventName'] : 'unknown';
+            $this->debug_log($event_name, $payload, 'USER ROLE IS EXCLUDED FROM TRACKING');
+
+            return 'skipped';
+        }
+
         // Identity is resolved here rather than in the customer-data builders: this is the one
         // point every event type passes through, and the only place $context exists — which the
         // pixelflow_external_id filter is contracted to receive. Resolving before
